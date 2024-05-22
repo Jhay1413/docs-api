@@ -1,0 +1,97 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserInfo {
+  id               String       @id @default(uuid())
+  email            String       @unique
+  firstName        String
+  lastName         String
+  assignedDivision String
+  assignedPosition String
+  assignedSection  String
+  dateStarted      String
+  jobStatus        String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  accountId        String       @unique
+  contactNumber    String
+  imageUrl         String
+  birthDate        String
+  employeeId       String
+  middleName       String?
+  account          UserAccounts @relation(fields: [accountId], references: [id])
+}
+
+model UserAccounts {
+  id           String            @id @default(uuid())
+  password     String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  email        String            @unique
+  accountRole  Roles             @default(USER)
+  received     DocumentHistory[] @relation("ReceivedDocuments")
+  forwarded    DocumentHistory[] @relation("ForwardedDocuments")
+  documentInfo DocumentInfo[]
+  userInfo     UserInfo?
+}
+
+model DocumentInfo {
+  id              String            @id @default(uuid())
+  documentType    String
+  subject         String
+  dueDate         DateTime
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdBy       String
+  documentSubType String
+  team            String
+  documentHistory DocumentHistory[]
+  account         UserAccounts      @relation(fields: [createdBy], references: [id])
+}
+
+model DocumentHistory {
+  id             String        @id @default(uuid())
+  forwardedTo    String
+  remarks        String
+  receivedBy     String?
+  forwardedBy    String
+  parentRecordId String
+  createdAt      DateTime      @default(now())
+  dateForwarded  DateTime
+  dateReceived   DateTime?
+  subject        String
+  updatedAt      DateTime      @updatedAt
+  fromDepartment String
+  toDepartment   String
+  attachments    Attachment[]
+  forwarder      UserAccounts  @relation("ReceivedDocuments", fields: [forwardedBy], references: [id])
+  parentRecord   DocumentInfo  @relation(fields: [parentRecordId], references: [id])
+  recieve        UserAccounts? @relation("ForwardedDocuments", fields: [receivedBy], references: [id])
+}
+
+model Attachment {
+  id               String          @id @default(uuid())
+  fileName         String
+  fileUrl          String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  historyId        String
+  remarks          String?
+  fileOriginalName String
+  attachment       DocumentHistory @relation(fields: [historyId], references: [id])
+}
+
+enum Roles {
+  SUPERADMIN
+  ADMIN
+  USER
+  TL
+  CH
+}

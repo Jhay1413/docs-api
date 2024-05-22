@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "UserInfo" ALTER COLUMN "birthDate" DROP DEFAULT,
+ALTER COLUMN "employeeId" DROP DEFAULT;
