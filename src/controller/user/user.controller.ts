@@ -54,7 +54,7 @@ export const getUser = async (req: Request, res: Response) => {
     const users = await db.userInfo.findMany();
 
     const usersWithSignedUrls: TUserInfoWithSignedUrl[] = await Promise.all(
-      users.map(async (user) => {
+      users.map(async (user:any) => {
         const signedUrl = await getSignedUrlFromS3(user.imageUrl);
         return { ...user, signedUrl };
       })

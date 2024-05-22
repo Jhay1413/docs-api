@@ -80,7 +80,7 @@ export const getDocumentsService = async () => {
   
   
   const data:TDcoumentInfo[] = []
-  documents.map((doc)=>{
+  documents.map((doc:any)=>{
       data.push({
           id:doc.id,
           documentType:doc.documentType,
