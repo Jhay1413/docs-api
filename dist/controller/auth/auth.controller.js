@@ -45,13 +45,13 @@ const loginHander = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             httpOnly: true,
             maxAge: 7 * 24 * 60 * 60 * 1000,
             secure: true,
-            sameSite: "strict",
+            sameSite: "none",
         });
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
             maxAge: 30 * 24 * 60 * 60 * 1000,
             secure: true,
-            sameSite: "strict",
+            sameSite: "none",
         });
         const payload = {
             email: user.email,
