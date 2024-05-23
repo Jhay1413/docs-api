@@ -17,7 +17,7 @@ export const loginHander = async (
       return res.status(StatusCodes.BAD_REQUEST).send("User not found");
     }
     if (user.password !== rest.password) {
-      console.log("asdasdas")
+  
       return res.status(StatusCodes.UNAUTHORIZED).send("Incorrect password");
     }
 
