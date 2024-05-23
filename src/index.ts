@@ -10,9 +10,10 @@ const corsOptions = {
   origin: 'https://docs-client.onrender.com', // This is the origin of the client
   credentials: true, // This allows the session cookie to be sent with the request
 };
+app.use(cors(corsOptions))
 app.use(express.json());
 app.use(cookieParser())
-app.use(cors(corsOptions))
+
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
