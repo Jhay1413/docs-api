@@ -7,7 +7,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 const app = express();
 const corsOptions = {
-  origin: 'https://dts-client.netlify.app', // This is the origin of the client
+  origin: ['https://dts-client.netlify.app','http://localhost:5173','http://localhost:4173'], // This is the origin of the client
   credentials: true, // This allows the session cookie to be sent with the request
 };
 app.use(cors(corsOptions))

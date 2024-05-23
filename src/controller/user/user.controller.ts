@@ -51,16 +51,31 @@ export const registerUser = async (
 
 export const getUser = async (req: Request, res: Response) => {
   try {
-    const users = await db.userInfo.findMany();
+    const users = await db.userInfo.findMany({
+      select:{
+        id:true,
+        employeeId:true,
+        firstName:true,
+        lastName:true,
+        assignedDivision:true,
+        assignedSection:true,
+        assignedPosition:true,
+        dateStarted:true,
+        jobStatus:true,
+        birthDate:true,
+        imageUrl:true,
+      }
+    });
 
     const usersWithSignedUrls: TUserInfoWithSignedUrl[] = await Promise.all(
       users.map(async (user:any) => {
         const signedUrl = await getSignedUrlFromS3(user.imageUrl);
-        return { ...user, signedUrl };
+        const { imageUrl, ...rest } = user;
+        return { ...rest, signedUrl };
       })
     );
 
-    return res.status(StatusCodes.OK).send(usersWithSignedUrls);
+    return res.status(StatusCodes.OK).json({data:usersWithSignedUrls});
   } catch (error) {
     throw new Error("Something went wrong while fetching users - controller!");
   }
