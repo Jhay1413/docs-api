@@ -11,7 +11,7 @@ const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const app = (0, express_1.default)();
 const corsOptions = {
-    origin: 'https://docs-client.onrender.com', // This is the origin of the client
+    origin: '*', // This is the origin of the client
     credentials: true, // This allows the session cookie to be sent with the request
 };
 app.use((0, cors_1.default)(corsOptions));
