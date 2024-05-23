@@ -75,7 +75,7 @@ export const getUser = async (req: Request, res: Response) => {
       })
     );
 
-    return res.status(StatusCodes.OK).json({data:usersWithSignedUrls});
+    return res.status(StatusCodes.OK).send(usersWithSignedUrls);
   } catch (error) {
     throw new Error("Something went wrong while fetching users - controller!");
   }
