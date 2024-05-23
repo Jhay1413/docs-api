@@ -25,19 +25,18 @@ export const registerUser = async (
 ) => {
   const data = req.body;
   const file = req.file;
-  if (!file) {
-    return res.status(StatusCodes.BAD_REQUEST).send("No image uploaded");
-  }
-
+  var imageUrl = null;
   try {
-    const imageUrl = await uploadImageToS3(file);
+    if (file) {
+      imageUrl = await uploadImageToS3(file);
 
-    if (!imageUrl) {
-      return res
-        .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .send("Error uploading image");
+      if (!imageUrl) {
+        return res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send("Error uploading image");
+      }
     }
-    await insertUserInfo({ ...data, imageUrl });
+    await insertUserInfo({ ...data, imageUrl});
 
     res.status(StatusCodes.CREATED).send("User created successfully");
   } catch (error) {
@@ -52,23 +51,24 @@ export const registerUser = async (
 export const getUser = async (req: Request, res: Response) => {
   try {
     const users = await db.userInfo.findMany({
-      select:{
-        id:true,
-        employeeId:true,
-        firstName:true,
-        lastName:true,
-        assignedDivision:true,
-        assignedSection:true,
-        assignedPosition:true,
-        dateStarted:true,
-        jobStatus:true,
-        birthDate:true,
-        imageUrl:true,
-      }
+      select: {
+        id: true,
+        employeeId: true,
+        firstName: true,
+        lastName: true,
+        assignedDivision: true,
+        assignedSection: true,
+        assignedPosition: true,
+        dateStarted: true,
+        jobStatus: true,
+        birthDate: true,
+        imageUrl: true,
+      },
     });
-
+    
     const usersWithSignedUrls: TUserInfoWithSignedUrl[] = await Promise.all(
-      users.map(async (user:any) => {
+      users.map(async (user: any) => {
+        if(user.imageUrl === null) return user;
         const signedUrl = await getSignedUrlFromS3(user.imageUrl);
         const { imageUrl, ...rest } = user;
         return { ...rest, signedUrl };
@@ -109,4 +109,4 @@ export const userAccounts = async (req: Request, res: Response) => {
   } catch (error) {
     throw new Error("Something went wrong while fetching user accounts!");
   }
-}
+};

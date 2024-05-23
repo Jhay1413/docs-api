@@ -76,7 +76,7 @@ export const userWithIdSchema = userInfoSchema.body.extend({
   })
 })
 export const userInfoWithProfile = userRegisterSchema.extend({
-  imageUrl: z.string(),
+  imageUrl: z.nullable(z.string()),
 });
 
 export const userInfoWithSignedUrl = userRegisterSchema
