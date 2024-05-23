@@ -36,7 +36,6 @@ const loginHander = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("User not found");
         }
         if (user.password !== rest.password) {
-            console.log("asdasdas");
             return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("Incorrect password");
         }
         const accessToken = jsonwebtoken_1.default.sign({ email: user.email }, process.env.JWT_ACCESS_TOKEN_SECRET, { expiresIn: "1d" });
