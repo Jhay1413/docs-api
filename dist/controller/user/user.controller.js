@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.userAccounts = exports.updateUser = exports.getUser = exports.registerUser = void 0;
 const prisma_1 = require("../../prisma");
@@ -17,15 +28,15 @@ const user_service_1 = require("./user.service");
 const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const data = req.body;
     const file = req.file;
-    if (!file) {
-        return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("No image uploaded");
-    }
+    var imageUrl = null;
     try {
-        const imageUrl = yield (0, aws_config_1.uploadImageToS3)(file);
-        if (!imageUrl) {
-            return res
-                .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
-                .send("Error uploading image");
+        if (file) {
+            imageUrl = yield (0, aws_config_1.uploadImageToS3)(file);
+            if (!imageUrl) {
+                return res
+                    .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
+                    .send("Error uploading image");
+            }
         }
         yield (0, user_service_1.insertUserInfo)(Object.assign(Object.assign({}, data), { imageUrl }));
         res.status(http_status_codes_1.StatusCodes.CREATED).send("User created successfully");
@@ -41,14 +52,32 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 exports.registerUser = registerUser;
 const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const users = yield prisma_1.db.userInfo.findMany();
+        const users = yield prisma_1.db.userInfo.findMany({
+            select: {
+                id: true,
+                employeeId: true,
+                firstName: true,
+                lastName: true,
+                assignedDivision: true,
+                assignedSection: true,
+                assignedPosition: true,
+                dateStarted: true,
+                jobStatus: true,
+                birthDate: true,
+                imageUrl: true,
+            },
+        });
         const usersWithSignedUrls = yield Promise.all(users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
+            if (user.imageUrl === null)
+                return user;
             const signedUrl = yield (0, aws_config_1.getSignedUrlFromS3)(user.imageUrl);
-            return Object.assign(Object.assign({}, user), { signedUrl });
+            const { imageUrl } = user, rest = __rest(user, ["imageUrl"]);
+            return Object.assign(Object.assign({}, rest), { signedUrl });
         })));
         return res.status(http_status_codes_1.StatusCodes.OK).send(usersWithSignedUrls);
     }
     catch (error) {
+        console.log(error);
         throw new Error("Something went wrong while fetching users - controller!");
     }
 });

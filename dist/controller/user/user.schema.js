@@ -80,7 +80,7 @@ exports.userWithIdSchema = exports.userInfoSchema.body.extend({
     })
 });
 exports.userInfoWithProfile = exports.userRegisterSchema.extend({
-    imageUrl: zod_2.default.string(),
+    imageUrl: zod_2.default.nullable(zod_2.default.string()),
 });
 exports.userInfoWithSignedUrl = exports.userRegisterSchema
     .extend({
