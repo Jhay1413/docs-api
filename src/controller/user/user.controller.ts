@@ -108,6 +108,7 @@ export const userAccounts = async (req: Request, res: Response) => {
     const users = await db.userAccounts.findMany();
     return res.status(StatusCodes.OK).send(users);
   } catch (error) {
+    console.log(error)
     throw new Error("Something went wrong while fetching user accounts!");
   }
 };

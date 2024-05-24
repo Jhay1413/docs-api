@@ -1,4 +1,4 @@
-import { object, string, TypeOf } from "zod";
+import { object, string, TypeOf,optional,nullable } from "zod";
 import z from "zod";
 
 export const userInfoSchema = {
@@ -21,10 +21,10 @@ export const userInfoSchema = {
     assignedPosition: string({
       required_error: "assignedPosition is required",
     }),
-    assignedSection: string({
+    assignedSection: nullable(string({
       required_error: "assignedSection is required",
-    }),
-    dateStarted: z.string({
+    })),
+    dateStarted: string({
       required_error: "date is required",
     }),
     jobStatus: string({
@@ -33,10 +33,10 @@ export const userInfoSchema = {
     contactNumber: string({
       required_error: "contactNumber is required",
     }),
-    birthDate: z.string({
+    birthDate: string({
       required_error: "birthDate is required",
     }),
-    middleName: z.nullable(z.string({
+    middleName: nullable(z.string({
       required_error: "middleName is required",
     }))
   }),

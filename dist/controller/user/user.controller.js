@@ -105,6 +105,7 @@ const userAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         return res.status(http_status_codes_1.StatusCodes.OK).send(users);
     }
     catch (error) {
+        console.log(error);
         throw new Error("Something went wrong while fetching user accounts!");
     }
 });

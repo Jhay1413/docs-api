@@ -15,7 +15,7 @@ model UserInfo {
   lastName         String
   assignedDivision String
   assignedPosition String
-  assignedSection  String
+  assignedSection  String?
   dateStarted      String
   jobStatus        String
   createdAt        DateTime     @default(now())
@@ -35,7 +35,7 @@ model UserAccounts {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   email        String            @unique
-  accountRole  Roles             @default(USER)
+  accountRole  Roles             @default(GUEST)
   received     DocumentHistory[] @relation("ReceivedDocuments")
   forwarded    DocumentHistory[] @relation("ForwardedDocuments")
   documentInfo DocumentInfo[]
@@ -91,7 +91,7 @@ model Attachment {
 enum Roles {
   SUPERADMIN
   ADMIN
-  USER
   TL
   CH
+  GUEST
 }

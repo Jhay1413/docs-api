@@ -26,10 +26,10 @@ exports.userInfoSchema = {
         assignedPosition: (0, zod_1.string)({
             required_error: "assignedPosition is required",
         }),
-        assignedSection: (0, zod_1.string)({
+        assignedSection: (0, zod_1.nullable)((0, zod_1.string)({
             required_error: "assignedSection is required",
-        }),
-        dateStarted: zod_2.default.string({
+        })),
+        dateStarted: (0, zod_1.string)({
             required_error: "date is required",
         }),
         jobStatus: (0, zod_1.string)({
@@ -38,10 +38,10 @@ exports.userInfoSchema = {
         contactNumber: (0, zod_1.string)({
             required_error: "contactNumber is required",
         }),
-        birthDate: zod_2.default.string({
+        birthDate: (0, zod_1.string)({
             required_error: "birthDate is required",
         }),
-        middleName: zod_2.default.nullable(zod_2.default.string({
+        middleName: (0, zod_1.nullable)(zod_2.default.string({
             required_error: "middleName is required",
         }))
     }),
