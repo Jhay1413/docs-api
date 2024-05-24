@@ -68,7 +68,7 @@ const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             },
         });
         const usersWithSignedUrls = yield Promise.all(users.map((user) => __awaiter(void 0, void 0, void 0, function* () {
-            if (user.imageUrl === null)
+            if (!user.imageUrl)
                 return user;
             const signedUrl = yield (0, aws_config_1.getSignedUrlFromS3)(user.imageUrl);
             const { imageUrl } = user, rest = __rest(user, ["imageUrl"]);
