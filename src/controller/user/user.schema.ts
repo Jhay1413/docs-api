@@ -81,9 +81,9 @@ export const userInfoWithProfile = userRegisterSchema.extend({
 
 export const userInfoWithSignedUrl = userRegisterSchema
   .extend({
-    imageUrl: z.string({
+    imageUrl: z.nullable(z.string({
       message: "imageUrl is required",
-    }),
+    })),
     dateStarted: z.date(),
   })
   .omit({
