@@ -20,7 +20,7 @@ app.use(cookieParser())
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
-app.listen(3001, () => {
+app.listen(3001 || process.env.PORT, () => {
   console.log("Server is running on port 3001");
 });
 const server = http.createServer(app);
