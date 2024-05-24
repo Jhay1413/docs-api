@@ -14,11 +14,11 @@ export const loginHander = async (
   try {
     const user = await checkUserAccountExists(rest.email);
     if (!user) {
-      return res.status(StatusCodes.BAD_REQUEST).send("User not found");
+      return res.status(StatusCodes.BAD_REQUEST).send("User not found !");
     }
     if (user.password !== rest.password) {
   
-      return res.status(StatusCodes.UNAUTHORIZED).send("Incorrect password");
+      return res.status(StatusCodes.UNAUTHORIZED).send("Incorrect password !");
     }
 
     const accessToken = jwt.sign(

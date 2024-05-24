@@ -33,10 +33,10 @@ const loginHander = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     try {
         const user = yield (0, auth_service_1.checkUserAccountExists)(rest.email);
         if (!user) {
-            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("User not found");
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("User not found !");
         }
         if (user.password !== rest.password) {
-            return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("Incorrect password");
+            return res.status(http_status_codes_1.StatusCodes.UNAUTHORIZED).send("Incorrect password !");
         }
         const accessToken = jsonwebtoken_1.default.sign({ email: user.email }, process.env.JWT_ACCESS_TOKEN_SECRET, { expiresIn: "1d" });
         const refreshToken = jsonwebtoken_1.default.sign({ email: user.email }, process.env.JWT_REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
