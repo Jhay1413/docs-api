@@ -84,9 +84,9 @@ exports.userInfoWithProfile = exports.userRegisterSchema.extend({
 });
 exports.userInfoWithSignedUrl = exports.userRegisterSchema
     .extend({
-    imageUrl: zod_2.default.string({
+    imageUrl: zod_2.default.nullable(zod_2.default.string({
         message: "imageUrl is required",
-    }),
+    })),
     dateStarted: zod_2.default.date(),
 })
     .omit({
