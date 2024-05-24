@@ -68,7 +68,7 @@ export const getUser = async (req: Request, res: Response) => {
     
     const usersWithSignedUrls: TUserInfoWithSignedUrl[] = await Promise.all(
       users.map(async (user: any) => {
-        if(user.imageUrl === null) return user;
+        if(!user.imageUrl) return user;
         const signedUrl = await getSignedUrlFromS3(user.imageUrl);
         const { imageUrl, ...rest } = user;
         return { ...rest, signedUrl };
