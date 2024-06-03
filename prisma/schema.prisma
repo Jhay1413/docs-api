@@ -8,6 +8,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Roles {
+  SUPERADMIN
+  ADMIN
+  TL
+  CH
+  GUEST
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  DISABLE
+}
 model UserInfo {
   id               String       @id @default(uuid())
   email            String       @unique
@@ -40,6 +53,7 @@ model UserAccounts {
   forwarded    DocumentHistory[] @relation("ForwardedDocuments")
   documentInfo DocumentInfo[]
   userInfo     UserInfo?
+  accountStatus Status @default(ACTIVE)
 }
 
 model DocumentInfo {
@@ -88,10 +102,3 @@ model Attachment {
   attachment       DocumentHistory @relation(fields: [historyId], references: [id])
 }
 
-enum Roles {
-  SUPERADMIN
-  ADMIN
-  TL
-  CH
-  GUEST
-}
