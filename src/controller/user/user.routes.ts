@@ -18,5 +18,5 @@ router.put("/:id", upload.single("imageFile"), processRequestBody(userInfoSchema
 
 // General routes defined last
 router.get("/", getUsers);
-router.get("/:id", getUser);
+router.get("/user/:id", getUser);
 export default router
