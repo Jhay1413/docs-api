@@ -17,6 +17,7 @@ router.post("/register", upload.single("imageFile"), processRequestBody(userRegi
 router.put("/:id", upload.single("imageFile"), processRequestBody(userInfoSchema.body), updateUser);
 
 // General routes defined last
-router.get("/", getUsers);
 router.get("/:id", getUser);
+router.get("/", getUsers);
+
 export default router
