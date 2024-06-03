@@ -1,24 +1,72 @@
 import { Request, Response } from "express";
-import {
-  RegisterBody,
-  TLoginBody,
-  TUserInfoWithProfile,
-  TUserInfoWithSignedUrl,
-} from "./user.schema";
+import { RegisterBody, TUserInfoWithSignedUrl } from "./user.schema";
 import { db } from "../../prisma";
-import { Roles } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
-import {
-  getSignedUrlFromS3,
-  uploadImageToS3,
-  uploadToS3,
-} from "../../services/aws-config";
+import { getSignedUrlFromS3, uploadImageToS3 } from "../../services/aws-config";
 import {
   checkUserIdExists,
+  insertUpdatedImageUrl,
   insertUpdatedUserInfo,
   insertUserInfo,
 } from "./user.service";
-import jwt from "jsonwebtoken";
+
+export const changeProfile = async (req: Request, res: Response) => {
+  const file = req.file;
+  const id = req.params.id;
+  try {
+    if (!file) {
+      throw new Error("No file provided");
+    }
+    const url = await uploadImageToS3(file);
+
+    const signedUrl = await getSignedUrlFromS3(url);
+
+    const user = await insertUpdatedImageUrl(id, url);
+
+    res.status(StatusCodes.CREATED).send({...user,signedUrl});
+  } catch (error: any) {
+    console.error("Error in changeProfile:", error.message);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send("Something went wrong while updating the user profile ! ");
+  }
+};
+export const getUser = async (
+  req: Request<{ id: string }, {}, {}>,
+  res: Response
+) => {
+  try {
+    const id = req.params.id;
+    const user = await db.userInfo.findUnique({
+      where: {
+        id,
+      },
+      omit: {
+        createdAt: true,
+        updatedAt: true,
+      },
+      include: {
+        account: {
+          omit: {
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+    if (!user) return res.status(StatusCodes.NOT_FOUND).send("User not found");
+
+    if (user.imageUrl) {
+      const signedUrl = await getSignedUrlFromS3(user.imageUrl);
+      return res.status(StatusCodes.OK).send({ ...user, signedUrl });
+    }
+    return res.status(StatusCodes.OK).send(user);
+  } catch (error) {
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send("Something went wrong while fetching user - controller!");
+  }
+};
 export const registerUser = async (
   req: Request<{}, {}, RegisterBody>,
   res: Response
@@ -36,7 +84,7 @@ export const registerUser = async (
           .send("Error uploading image");
       }
     }
-    await insertUserInfo({ ...data, imageUrl});
+    await insertUserInfo({ ...data, imageUrl });
 
     res.status(StatusCodes.CREATED).send("User created successfully");
   } catch (error) {
@@ -48,7 +96,7 @@ export const registerUser = async (
   }
 };
 
-export const getUser = async (req: Request, res: Response) => {
+export const getUsers = async (req: Request, res: Response) => {
   try {
     const users = await db.userInfo.findMany({
       select: {
@@ -65,10 +113,10 @@ export const getUser = async (req: Request, res: Response) => {
         imageUrl: true,
       },
     });
-    
+
     const usersWithSignedUrls: TUserInfoWithSignedUrl[] = await Promise.all(
       users.map(async (user: any) => {
-        if(!user.imageUrl) return user;
+        if (!user.imageUrl) return user;
         const signedUrl = await getSignedUrlFromS3(user.imageUrl);
         const { imageUrl, ...rest } = user;
         return { ...rest, signedUrl };
@@ -77,8 +125,10 @@ export const getUser = async (req: Request, res: Response) => {
 
     return res.status(StatusCodes.OK).send(usersWithSignedUrls);
   } catch (error) {
-    console.log(error)
-    throw new Error("Something went wrong while fetching users - controller!");
+    console.log(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send("Something went wrong while fetching users - controller!");
   }
 };
 export const updateUser = async (
@@ -99,7 +149,10 @@ export const updateUser = async (
 
     res.status(StatusCodes.OK).send("User updated successfully");
   } catch (error) {
-    throw new Error("Something went wrong while updating user - controller!");
+    console.log(error)
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send("Something went wrong while updating user - controller!");
   }
 };
 
@@ -108,7 +161,9 @@ export const userAccounts = async (req: Request, res: Response) => {
     const users = await db.userAccounts.findMany();
     return res.status(StatusCodes.OK).send(users);
   } catch (error) {
-    console.log(error)
-    throw new Error("Something went wrong while fetching user accounts!");
+    console.log(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send("Something went wrong while fetching user accounts!");
   }
 };

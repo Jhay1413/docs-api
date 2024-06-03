@@ -77,10 +77,38 @@ export const insertUpdatedUserInfo = async (data: TUserWithId) => {
       })
       return "User updated successfully"
   } catch (error) {
+    console.log(error)
     throw new Error("Something went wrong while updating user - service!")
   }
 }
 
+export const insertUpdatedImageUrl = async (id:string,url:string)=>{
+  try {
+    const user = await db.userInfo.update({
+      where:{
+        id:id
+      },
+      data:{
+        imageUrl:url
+      },
+      omit: {
+        createdAt: true,
+        updatedAt: true,
+      },
+      include: {
+        account: {
+          omit: {
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    })
+    return user
+  } catch (error) {
+    throw new Error("Error while updating the user profile !")
+  }
+}
 export const checkUserIdExists = async (id: string) => {
   try {
     const isExist = await db.userInfo.findUnique({
@@ -93,7 +121,8 @@ export const checkUserIdExists = async (id: string) => {
       return true
     }
     return false
-  } catch (error) {
+  } catch (error:any) {
+    console.log(error.message)
     throw new Error("Something went wrong while checking user id - service!")
   }
 }
