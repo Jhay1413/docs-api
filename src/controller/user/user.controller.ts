@@ -54,6 +54,7 @@ export const getUser = async (
         },
       },
     });
+    console.log(user + "adasdsadassda")
     if (!user) return res.status(StatusCodes.NOT_FOUND).send("User not found");
 
     if (user.imageUrl) {
