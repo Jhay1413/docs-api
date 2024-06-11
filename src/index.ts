@@ -3,6 +3,9 @@ import express from "express";
 import authRouter from "./controller/auth/auth.route";
 import userRouter from "./controller/user/user.routes";
 import transactionRouter from "./controller/transaction/transaction.route";
+import companyRouter from "./controller/company/company.route";
+
+
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import http from "http";
@@ -20,6 +23,7 @@ app.use(cookieParser())
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
+app.use('/api/companies',companyRouter)
 app.listen(3001 || process.env.PORT, () => {
   console.log("Server is running on port 3001");
 });

@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["relationJoins","omitApi"]
+  previewFeatures = ["relationJoins", "omitApi"]
 }
 
 datasource db {
@@ -21,6 +21,7 @@ enum Status {
   INACTIVE
   DISABLE
 }
+
 model UserInfo {
   id               String       @id @default(uuid())
   email            String       @unique
@@ -43,17 +44,17 @@ model UserInfo {
 }
 
 model UserAccounts {
-  id           String            @id @default(uuid())
-  password     String
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  email        String            @unique
-  accountRole  Roles             @default(GUEST)
-  received     DocumentHistory[] @relation("ReceivedDocuments")
-  forwarded    DocumentHistory[] @relation("ForwardedDocuments")
-  documentInfo DocumentInfo[]
-  userInfo     UserInfo?
-  accountStatus Status @default(ACTIVE)
+  id            String            @id @default(uuid())
+  password      String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  email         String            @unique
+  accountRole   Roles             @default(GUEST)
+  received      DocumentHistory[] @relation("ReceivedDocuments")
+  forwarded     DocumentHistory[] @relation("ForwardedDocuments")
+  documentInfo  DocumentInfo[]
+  userInfo      UserInfo?
+  accountStatus Status            @default(ACTIVE)
 }
 
 model DocumentInfo {
@@ -102,3 +103,32 @@ model Attachment {
   attachment       DocumentHistory @relation(fields: [historyId], references: [id])
 }
 
+model Company {
+  id             String           @id @default(uuid())
+  companyId      String
+  companyName    String
+  companyAddress String
+  companyProjects CompanyProject[]
+  contactPersons ContactPerson[]
+}
+
+model CompanyProject {
+  id             String          @id @default(uuid())
+  projectName    String
+  projectAddress String
+  retainer       Boolean
+  date_expiry     DateTime?
+  company        Company         @relation(fields: [companyId], references: [id] ,onDelete: Cascade)
+  companyId      String
+  contactPersons ContactPerson[]
+}
+
+model ContactPerson {
+  id               String          @id @default(uuid())
+  name             String
+  contactNumber    String
+  company          Company?       @relation(fields: [companyId], references: [id] , onDelete: Cascade)
+  companyId        String?
+  companyProject   CompanyProject? @relation(fields: [companyProjectId], references: [id], onDelete: Cascade)
+  companyProjectId String?
+}
