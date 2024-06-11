@@ -20,11 +20,67 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userAccounts = exports.updateUser = exports.getUser = exports.registerUser = void 0;
+exports.userAccounts = exports.updateUser = exports.getUsers = exports.registerUser = exports.getUser = exports.changeProfile = void 0;
 const prisma_1 = require("../../prisma");
 const http_status_codes_1 = require("http-status-codes");
 const aws_config_1 = require("../../services/aws-config");
 const user_service_1 = require("./user.service");
+const changeProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const file = req.file;
+    const id = req.params.id;
+    try {
+        if (!file) {
+            throw new Error("No file provided");
+        }
+        const url = yield (0, aws_config_1.uploadImageToS3)(file);
+        const signedUrl = yield (0, aws_config_1.getSignedUrlFromS3)(url);
+        const user = yield (0, user_service_1.insertUpdatedImageUrl)(id, url);
+        res.status(http_status_codes_1.StatusCodes.CREATED).send(Object.assign(Object.assign({}, user), { signedUrl }));
+    }
+    catch (error) {
+        console.error("Error in changeProfile:", error.message);
+        res
+            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
+            .send("Something went wrong while updating the user profile ! ");
+    }
+});
+exports.changeProfile = changeProfile;
+const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const id = req.params.id;
+        const user = yield prisma_1.db.userInfo.findUnique({
+            where: {
+                id,
+            },
+            omit: {
+                createdAt: true,
+                updatedAt: true,
+            },
+            include: {
+                account: {
+                    omit: {
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+            },
+        });
+        console.log(user + "adasdsadassda");
+        if (!user)
+            return res.status(http_status_codes_1.StatusCodes.NOT_FOUND).send("User not found");
+        if (user.imageUrl) {
+            const signedUrl = yield (0, aws_config_1.getSignedUrlFromS3)(user.imageUrl);
+            return res.status(http_status_codes_1.StatusCodes.OK).send(Object.assign(Object.assign({}, user), { signedUrl }));
+        }
+        return res.status(http_status_codes_1.StatusCodes.OK).send(user);
+    }
+    catch (error) {
+        res
+            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
+            .send("Something went wrong while fetching user - controller!");
+    }
+});
+exports.getUser = getUser;
 const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const data = req.body;
     const file = req.file;
@@ -50,7 +106,7 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.registerUser = registerUser;
-const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const users = yield prisma_1.db.userInfo.findMany({
             select: {
@@ -78,10 +134,12 @@ const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
     catch (error) {
         console.log(error);
-        throw new Error("Something went wrong while fetching users - controller!");
+        res
+            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
+            .send("Something went wrong while fetching users - controller!");
     }
 });
-exports.getUser = getUser;
+exports.getUsers = getUsers;
 const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const id = req.params.id;
     const data = req.body;
@@ -95,7 +153,10 @@ const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         res.status(http_status_codes_1.StatusCodes.OK).send("User updated successfully");
     }
     catch (error) {
-        throw new Error("Something went wrong while updating user - controller!");
+        console.log(error);
+        res
+            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
+            .send("Something went wrong while updating user - controller!");
     }
 });
 exports.updateUser = updateUser;
@@ -106,7 +167,9 @@ const userAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
     catch (error) {
         console.log(error);
-        throw new Error("Something went wrong while fetching user accounts!");
+        res
+            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
+            .send("Something went wrong while fetching user accounts!");
     }
 });
 exports.userAccounts = userAccounts;
