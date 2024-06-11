@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkUserIdExists = exports.insertUpdatedUserInfo = exports.insertUserInfo = void 0;
+exports.checkUserIdExists = exports.insertUpdatedImageUrl = exports.insertUpdatedUserInfo = exports.insertUserInfo = void 0;
 const prisma_1 = require("../../prisma");
 const insertUserInfo = (data) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -66,10 +66,40 @@ const insertUpdatedUserInfo = (data) => __awaiter(void 0, void 0, void 0, functi
         return "User updated successfully";
     }
     catch (error) {
+        console.log(error);
         throw new Error("Something went wrong while updating user - service!");
     }
 });
 exports.insertUpdatedUserInfo = insertUpdatedUserInfo;
+const insertUpdatedImageUrl = (id, url) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const user = yield prisma_1.db.userInfo.update({
+            where: {
+                id: id
+            },
+            data: {
+                imageUrl: url
+            },
+            omit: {
+                createdAt: true,
+                updatedAt: true,
+            },
+            include: {
+                account: {
+                    omit: {
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+            },
+        });
+        return user;
+    }
+    catch (error) {
+        throw new Error("Error while updating the user profile !");
+    }
+});
+exports.insertUpdatedImageUrl = insertUpdatedImageUrl;
 const checkUserIdExists = (id) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const isExist = yield prisma_1.db.userInfo.findUnique({
@@ -83,6 +113,7 @@ const checkUserIdExists = (id) => __awaiter(void 0, void 0, void 0, function* ()
         return false;
     }
     catch (error) {
+        console.log(error.message);
         throw new Error("Something went wrong while checking user id - service!");
     }
 });
