@@ -119,6 +119,7 @@ export const getCompanies = async () => {
         contactPersons: true,
       },
     });
+   
     return response;
   } catch (error) {
     throw new Error("Error while getting companies");
@@ -139,6 +140,7 @@ export const getCompanyById = async (id: string) => {
         contactPersons:true
       }
     });
+    console.log(response)
     return response;
   } catch (error) {
     throw new Error("Error while getting company");

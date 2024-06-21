@@ -104,35 +104,37 @@ model Attachment {
 }
 
 model Company {
-  id             String           @id @default(uuid())
-  companyId      String           @unique
-  companyName    String 
-  companyAddress String
+  id              String           @id @default(uuid())
+  companyId       String           @unique
+  companyName     String
+  companyAddress  String
   email           String?
   companyProjects CompanyProject[]
-  contactPersons ContactPerson[]
+  contactPersonId String?          @unique
+  contactPersons  ContactPerson?   @relation(fields: [contactPersonId], references: [id])
 }
 
 model CompanyProject {
-  id             String          @id @default(uuid())
-  projectId       String          @unique
-  projectName    String
-  projectAddress String
-  retainer       Boolean
-  email         String?
+  id              String         @id @default(uuid())
+  projectId       String         @unique
+  projectName     String
+  projectAddress  String
+  retainer        Boolean
+  email           String?
   date_expiry     DateTime?
-  company        Company         @relation(fields: [companyId], references: [id] ,onDelete: Cascade)
-  companyId      String
-  contactPersons ContactPerson[]
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId       String
+  contactPersonId String?        @unique
+  contactPersons  ContactPerson? @relation(fields: [contactPersonId], references: [id])
 }
 
 model ContactPerson {
-  id               String          @id @default(uuid())
-  name             String
-  contactNumber    String
-  email             String?
-  company          Company?       @relation(fields: [companyId], references: [id] , onDelete: Cascade)
-  companyId        String?
-  companyProject   CompanyProject? @relation(fields: [companyProjectId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  name          String
+  contactNumber String
+  email         String?
+  company       Company?
+
+  companyProject   CompanyProject?
   companyProjectId String?
 }
