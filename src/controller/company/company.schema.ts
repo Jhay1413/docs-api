@@ -1,11 +1,13 @@
 import { z } from "zod";
 export const contacts = z.object({
+  id:z.optional(z.string()),
   name: z.string(),
   contactNumber: z.string(),
 });
 
 export const projects = z.object({
-
+  id:z.optional(z.string()),
+  projectId : z.string(),
   projectName: z.string(),
   projectAddress: z.string(),
   retainer:z.boolean(),
@@ -13,6 +15,7 @@ export const projects = z.object({
   contactPersons: contacts,
 });
 export const companyFormData = z.object({
+  id:z.optional(z.string()),
   companyId: z.string(),
   companyName: z.string(),
   companyAddress: z.string(),

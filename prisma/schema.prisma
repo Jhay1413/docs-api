@@ -105,8 +105,8 @@ model Attachment {
 
 model Company {
   id             String           @id @default(uuid())
-  companyId      String
-  companyName    String
+  companyId      String           @unique
+  companyName    String 
   companyAddress String
   companyProjects CompanyProject[]
   contactPersons ContactPerson[]
@@ -114,6 +114,7 @@ model Company {
 
 model CompanyProject {
   id             String          @id @default(uuid())
+  projectId       String          @unique
   projectName    String
   projectAddress String
   retainer       Boolean
