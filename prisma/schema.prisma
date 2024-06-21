@@ -108,6 +108,7 @@ model Company {
   companyId      String           @unique
   companyName    String 
   companyAddress String
+  email           String?
   companyProjects CompanyProject[]
   contactPersons ContactPerson[]
 }
@@ -118,6 +119,7 @@ model CompanyProject {
   projectName    String
   projectAddress String
   retainer       Boolean
+  email         String?
   date_expiry     DateTime?
   company        Company         @relation(fields: [companyId], references: [id] ,onDelete: Cascade)
   companyId      String
@@ -128,6 +130,7 @@ model ContactPerson {
   id               String          @id @default(uuid())
   name             String
   contactNumber    String
+  email             String?
   company          Company?       @relation(fields: [companyId], references: [id] , onDelete: Cascade)
   companyId        String?
   companyProject   CompanyProject? @relation(fields: [companyProjectId], references: [id], onDelete: Cascade)

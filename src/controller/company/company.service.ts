@@ -72,25 +72,29 @@ export const insertCompany = async (data: TcompanyFormData) => {
         companyName: data.companyName,
         companyAddress: data.companyAddress,
         companyId: data.companyId,
+        email : data.email,
         companyProjects: {
           create: data.companyProjects.map((project) => ({
             projectId: project.projectId,
             projectName: project.projectName,
             projectAddress: project.projectAddress,
             retainer: project.retainer,
+            email : project.email,
             date_expiry: project.date_expiry || null,
             contactPersons: {
               create: {
-                name: project.contactPersons!.name,
-                contactNumber: project.contactPersons!.contactNumber,
+                name: project.contactPersons.name,
+                contactNumber: project.contactPersons.contactNumber,
+                email: project.contactPersons.email,
               },
             },
           })),
         },
         contactPersons: {
           create: {
-            name: data.contactPersons!.name,
-            contactNumber: data.contactPersons!.contactNumber,
+            name: data.contactPersons.name,
+            contactNumber: data.contactPersons.contactNumber,
+            email: data.contactPersons.email,
           },
         },
       },
