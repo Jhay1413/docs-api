@@ -47,7 +47,7 @@ export const insertUserInfo = async (data: TUserInfoWithProfile) => {
         },
       },
     });
-
+    
   } catch (error) {
     console.log(error)
     throw new Error("Something went wrong while creating user - service!")

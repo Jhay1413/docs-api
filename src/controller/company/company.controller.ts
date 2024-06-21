@@ -5,6 +5,7 @@ import {
   getCompanyById,
   getCompanyRelationsById,
   insertCompany,
+  updateCompany,
 } from "./company.service";
 
 export const deleteCompanyHandler = async (req: Request, res: Response) => {
@@ -46,6 +47,17 @@ export const getCompanyHandler = async (req: Request, res: Response) => {
     res.status(500).json(error);
   }
 };
+
+export const updateCompanyDetailsHandler = async (req: Request, res: Response)=>{
+  const { id } = req.params;
+  const data = req.body
+  try {
+      const result = await updateCompany(id,data);
+      res.status(200).json(result)
+  } catch (error) {
+    res.status(500).json(error);
+  }
+}
 export const getCompanyDetailsHandler = async (req: Request, res: Response) => {
   const id = req.params.id;
   try {

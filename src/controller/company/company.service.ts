@@ -2,6 +2,55 @@ import { Request, Response } from "express";
 import { db } from "../../prisma";
 import { TcompanyFormData, projects } from "./company.schema";
 
+export const updateCompany = async (id: string, data: TcompanyFormData) => {
+  try {
+    const response = await db.company.update({
+      where: {
+        id: id,
+      },
+      data: {
+        companyName: data.companyName,
+        companyAddress: data.companyAddress,
+        companyId: data.companyId,
+        companyProjects: {
+          deleteMany: {},
+          create: data.companyProjects.map((project) => ({
+            projectId: project.projectId,
+            projectName: project.projectName,
+            projectAddress: project.projectAddress,
+            retainer: project.retainer,
+            date_expiry: project.date_expiry || null,
+            contactPersons: {
+              delete: {
+                where: {
+                  id: project.contactPersons.id,
+                },
+              },
+              create: {
+                name: project.contactPersons!.name,
+                contactNumber: project.contactPersons!.contactNumber,
+              },
+            },
+          })),
+        },
+        contactPersons: {
+          update: {
+            where: {
+              id: data.contactPersons.id,
+            },
+            data: {
+              name: data.contactPersons!.name,
+              contactNumber: data.contactPersons!.contactNumber,
+            },
+          },
+        },
+      },
+    });
+    return response;
+  } catch (error) {
+    throw new Error("Something went wrong while updating company");
+  }
+};
 
 export const deleteCompany = async (id: string) => {
   try {
@@ -10,11 +59,11 @@ export const deleteCompany = async (id: string) => {
         id,
       },
     });
-    return response;
+    return response.id;
   } catch (error) {
     throw new Error("Error while deleting company");
   }
-}
+};
 
 export const insertCompany = async (data: TcompanyFormData) => {
   try {
@@ -25,6 +74,7 @@ export const insertCompany = async (data: TcompanyFormData) => {
         companyId: data.companyId,
         companyProjects: {
           create: data.companyProjects.map((project) => ({
+            projectId: project.projectId,
             projectName: project.projectName,
             projectAddress: project.projectAddress,
             retainer: project.retainer,
@@ -48,7 +98,7 @@ export const insertCompany = async (data: TcompanyFormData) => {
     console.log(response);
     return response;
   } catch (error) {
-    console.log(error)
+    console.log(error);
     throw new Error("Error while inserting company");
   }
 };
@@ -56,14 +106,14 @@ export const insertCompany = async (data: TcompanyFormData) => {
 export const getCompanies = async () => {
   try {
     const response = await db.company.findMany({
-      include:{
-        companyProjects:{
-          include:{
-            contactPersons:true
-          }
+      include: {
+        companyProjects: {
+          include: {
+            contactPersons: true,
+          },
         },
-        contactPersons:true
-      }
+        contactPersons: true,
+      },
     });
     return response;
   } catch (error) {
@@ -76,6 +126,14 @@ export const getCompanyById = async (id: string) => {
       where: {
         id,
       },
+      include:{
+        companyProjects:{
+          include:{
+            contactPersons:true
+          }
+        },
+        contactPersons:true
+      }
     });
     return response;
   } catch (error) {

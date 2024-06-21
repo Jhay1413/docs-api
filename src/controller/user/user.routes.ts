@@ -13,7 +13,7 @@ router.get("/account",userAccounts);
 
 
 router.put("/changeProfile/:id", upload.single("img"), changeProfile);
-router.post("/register", upload.single("imageFile"), processRequestBody(userRegisterSchema), registerUser);
+router.post("/", upload.single("imageFile"), processRequestBody(userRegisterSchema), registerUser);
 router.put("/:id", upload.single("imageFile"), processRequestBody(userInfoSchema.body), updateUser);
 
 // General routes defined last
