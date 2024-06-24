@@ -55,6 +55,7 @@ export const updateCompanyDetailsHandler = async (req: Request, res: Response)=>
       const result = await updateCompany(id,data);
       res.status(200).json(result)
   } catch (error) {
+    console.log(error)
     res.status(500).json(error);
   }
 }
