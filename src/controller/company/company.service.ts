@@ -1,6 +1,5 @@
-import { Request, Response } from "express";
 import { db } from "../../prisma";
-import { TcompanyFormData, projects } from "./company.schema";
+import { TcompanyFormData } from "./company.schema";
 
 export const updateCompany = async (id: string, data: TcompanyFormData) => {
 
