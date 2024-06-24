@@ -1,8 +1,8 @@
-import { Request, Response } from "express";
 import { db } from "../../prisma";
-import { TcompanyFormData, projects } from "./company.schema";
+import { TcompanyFormData } from "./company.schema";
 
 export const updateCompany = async (id: string, data: TcompanyFormData) => {
+
   try {
     const response = await db.company.update({
       where: {
@@ -13,34 +13,35 @@ export const updateCompany = async (id: string, data: TcompanyFormData) => {
         companyAddress: data.companyAddress,
         companyId: data.companyId,
         companyProjects: {
-          deleteMany: {},
+          deleteMany: {}, 
           create: data.companyProjects.map((project) => ({
             projectId: project.projectId,
             projectName: project.projectName,
             projectAddress: project.projectAddress,
+            email : project.email,
             retainer: project.retainer,
             date_expiry: project.date_expiry || null,
             contactPersons: {
-              delete: {
-                where: {
-                  id: project.contactPersons.id,
-                },
-              },
               create: {
-                name: project.contactPersons!.name,
-                contactNumber: project.contactPersons!.contactNumber,
+                name: project.contactPersons.name,
+                contactNumber: project.contactPersons.contactNumber,
+                email:project.contactPersons.email
               },
             },
           })),
         },
         contactPersons: {
-          update: {
+          upsert: {
             where: {
               id: data.contactPersons.id,
             },
-            data: {
-              name: data.contactPersons!.name,
-              contactNumber: data.contactPersons!.contactNumber,
+            update: {
+              name: data.contactPersons.name,
+              contactNumber: data.contactPersons.contactNumber,
+            },
+            create: {
+              name: data.contactPersons.name,
+              contactNumber: data.contactPersons.contactNumber,
             },
           },
         },
@@ -48,6 +49,7 @@ export const updateCompany = async (id: string, data: TcompanyFormData) => {
     });
     return response;
   } catch (error) {
+    console.log(error)
     throw new Error("Something went wrong while updating company");
   }
 };
@@ -99,7 +101,7 @@ export const insertCompany = async (data: TcompanyFormData) => {
         },
       },
     });
-    console.log(response);
+   
     return response;
   } catch (error) {
     console.log(error);
@@ -140,7 +142,7 @@ export const getCompanyById = async (id: string) => {
         contactPersons:true
       }
     });
-    console.log(response)
+    console.log("renderer")
     return response;
   } catch (error) {
     throw new Error("Error while getting company");
