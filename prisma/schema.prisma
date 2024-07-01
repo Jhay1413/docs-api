@@ -13,6 +13,8 @@ enum Roles {
   ADMIN
   TL
   CH
+  RECORDS
+  MANAGER
   GUEST
 }
 
@@ -20,6 +22,11 @@ enum Status {
   ACTIVE
   INACTIVE
   DISABLE
+}
+
+enum DocumentType {
+  INITIAL_DOC
+  FOLLOWED_UP
 }
 
 model UserInfo {
@@ -44,63 +51,32 @@ model UserInfo {
 }
 
 model UserAccounts {
-  id            String            @id @default(uuid())
+  id            String        @id @default(uuid())
   password      String
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  email         String            @unique
-  accountRole   Roles             @default(GUEST)
-  received      DocumentHistory[] @relation("ReceivedDocuments")
-  forwarded     DocumentHistory[] @relation("ForwardedDocuments")
-  documentInfo  DocumentInfo[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  email         String        @unique
+  accountRole   Roles         @default(GUEST)
+  received      Transaction[] @relation("ReceivedDocuments")
+  forwarded     Transaction[] @relation("ForwardedDocuments")
   userInfo      UserInfo?
-  accountStatus Status            @default(ACTIVE)
-}
-
-model DocumentInfo {
-  id              String            @id @default(uuid())
-  documentType    String
-  subject         String
-  dueDate         DateTime
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  createdBy       String
-  documentSubType String
-  team            String
-  documentHistory DocumentHistory[]
-  account         UserAccounts      @relation(fields: [createdBy], references: [id])
-}
-
-model DocumentHistory {
-  id             String        @id @default(uuid())
-  forwardedTo    String
-  remarks        String
-  receivedBy     String?
-  forwardedBy    String
-  parentRecordId String
-  createdAt      DateTime      @default(now())
-  dateForwarded  DateTime
-  dateReceived   DateTime?
-  subject        String
-  updatedAt      DateTime      @updatedAt
-  fromDepartment String
-  toDepartment   String
-  attachments    Attachment[]
-  forwarder      UserAccounts  @relation("ReceivedDocuments", fields: [forwardedBy], references: [id])
-  parentRecord   DocumentInfo  @relation(fields: [parentRecordId], references: [id])
-  recieve        UserAccounts? @relation("ForwardedDocuments", fields: [receivedBy], references: [id])
+  accountStatus Status        @default(ACTIVE)
+  
 }
 
 model Attachment {
-  id               String          @id @default(uuid())
-  fileName         String
-  fileUrl          String
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  historyId        String
-  remarks          String?
-  fileOriginalName String
-  attachment       DocumentHistory @relation(fields: [historyId], references: [id])
+  id                String           @id @default(uuid())
+  fileName          String
+  fileUrl           String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  remarks           String?
+  fileOriginalName  String
+  documentType      DocumentType     @default(INITIAL_DOC)
+  transactions      Transaction      @relation(fields: [transactionId], references: [transactionId])
+  transactionId     String
+  transactionLogs   TransactionLogs? @relation(fields: [transactionLogsId], references: [id])
+  transactionLogsId String?
 }
 
 model Company {
@@ -112,6 +88,7 @@ model Company {
   companyProjects CompanyProject[]
   contactPersonId String?          @unique
   contactPersons  ContactPerson?   @relation(fields: [contactPersonId], references: [id])
+  transaction     Transaction[]
 }
 
 model CompanyProject {
@@ -126,15 +103,73 @@ model CompanyProject {
   companyId       String
   contactPersonId String?        @unique
   contactPersons  ContactPerson? @relation(fields: [contactPersonId], references: [id])
+  transaction     Transaction[]
 }
 
 model ContactPerson {
-  id            String   @id @default(uuid())
-  name          String
-  contactNumber String
-  email         String?
-  company       Company?
-
+  id               String          @id @default(uuid())
+  name             String
+  contactNumber    String
+  email            String?
+  company          Company?
   companyProject   CompanyProject?
   companyProjectId String?
+}
+
+model Transaction {
+  id              String         @id @default(uuid())
+  transactionId   String         @unique
+  documentType    String
+  subject         String
+  dueDate         DateTime
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  documentSubType String
+  team            String
+  status          String
+  priority        String
+  company         Company        @relation(fields: [companyId], references: [id])
+  companyId       String
+  project         CompanyProject @relation(fields: [projectId], references: [id])
+  projectId       String
+  forwardedTo     String
+  remarks         String
+  receivedById    String?
+  forwardedById   String
+  dateForwarded   DateTime
+  dateReceived    DateTime?
+  originDepartment  String
+  targetDepartment    String
+  forwardedByRole String         @default("")
+  attachments     Attachment[]
+  forwarder       UserAccounts   @relation("ReceivedDocuments", fields: [forwardedById], references: [id])
+  recieve         UserAccounts?  @relation("ForwardedDocuments", fields: [receivedById], references: [id])
+  transactionLogs TransactionLogs[]
+}
+
+model TransactionLogs {
+  id               String       @id @default(uuid())
+  transactionId    String
+  documentType     String
+  subject          String
+  dueDate          DateTime
+  documentSubType  String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  team             String
+  status           String
+  priority         String
+  company          String
+  project          String
+  forwardedTo      String
+  remarks          String
+  receivedBy       String?
+  forwardedBy      String
+  dateForwarded     DateTime
+  dateReceived      DateTime?
+  originDepartment String
+  targetDepartment String
+  forwardedByRole  String
+  attachments      Attachment[]
+  transaction      Transaction  @relation(fields: [transactionId], references: [id])
 }

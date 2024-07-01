@@ -2,9 +2,13 @@ import express from "express";
 import multer from "multer";
 
 import { validateData } from "../../middleware/zodValidation";
-import { transactionData} from "./transaction.schema";
+import { transactionData } from "./transaction.schema";
 import {
-  getDocumentsHandler,
+
+  getTransactionHandler,
+  getTransactionsHandler,
+  incomingTransactionHandler,
+  receivedTransactionHandler,
   transactionFilesHandler,
   transactionHandler,
 } from "./transaction.controller";
@@ -16,6 +20,11 @@ router.post("/upload", upload.array("files"), transactionFilesHandler);
 
 router.post("/", validateData(transactionData), transactionHandler);
 
-router.get("/", getDocumentsHandler )
+router.get("/", getTransactionsHandler);
 
+router.get("/:id", getTransactionHandler);
+
+router.get("/incoming/:id", incomingTransactionHandler);
+
+router.put("/incoming/:id/received",receivedTransactionHandler)
 export default router;

@@ -2,7 +2,6 @@ import { db } from "../../prisma";
 import { TcompanyFormData } from "./company.schema";
 
 export const updateCompany = async (id: string, data: TcompanyFormData) => {
-
   try {
     const response = await db.company.update({
       where: {
@@ -13,19 +12,19 @@ export const updateCompany = async (id: string, data: TcompanyFormData) => {
         companyAddress: data.companyAddress,
         companyId: data.companyId,
         companyProjects: {
-          deleteMany: {}, 
-          create: data.companyProjects.map((project) => ({
+          deleteMany: {},
+          create: data.companyProjects!.map((project) => ({
             projectId: project.projectId,
             projectName: project.projectName,
             projectAddress: project.projectAddress,
-            email : project.email,
+            email: project.email,
             retainer: project.retainer,
             date_expiry: project.date_expiry || null,
             contactPersons: {
               create: {
-                name: project.contactPersons.name,
-                contactNumber: project.contactPersons.contactNumber,
-                email:project.contactPersons.email
+                name: project.contactPersons!.name,
+                contactNumber: project.contactPersons!.contactNumber,
+                email: project.contactPersons!.email,
               },
             },
           })),
@@ -33,15 +32,15 @@ export const updateCompany = async (id: string, data: TcompanyFormData) => {
         contactPersons: {
           upsert: {
             where: {
-              id: data.contactPersons.id,
+              id: data.contactPersons!.id,
             },
             update: {
-              name: data.contactPersons.name,
-              contactNumber: data.contactPersons.contactNumber,
+              name: data.contactPersons!.name,
+              contactNumber: data.contactPersons!.contactNumber,
             },
             create: {
-              name: data.contactPersons.name,
-              contactNumber: data.contactPersons.contactNumber,
+              name: data.contactPersons!.name,
+              contactNumber: data.contactPersons!.contactNumber,
             },
           },
         },
@@ -49,7 +48,7 @@ export const updateCompany = async (id: string, data: TcompanyFormData) => {
     });
     return response;
   } catch (error) {
-    console.log(error)
+    console.log(error);
     throw new Error("Something went wrong while updating company");
   }
 };
@@ -74,34 +73,34 @@ export const insertCompany = async (data: TcompanyFormData) => {
         companyName: data.companyName,
         companyAddress: data.companyAddress,
         companyId: data.companyId,
-        email : data.email,
+        email: data.email,
         companyProjects: {
-          create: data.companyProjects.map((project) => ({
+          create: data.companyProjects!.map((project) => ({
             projectId: project.projectId,
             projectName: project.projectName,
             projectAddress: project.projectAddress,
             retainer: project.retainer,
-            email : project.email,
+            email: project.email,
             date_expiry: project.date_expiry || null,
             contactPersons: {
               create: {
-                name: project.contactPersons.name,
-                contactNumber: project.contactPersons.contactNumber,
-                email: project.contactPersons.email,
+                name: project.contactPersons!.name,
+                contactNumber: project.contactPersons!.contactNumber,
+                email: project.contactPersons!.email,
               },
             },
           })),
         },
         contactPersons: {
           create: {
-            name: data.contactPersons.name,
-            contactNumber: data.contactPersons.contactNumber,
-            email: data.contactPersons.email,
+            name: data.contactPersons!.name,
+            contactNumber: data.contactPersons!.contactNumber,
+            email: data.contactPersons!.email,
           },
         },
       },
     });
-   
+
     return response;
   } catch (error) {
     console.log(error);
@@ -111,17 +110,8 @@ export const insertCompany = async (data: TcompanyFormData) => {
 
 export const getCompanies = async () => {
   try {
-    const response = await db.company.findMany({
-      include: {
-        companyProjects: {
-          include: {
-            contactPersons: true,
-          },
-        },
-        contactPersons: true,
-      },
-    });
-   
+    const response = await db.company.findMany({include:{companyProjects:true}});
+
     return response;
   } catch (error) {
     throw new Error("Error while getting companies");
@@ -133,16 +123,16 @@ export const getCompanyById = async (id: string) => {
       where: {
         id,
       },
-      include:{
-        companyProjects:{
-          include:{
-            contactPersons:true
-          }
+      include: {
+        companyProjects: {
+          include: {
+            contactPersons: true,
+          },
         },
-        contactPersons:true
-      }
+        contactPersons: true,
+      },
     });
-    console.log("renderer")
+
     return response;
   } catch (error) {
     throw new Error("Error while getting company");

@@ -1,10 +1,18 @@
-import { TFilesData, TtransactionData } from "./transaction.schema";
+import { TFilesData, transactionData } from "./transaction.schema";
 import { Request, Response } from "express";
-import { db } from "../../prisma";
 import { uploadToS3 } from "../../services/aws-config";
-
 import { StatusCodes } from "http-status-codes";
-import { getDocumentsService, insertTransactionService } from "./transaction.service";
+import {
+  getTransactionService,
+  getLastId,
+  insertTransactionService,
+  getTransactionById,
+  getUserInfo,
+  getIncomingTransactionByManager,
+  receiveTransactionById,
+  logPostTransactions,
+} from "./transaction.service";
+import { GenerateId } from "../../utils/generate-id";
 
 export const transactionFilesHandler = async (req: Request, res: Response) => {
   const files = req.files;
@@ -25,35 +33,139 @@ export const transactionFilesHandler = async (req: Request, res: Response) => {
     res.status(StatusCodes.CREATED).json({ data: payload });
   } catch (error) {
     console.log(error);
-    throw new Error("Error uploading files");
+    return res.status(500).json(error);
   }
 };
-export const transactionHandler = async (
-  req: Request<{}, {}, TtransactionData> & {
-    files?:
-      | Express.Multer.File[]
-      | { [fieldname: string]: Express.Multer.File[] };
-  },
-  res: Response
-) => {
+export const transactionHandler = async (req: Request, res: Response) => {
   try {
-    const insert = await insertTransactionService(req.body);
-    if (insert) {
-      res.status(StatusCodes.CREATED).json({ message: "Transaction created" });
+    const lastId = await getLastId();
+
+    const generatedId = GenerateId(lastId);
+
+    const data = { ...req.body, transactionId: generatedId };
+    const response = await insertTransactionService(data);
+
+    const validatedData = transactionData.safeParse(response);
+    console.log(validatedData.error?.errors);
+    if (validatedData.error) {
+      return res.status(500).json("something went wrong!");
     }
+    console.log(validatedData.data);
+    const cleanedData = {
+      ...validatedData.data,
+      company: validatedData.data.company?.companyName!,
+      project: validatedData.data.project?.projectName!,
+      forwardedBy: validatedData.data.forwarder!.email,
+      attachments: validatedData.data.attachment!,
+      receivedBy:validatedData.data.receive?.email || null,
+      transactionId:validatedData.data.id!,
+    };
+
+    const {receivedById,receive,forwarder,id,...payload} = cleanedData
+
+    const logData = await logPostTransactions(payload);
+
+    return res.status(StatusCodes.CREATED).json(response);
   } catch (error) {
     console.log(error);
-    throw new Error("Error creating transaction");
+    return res.status(500).json(error);
   }
 };
 
-export const getDocumentsHandler = async (req: Request, res: Response) => {
+export const getTransactionsHandler = async (req: Request, res: Response) => {
   try {
-      const documents = await getDocumentsService();
-      res.status(StatusCodes.OK).json({ data: documents });
+    const documents = await getTransactionService();
+
+    res.status(StatusCodes.OK).json(documents);
   } catch (error) {
     console.log(error);
-    console.log(error)
-    throw new Error("Error fetching documents");
+    console.log(error);
+    return res.status(500).json(error);
+  }
+};
+export const getTransactionHandler = async (req: Request, res: Response) => {
+  console.log(req.params.id);
+  try {
+    const transaction = await getTransactionById(req.params.id);
+    console.log(transaction);
+    res.status(200).json(transaction);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json(error);
+  }
+};
+
+export const incomingTransactionHandler = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const user = await getUserInfo(req.params.id);
+    console.log(user?.accountRole);
+    if (user?.accountRole === "MANAGER") {
+      if (!user.userInfo?.assignedDivision) {
+        return res
+          .status(404)
+          .json("Current user was not assigned on any division");
+      }
+      const transactions = await getIncomingTransactionByManager(
+        user.accountRole,
+        user.userInfo.assignedDivision
+      );
+      return res.status(200).json(transactions);
+    }
+    return res.status(200).json("some");
+  } catch (error) {
+    return res.status(500).json(error);
+  }
+};
+export const receivedTransactionHandler = async (
+  req: Request,
+  res: Response
+) => {
+  const { receivedBy, dateReceived } = req.body;
+  const transactionID = req.params.id;
+  try {
+    const result = await receiveTransactionById(transactionID, receivedBy, dateReceived);
+    const validatedData = transactionData.safeParse(result);
+    console.log(validatedData.error?.errors);
+    if (validatedData.error) {
+      return res.status(500).json("something went wrong!");
+    }
+
+    const cleanedData = {
+      ...validatedData.data,
+      company: validatedData.data.company?.companyName!,
+      project: validatedData.data.project?.projectName!,
+      forwardedBy: validatedData.data.forwarder!.email,
+      attachments: validatedData.data.attachment!,
+      receivedBy:validatedData.data.receive?.email || null,
+      transactionId:validatedData.data.id!,
+    };
+
+    const {receivedById,receive,forwarder,id,...payload} = cleanedData
+
+    await logPostTransactions(payload);
+
+    res.status(200).json(validatedData.data.id);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+
+export const getTransactionByParamsHandler = async (
+  req: Request,
+  res: Response
+) => {
+  const { id, method } = req.params;
+
+  try {
+    const user = await getUserInfo(id);
+
+    if (method == "RECEIVE") {
+    } else if (method == "INCOMING") {
+    }
+  } catch (error) {
+    res.status(500).json(error);
   }
 };
