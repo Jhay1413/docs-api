@@ -11,6 +11,7 @@ import {
   getIncomingTransactionByManager,
   receiveTransactionById,
   logPostTransactions,
+  getReceivedTransactions,
 } from "./transaction.service";
 import { GenerateId } from "../../utils/generate-id";
 
@@ -57,11 +58,11 @@ export const transactionHandler = async (req: Request, res: Response) => {
       project: validatedData.data.project?.projectName!,
       forwardedBy: validatedData.data.forwarder!.email,
       attachments: validatedData.data.attachment!,
-      receivedBy:validatedData.data.receive?.email || null,
-      transactionId:validatedData.data.id!,
+      receivedBy: validatedData.data.receive?.email || null,
+      transactionId: validatedData.data.id!,
     };
 
-    const {receivedById,receive,forwarder,id,...payload} = cleanedData
+    const { receivedById, receive, forwarder, id, ...payload } = cleanedData;
 
     const logData = await logPostTransactions(payload);
 
@@ -126,7 +127,11 @@ export const receivedTransactionHandler = async (
   const { receivedBy, dateReceived } = req.body;
   const transactionID = req.params.id;
   try {
-    const result = await receiveTransactionById(transactionID, receivedBy, dateReceived);
+    const result = await receiveTransactionById(
+      transactionID,
+      receivedBy,
+      dateReceived
+    );
     const validatedData = transactionData.safeParse(result);
     console.log(validatedData.error?.errors);
     if (validatedData.error) {
@@ -139,11 +144,11 @@ export const receivedTransactionHandler = async (
       project: validatedData.data.project?.projectName!,
       forwardedBy: validatedData.data.forwarder!.email,
       attachments: validatedData.data.attachment!,
-      receivedBy:validatedData.data.receive?.email || null,
-      transactionId:validatedData.data.id!,
+      receivedBy: validatedData.data.receive?.email || null,
+      transactionId: validatedData.data.id!,
     };
 
-    const {receivedById,receive,forwarder,id,...payload} = cleanedData
+    const { receivedById, receive, forwarder, id, ...payload } = cleanedData;
 
     await logPostTransactions(payload);
 
@@ -157,14 +162,13 @@ export const getTransactionByParamsHandler = async (
   req: Request,
   res: Response
 ) => {
-  const { id, method } = req.params;
+  const { id } = req.params;
 
   try {
     const user = await getUserInfo(id);
-
-    if (method == "RECEIVE") {
-    } else if (method == "INCOMING") {
-    }
+    if (!user) return res.status(404).json("User not found");
+    const result = await getReceivedTransactions(user.id);
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json(error);
   }

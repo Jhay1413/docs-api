@@ -213,7 +213,6 @@ export const receiveTransactionById = async (
         receivedById: receivedBy,
         dateReceived: dateReceived,
       },
-      
       include: {
         attachments: true,
         forwarder: true,
@@ -237,11 +236,36 @@ export const receiveTransactionById = async (
 };
 
 export const getReceivedTransactions = async (
-  role: string,
-  department: string
+  userId:string
 ) => {
   try {
-  } catch (error) {}
+    const response = await db.transaction.findMany({
+      where:{
+          receivedById:userId
+      },
+
+      select: {
+        id: true,
+        transactionId: true,
+        subject: true,
+        dueDate: true,
+        documentSubType: true,
+        documentType: true,
+        team: true,
+        status: true,
+        priority: true,
+        remarks: true,
+        dateForwarded: true,
+        forwardedByRole: true,
+        originDepartment: true,
+        targetDepartment: true,
+        forwardedTo: true,
+      },
+    })
+    return response
+  } catch (error) {
+
+  }
 };
 
 //For post transaction e. logging/auditing
@@ -270,12 +294,6 @@ export const logPostTransactions = async (
     return true;
   } catch (error) {
     console.log(error);
-
-    await db.transaction.delete({
-      where: {
-        transactionId: data.transactionId,
-      },
-    });
     throw new Error("something went wrong while adding logs. ");
   }
 };

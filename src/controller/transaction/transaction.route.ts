@@ -5,6 +5,7 @@ import { validateData } from "../../middleware/zodValidation";
 import { transactionData } from "./transaction.schema";
 import {
 
+  getTransactionByParamsHandler,
   getTransactionHandler,
   getTransactionsHandler,
   incomingTransactionHandler,
@@ -27,4 +28,6 @@ router.get("/:id", getTransactionHandler);
 router.get("/incoming/:id", incomingTransactionHandler);
 
 router.put("/incoming/:id/received",receivedTransactionHandler)
+
+router.get("/inbox/:id",getTransactionByParamsHandler)
 export default router;
