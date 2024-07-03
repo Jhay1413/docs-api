@@ -49,7 +49,6 @@ model UserInfo {
   middleName       String?
   account          UserAccounts @relation(fields: [accountId], references: [id])
 }
-
 model UserAccounts {
   id            String        @id @default(uuid())
   password      String
@@ -63,7 +62,6 @@ model UserAccounts {
   accountStatus Status        @default(ACTIVE)
   
 }
-
 model Attachment {
   id                String           @id @default(uuid())
   fileName          String
@@ -112,7 +110,7 @@ model ContactPerson {
   contactNumber    String
   email            String?
   company          Company?
-  companyProject   CompanyProject?
+  companyProject   CompanyProject?  
   companyProjectId String?
 }
 
