@@ -1,14 +1,15 @@
 import { z ,ZodObject} from "zod";
 import { AccountSchema, accountSchema } from "../user/user.schema";
 import { companyFormData, projects } from "../company/company.schema";
-const DocumentTypeEnum = z.enum(['INITIAL_DOC', 'FOLLOWED_UP']);
+const FileTypeEnum = z.enum(['INITIAL_DOC', 'FOLLOWED_UP']);
 export const filesSchema = z.object({
   id:z.string().optional(),
   remarks:z.string().optional(),
   createdAt:z.string().datetime().optional(),
-  documentType:DocumentTypeEnum.optional(),
+  fileType:FileTypeEnum.optional(),
   fileName: z.string(),
-  fileUrl: z.string(),
+  fileStatus:z.nullable(z.string()).optional(),
+  fileUrl: z.nullable(z.string()).optional(),
   fileOriginalName: z.string(),
 });
 

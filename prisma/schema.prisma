@@ -24,9 +24,11 @@ enum Status {
   DISABLE
 }
 
-enum DocumentType {
+enum FileType {
   INITIAL_DOC
   FOLLOWED_UP
+  FOR_ARCHIEVE
+  FOR_REVIEW
 }
 
 model UserInfo {
@@ -49,6 +51,7 @@ model UserInfo {
   middleName       String?
   account          UserAccounts @relation(fields: [accountId], references: [id])
 }
+
 model UserAccounts {
   id            String        @id @default(uuid())
   password      String
@@ -60,17 +63,18 @@ model UserAccounts {
   forwarded     Transaction[] @relation("ForwardedDocuments")
   userInfo      UserInfo?
   accountStatus Status        @default(ACTIVE)
-  
 }
+
 model Attachment {
   id                String           @id @default(uuid())
   fileName          String
-  fileUrl           String
+  fileUrl           String?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   remarks           String?
-  fileOriginalName  String
-  documentType      DocumentType     @default(INITIAL_DOC)
+  fileOriginalName  String?
+  fileStatus        String?
+  fileType          FileType         @default(INITIAL_DOC)
   transactions      Transaction      @relation(fields: [transactionId], references: [transactionId])
   transactionId     String
   transactionLogs   TransactionLogs? @relation(fields: [transactionLogsId], references: [id])
@@ -110,39 +114,39 @@ model ContactPerson {
   contactNumber    String
   email            String?
   company          Company?
-  companyProject   CompanyProject?  
+  companyProject   CompanyProject?
   companyProjectId String?
 }
 
 model Transaction {
-  id              String         @id @default(uuid())
-  transactionId   String         @unique
-  documentType    String
-  subject         String
-  dueDate         DateTime
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  documentSubType String
-  team            String
-  status          String
-  priority        String
-  company         Company        @relation(fields: [companyId], references: [id])
-  companyId       String
-  project         CompanyProject @relation(fields: [projectId], references: [id])
-  projectId       String
-  forwardedTo     String
-  remarks         String
-  receivedById    String?
-  forwardedById   String
-  dateForwarded   DateTime
-  dateReceived    DateTime?
-  originDepartment  String
-  targetDepartment    String
-  forwardedByRole String         @default("")
-  attachments     Attachment[]
-  forwarder       UserAccounts   @relation("ReceivedDocuments", fields: [forwardedById], references: [id])
-  recieve         UserAccounts?  @relation("ForwardedDocuments", fields: [receivedById], references: [id])
-  transactionLogs TransactionLogs[]
+  id               String            @id @default(uuid())
+  transactionId    String            @unique
+  documentType     String
+  subject          String
+  dueDate          DateTime
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  documentSubType  String
+  team             String
+  status           String
+  priority         String
+  company          Company           @relation(fields: [companyId], references: [id])
+  companyId        String
+  project          CompanyProject    @relation(fields: [projectId], references: [id])
+  projectId        String
+  forwardedTo      String
+  remarks          String
+  receivedById     String?
+  forwardedById    String
+  dateForwarded    DateTime
+  dateReceived     DateTime?
+  originDepartment String
+  targetDepartment String
+  forwardedByRole  String            @default("")
+  attachments      Attachment[]
+  forwarder        UserAccounts      @relation("ReceivedDocuments", fields: [forwardedById], references: [id])
+  recieve          UserAccounts?     @relation("ForwardedDocuments", fields: [receivedById], references: [id])
+  transactionLogs  TransactionLogs[]
 }
 
 model TransactionLogs {
@@ -163,8 +167,8 @@ model TransactionLogs {
   remarks          String
   receivedBy       String?
   forwardedBy      String
-  dateForwarded     DateTime
-  dateReceived      DateTime?
+  dateForwarded    DateTime
+  dateReceived     DateTime?
   originDepartment String
   targetDepartment String
   forwardedByRole  String
