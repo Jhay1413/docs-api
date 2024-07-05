@@ -119,20 +119,20 @@ model ContactPerson {
 }
 
 model Transaction {
-  id               String            @id @default(uuid())
-  transactionId    String            @unique
-  documentType     String
-  subject          String
-  dueDate          DateTime
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  documentSubType  String
-  team             String
-  status           String
-  priority         String
-  company          Company           @relation(fields: [companyId], references: [id])
-  companyId        String
-  project          CompanyProject    @relation(fields: [projectId], references: [id])
+  id              String   @id @default(uuid())
+  transactionId   String   @unique
+  documentType    String
+  subject         String
+  dueDate         DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  documentSubType String
+  team            String
+  status          String
+  priority        String
+
+  companyId String
+
   projectId        String
   forwardedTo      String
   remarks          String
@@ -142,11 +142,14 @@ model Transaction {
   dateReceived     DateTime?
   originDepartment String
   targetDepartment String
-  forwardedByRole  String            @default("")
+  forwardedByRole  String       @default("")
   attachments      Attachment[]
-  forwarder        UserAccounts      @relation("ReceivedDocuments", fields: [forwardedById], references: [id])
-  recieve          UserAccounts?     @relation("ForwardedDocuments", fields: [receivedById], references: [id])
-  transactionLogs  TransactionLogs[]
+
+  transactionLogs TransactionLogs[]
+  forwarder       UserAccounts      @relation("ReceivedDocuments", fields: [forwardedById], references: [id])
+  receive         UserAccounts?     @relation("ForwardedDocuments", fields: [receivedById], references: [id])
+  project         CompanyProject    @relation(fields: [projectId], references: [id])
+  company         Company           @relation(fields: [companyId], references: [id])
 }
 
 model TransactionLogs {

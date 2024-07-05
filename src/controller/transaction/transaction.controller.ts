@@ -1,4 +1,4 @@
-import { TFilesData, transactionData } from "./transaction.schema";
+import { TFilesData, transactionData, transactionFormData } from "./transaction.schema";
 import { Request, Response } from "express";
 import { uploadToS3 } from "../../services/aws-config";
 import { StatusCodes } from "http-status-codes";
@@ -12,8 +12,11 @@ import {
   receiveTransactionById,
   logPostTransactions,
   getReceivedTransactions,
+  fetchTransactions,
+  forwardTransaction,
 } from "./transaction.service";
 import { GenerateId } from "../../utils/generate-id";
+import { getUser } from "../user/user.controller";
 
 export const transactionFilesHandler = async (req: Request, res: Response) => {
   const files = req.files;
@@ -135,7 +138,9 @@ export const receivedTransactionHandler = async (
     const validatedData = transactionData.safeParse(result);
     console.log(validatedData.error?.errors);
     if (validatedData.error) {
-      return res.status(500).json("something went wrong!");
+      return res
+        .status(StatusCodes.EXPECTATION_FAILED)
+        .json("something went wrong!");
     }
 
     const cleanedData = {
@@ -152,9 +157,9 @@ export const receivedTransactionHandler = async (
 
     await logPostTransactions(payload);
 
-    res.status(200).json(validatedData.data.id);
+    res.status(StatusCodes.ACCEPTED).json(validatedData.data.id);
   } catch (error) {
-    res.status(500).json(error);
+    res.status(StatusCodes.CONFLICT).json(error);
   }
 };
 
@@ -171,5 +176,57 @@ export const getTransactionByParamsHandler = async (
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json(error);
+  }
+};
+
+type TransactionFilterOptions = "INCOMING" | "INBOX";
+export const getTransactionByParams = async (req: Request, res: Response) => {
+  const { option } = req.query;
+  console.log(option);
+  const id = req.params.id;
+  try {
+    const userInfo = await getUserInfo(id);
+
+    const response = await fetchTransactions(
+      id,
+      userInfo?.userInfo!.assignedDivision,
+      userInfo?.accountRole,
+      option as TransactionFilterOptions
+    );
+    console.log(response);
+    res.status(StatusCodes.OK).json(response);
+  } catch (error) {
+    res.status(StatusCodes.BAD_GATEWAY).json(error);
+  }
+};
+export const forwardTransactionHandler = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const result = await forwardTransaction(req.body);
+
+    const validatedData = transactionData.safeParse(result);
+    console.log(validatedData.error?.errors);
+    if (validatedData.error) {
+      return res.status(500).json("something went wrong!");
+    }
+    console.log(validatedData.data);
+    const cleanedData = {
+      ...validatedData.data,
+      company: validatedData.data.company?.companyName!,
+      project: validatedData.data.project?.projectName!,
+      forwardedBy: validatedData.data.forwarder!.email,
+      attachments: validatedData.data.attachment!,
+      receivedBy: validatedData.data.receive?.email || null,
+      transactionId: validatedData.data.id!,
+    };
+
+    const { receivedById, receive, forwarder, id, ...payload } = cleanedData;
+
+    const logData = await logPostTransactions(payload);
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) {
+    res.status(StatusCodes.BAD_GATEWAY).json(error);
   }
 };

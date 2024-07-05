@@ -29,7 +29,7 @@ export const transactionFormData = z.object({
   forwardedTo:z.string(),
   remarks:z.string(),
   receivedById:z.nullable(z.string()).optional(),
-  forwardedById:z.string(),
+  forwardedById:z.string(), 
   dateForwarded:z.string().datetime(),
   dateReceived:z.nullable(z.string().datetime()).optional(),
   originDepartment:z.string(),
@@ -40,7 +40,7 @@ export const transactionFormData = z.object({
 
 export const transactionData = transactionFormData.extend({
   forwarder:AccountSchema.optional(),
-  receive:AccountSchema.optional(),
+  receive:z.nullable(AccountSchema).optional(),
   attachment:z.nullable(z.array(filesSchema)).optional(),
   company : companyFormData.optional(),
   project : projects.optional(),

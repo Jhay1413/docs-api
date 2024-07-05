@@ -1,4 +1,3 @@
-import { response } from "express";
 import { db } from "../../prisma";
 import { transactionFormData, transactionLogsData } from "./transaction.schema";
 import * as z from "zod";
@@ -25,6 +24,7 @@ export const insertTransactionService = async (
     priority,
     fileData,
   } = data;
+
   try {
     const createdTransaction = await db.transaction.create({
       data: {
@@ -54,7 +54,7 @@ export const insertTransactionService = async (
       include: {
         attachments: true,
         forwarder: true,
-        recieve: true,
+        receive: true,
         company: true,
         project: true,
       },
@@ -136,6 +136,7 @@ export const getTransactionById = async (id: string) => {
             contactPersons: true,
           },
         },
+        receive: true,
         transactionLogs: true,
       },
     });
@@ -216,12 +217,12 @@ export const receiveTransactionById = async (
       include: {
         attachments: true,
         forwarder: true,
-        recieve: true,
+        receive: true,
         company: true,
         project: true,
       },
     });
-
+    console.log(response.receive);
     const result = {
       ...response,
       dueDate: new Date(response.dueDate).toISOString(),
@@ -235,13 +236,11 @@ export const receiveTransactionById = async (
   }
 };
 
-export const getReceivedTransactions = async (
-  userId:string
-) => {
+export const getReceivedTransactions = async (userId: string) => {
   try {
     const response = await db.transaction.findMany({
-      where:{
-          receivedById:userId
+      where: {
+        receivedById: userId,
       },
 
       select: {
@@ -261,11 +260,9 @@ export const getReceivedTransactions = async (
         targetDepartment: true,
         forwardedTo: true,
       },
-    })
-    return response
-  } catch (error) {
-
-  }
+    });
+    return response;
+  } catch (error) {}
 };
 
 //For post transaction e. logging/auditing
@@ -295,5 +292,141 @@ export const logPostTransactions = async (
   } catch (error) {
     console.log(error);
     throw new Error("something went wrong while adding logs. ");
+  }
+};
+
+//refactor starts here
+
+export const forwardTransaction = async (
+  data: z.infer<typeof transactionFormData>
+) => {
+  const {
+ 
+    documentType,
+    subject,
+    forwardedTo,
+    remarks,
+    dueDate,
+    forwardedById,
+    forwardedByRole,
+    originDepartment,
+    targetDepartment,
+    dateForwarded,
+    documentSubType,
+    team,
+    transactionId,
+    id,
+    status,
+    priority,
+   
+  } = data;
+  console.log(transactionId,id)
+  try {
+    const response = await db.transaction.update({
+      where:{
+        transactionId:data.transactionId,
+      },
+      data:{
+        documentType : documentType,
+        documentSubType:documentSubType,
+        subject :subject,
+        dueDate  : dueDate,
+        team:team,
+        status:status,
+        priority:priority,
+        forwardedTo:forwardedTo,
+        remarks:remarks,
+        receivedById:null,
+        forwardedById:forwardedById, 
+        dateForwarded:dateForwarded,
+        dateReceived:null,
+        originDepartment:originDepartment,
+        targetDepartment:targetDepartment,
+        forwardedByRole:forwardedByRole,
+      },
+      include: {
+        attachments: true,
+        forwarder: true,
+        receive: true,
+        company: true,
+        project: true,
+      },
+    });
+    const result = {
+      ...response,
+      dueDate: new Date(response.dueDate).toISOString(),
+      dateForwarded: new Date(response.dateForwarded).toISOString(),
+      dateReceived: new Date(response.dateReceived!).toISOString(),
+    };
+    return result
+  } catch (error) {
+    console.log(error)
+    throw new Error("something went wrong while updating transaction ")
+  }
+};
+export const fetchTransactions = async (
+  accountId?: string,
+  department?: string,
+  role?: string,
+  option?: string,
+  section?: string,
+  transactionId?: string
+) => {
+  let filters: any = {};
+  const adminRole = ["MANAGER", "RECORDS"];
+
+  const commonRole = ["TL", "CH"];
+  console.log(role);
+  try {
+    if (adminRole.includes(role!)) {
+    
+        filters = {
+          targetDepartment: department,
+          forwardedTo: role,
+          ...(option === "INCOMING"
+            ? { dateReceived: null }
+            : { receivedById: accountId }),
+       
+      }
+    } else if (commonRole.includes(role!)) {
+   
+        filters = {
+          team: section,
+          forwardedTo: role,
+          ...(option === "INCOMING"
+            ? { dateReceived: null }
+            : { receivedById: accountId }),
+       
+      }
+    } else {
+      filters = {
+        id: transactionId,
+      };
+    }
+    const response = await db.transaction.findMany({
+      where: filters,
+      select: {
+        id: true,
+        transactionId: true,
+        subject: true,
+        dueDate: true,
+        documentSubType: true,
+        documentType: true,
+        team: true,
+        status: true,
+        priority: true,
+        remarks: true,
+        dateForwarded: true,
+        forwardedByRole: true,
+        originDepartment: true,
+        targetDepartment: true,
+        forwardedTo: true,
+      },
+    });
+
+    return response;
+  } catch (error) {
+    console.log(error);
+    throw new Error("something went wrong while fetching transaction. ");
   }
 };

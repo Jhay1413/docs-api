@@ -5,6 +5,8 @@ import { validateData } from "../../middleware/zodValidation";
 import { transactionData } from "./transaction.schema";
 import {
 
+  forwardTransactionHandler,
+  getTransactionByParams,
   getTransactionByParamsHandler,
   getTransactionHandler,
   getTransactionsHandler,
@@ -13,6 +15,7 @@ import {
   transactionFilesHandler,
   transactionHandler,
 } from "./transaction.controller";
+import { forwardTransaction } from "./transaction.service";
 const router = express.Router();
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -30,4 +33,8 @@ router.get("/incoming/:id", incomingTransactionHandler);
 router.put("/incoming/:id/received",receivedTransactionHandler)
 
 router.get("/inbox/:id",getTransactionByParamsHandler)
+
+
+router.get("/temp/:id",getTransactionByParams);
+router.put("/:id",forwardTransactionHandler)
 export default router;
