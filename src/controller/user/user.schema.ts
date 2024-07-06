@@ -92,6 +92,12 @@ export const userInfoWithSignedUrl = userRegisterSchema
     accountRole: true,
   });
 
+  export const AccountSchema = z.object({
+    id: z.string(),
+    email: z.string(),
+    accountRole: z.string(),
+    password: z.string(),
+  })
 export type TUserWithId = z.infer<typeof userWithIdSchema>;
 export type TUserInfoWithProfile = z.infer<typeof userInfoWithProfile>;
 export type TUserInfoWithSignedUrl = z.infer<typeof userInfoWithSignedUrl>;
