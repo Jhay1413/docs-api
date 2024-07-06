@@ -13,7 +13,7 @@ const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage()
 //accounts
 router.get("/account", user_controller_1.userAccounts);
 router.put("/changeProfile/:id", upload.single("img"), user_controller_1.changeProfile);
-router.post("/register", upload.single("imageFile"), (0, zod_express_middleware_1.processRequestBody)(user_schema_1.userRegisterSchema), user_controller_1.registerUser);
+router.post("/", upload.single("imageFile"), (0, zod_express_middleware_1.processRequestBody)(user_schema_1.userRegisterSchema), user_controller_1.registerUser);
 router.put("/:id", upload.single("imageFile"), (0, zod_express_middleware_1.processRequestBody)(user_schema_1.userInfoSchema.body), user_controller_1.updateUser);
 // General routes defined last
 router.get("/:id", user_controller_1.getUser);

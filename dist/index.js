@@ -12,6 +12,8 @@ const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const http_1 = __importDefault(require("http"));
 const app = (0, express_1.default)();
+app.locals.HIGHER_ROLE = ["MANAGER", "RECORDS"];
+app.locals.LOWER_ROLE = ["TL", "CH"];
 const corsOptions = {
     origin: ['https://dts-client.netlify.app', 'https://dts-new-client.vercel.app', 'http://localhost:5173', 'http://localhost:4173'], // This is the origin of the client
     credentials: true, // This allows the session cookie to be sent with the request

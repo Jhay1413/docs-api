@@ -356,7 +356,7 @@ export const forwardTransaction = async (
       ...response,
       dueDate: new Date(response.dueDate).toISOString(),
       dateForwarded: new Date(response.dateForwarded).toISOString(),
-      dateReceived: new Date(response.dateReceived!).toISOString(),
+      dateReceived: response.dateReceived ? new Date(response.dateReceived!).toISOString() : null,
     };
     return result
   } catch (error) {

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCompanyDetailsHandler = exports.getCompanyHandler = exports.getCompaniesHandler = exports.createCompanyHandler = exports.deleteCompanyHandler = void 0;
+exports.getCompanyDetailsHandler = exports.updateCompanyDetailsHandler = exports.getCompanyHandler = exports.getCompaniesHandler = exports.createCompanyHandler = exports.deleteCompanyHandler = void 0;
 const company_service_1 = require("./company.service");
 const deleteCompanyHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const id = req.params.id;
@@ -55,6 +55,19 @@ const getCompanyHandler = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.getCompanyHandler = getCompanyHandler;
+const updateCompanyDetailsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const data = req.body;
+    try {
+        const result = yield (0, company_service_1.updateCompany)(id, data);
+        res.status(200).json(result);
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).json(error);
+    }
+});
+exports.updateCompanyDetailsHandler = updateCompanyDetailsHandler;
 const getCompanyDetailsHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const id = req.params.id;
     try {
