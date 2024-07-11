@@ -77,8 +77,6 @@ model Attachment {
   fileType          FileType         @default(INITIAL_DOC)
   transactions      Transaction      @relation(fields: [transactionId], references: [transactionId])
   transactionId     String
-  transactionLogs   TransactionLogs? @relation(fields: [transactionLogsId], references: [id])
-  transactionLogsId String?
 }
 
 model Company {
@@ -175,6 +173,6 @@ model TransactionLogs {
   originDepartment String
   targetDepartment String
   forwardedByRole  String
-  attachments      Attachment[]
+  attachments      String  @default("")
   transaction      Transaction  @relation(fields: [transactionId], references: [id])
 }

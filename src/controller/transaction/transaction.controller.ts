@@ -1,4 +1,4 @@
-import { TFilesData, transactionData, transactionFormData } from "./transaction.schema";
+import { TFilesData, transactionData } from "./transaction.schema";
 import { Request, Response } from "express";
 import { uploadToS3 } from "../../services/aws-config";
 import { StatusCodes } from "http-status-codes";
@@ -16,12 +16,13 @@ import {
   forwardTransaction,
 } from "./transaction.service";
 import { GenerateId } from "../../utils/generate-id";
-import { getUser } from "../user/user.controller";
 
 export const transactionFilesHandler = async (req: Request, res: Response) => {
   const files = req.files;
   const fileNames = req.body.fileNames;
   const payload: TFilesData[] = [];
+
+  console.log(files)
   try {
     if (files && Array.isArray(files) && files.length > 0) {
       const results = await Promise.all(
@@ -60,7 +61,7 @@ export const transactionHandler = async (req: Request, res: Response) => {
       company: validatedData.data.company?.companyName!,
       project: validatedData.data.project?.projectName!,
       forwardedBy: validatedData.data.forwarder!.email,
-      attachments: validatedData.data.attachment!,
+      attachments: validatedData.data.attachments!,
       receivedBy: validatedData.data.receive?.email || null,
       transactionId: validatedData.data.id!,
     };
@@ -148,7 +149,7 @@ export const receivedTransactionHandler = async (
       company: validatedData.data.company?.companyName!,
       project: validatedData.data.project?.projectName!,
       forwardedBy: validatedData.data.forwarder!.email,
-      attachments: validatedData.data.attachment!,
+      attachments: validatedData.data.attachments!,
       receivedBy: validatedData.data.receive?.email || null,
       transactionId: validatedData.data.id!,
     };
@@ -217,7 +218,7 @@ export const forwardTransactionHandler = async (
       company: validatedData.data.company?.companyName!,
       project: validatedData.data.project?.projectName!,
       forwardedBy: validatedData.data.forwarder!.email,
-      attachments: validatedData.data.attachment!,
+      attachments: validatedData.data.attachments!,
       receivedBy: validatedData.data.receive?.email || null,
       transactionId: validatedData.data.id!,
     };

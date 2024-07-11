@@ -22,7 +22,7 @@ export const insertTransactionService = async (
     companyId,
     status,
     priority,
-    fileData,
+    attachments,
   } = data;
 
   try {
@@ -47,7 +47,7 @@ export const insertTransactionService = async (
         originDepartment,
         attachments: {
           createMany: {
-            data: fileData,
+            data: attachments,
           },
         },
       },
@@ -138,6 +138,7 @@ export const getTransactionById = async (id: string) => {
         },
         receive: true,
         transactionLogs: true,
+        attachments:true
       },
     });
     return response;
@@ -276,15 +277,10 @@ export const logPostTransactions = async (
       transactionId: data.transactionId,
       dueDate: data.dueDate!,
       dateForwarded: data.dateForwarded!,
+      attachments:JSON.stringify(data.attachments)
     };
-
-    if (data.attachments) {
-      createData.attachments = {
-        connect: data.attachments.map((attachment) => ({
-          id: attachment.id,
-        })),
-      };
-    }
+    
+   
     await db.transactionLogs.create({
       data: createData,
     });
@@ -320,7 +316,7 @@ export const forwardTransaction = async (
     priority,
    
   } = data;
-  console.log(transactionId,id)
+  console.log("asdqwerty")
   try {
     const response = await db.transaction.update({
       where:{
