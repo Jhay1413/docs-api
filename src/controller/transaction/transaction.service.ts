@@ -141,7 +141,14 @@ export const getTransactionById = async (id: string) => {
         attachments:true
       },
     });
-    return response;
+
+    const parseResponse = response?.transactionLogs.map(respo=>{
+      return {...respo, attachments: JSON.parse(respo.attachments)}
+    })
+
+    
+    return {...response, transactionLogs:parseResponse};
+    
   } catch (error) {
     console.log(error);
     throw new Error("Error fetching transaction");

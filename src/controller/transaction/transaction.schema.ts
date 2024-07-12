@@ -76,4 +76,14 @@ export const transactionLogsData = z.object({
   attachments: z.array(filesSchema),
 });
 
+export const paramsRequestData = z.array(
+  z.object({
+    company:z.string(),
+    fileName:z.string(),
+    signedUrl:z.string().optional(),
+    uploadstatus:z.string().optional(),
+    signedStatus : z.string().optional()
+  })
+);
+
 export type TFilesData = z.infer<typeof filesSchema>;

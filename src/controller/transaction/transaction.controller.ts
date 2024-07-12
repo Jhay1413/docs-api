@@ -1,6 +1,13 @@
-import { TFilesData, transactionData } from "./transaction.schema";
+import {
+  paramsRequestData,
+  TFilesData,
+  transactionData,
+} from "./transaction.schema";
 import { Request, Response } from "express";
-import { uploadToS3 } from "../../services/aws-config";
+import {
+  getUploadSignedUrlFromS3,
+  uploadToS3,
+} from "../../services/aws-config";
 import { StatusCodes } from "http-status-codes";
 import {
   getTransactionService,
@@ -17,12 +24,47 @@ import {
 } from "./transaction.service";
 import { GenerateId } from "../../utils/generate-id";
 
+export const transactionSignedUrl = async (req: Request, res: Response) => {
+  const data = req.body;
+  try {
+    const validateData = paramsRequestData.safeParse(data);
+
+    if (!validateData.success) {
+      console.log(validateData.error);
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json("Invalid Data on request");
+    }
+
+    const signedUrls = await Promise.all(
+      validateData.data.map(async (data) => {
+        try {
+          const {key,url} = await getUploadSignedUrlFromS3(
+            data.company,
+            data.fileName
+          );
+          return { ...data, key,signedUrl:url,signedStatus:true };
+        } catch (error) {
+          console.error(
+            `Error fetching signed URL for ${data.fileName}:`,
+            error
+          );
+          return { ...data, signedStatus: false };
+        }
+      })
+    );
+
+    res.status(StatusCodes.CREATED).json(signedUrls);
+  } catch (error) {
+    res.status(StatusCodes.BAD_GATEWAY).json(error);
+  }
+};
 export const transactionFilesHandler = async (req: Request, res: Response) => {
   const files = req.files;
   const fileNames = req.body.fileNames;
   const payload: TFilesData[] = [];
 
-  console.log(files)
+  console.log(files);
   try {
     if (files && Array.isArray(files) && files.length > 0) {
       const results = await Promise.all(
@@ -89,7 +131,6 @@ export const getTransactionsHandler = async (req: Request, res: Response) => {
   }
 };
 export const getTransactionHandler = async (req: Request, res: Response) => {
-  console.log(req.params.id);
   try {
     const transaction = await getTransactionById(req.params.id);
     console.log(transaction);
@@ -226,7 +267,7 @@ export const forwardTransactionHandler = async (
     const { receivedById, receive, forwarder, id, ...payload } = cleanedData;
 
     const logData = await logPostTransactions(payload);
-    res.status(StatusCodes.OK).json(result)
+    res.status(StatusCodes.OK).json(result);
   } catch (error) {
     res.status(StatusCodes.BAD_GATEWAY).json(error);
   }

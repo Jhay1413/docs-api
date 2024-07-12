@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 
 import { validateData } from "../../middleware/zodValidation";
-import { transactionData } from "./transaction.schema";
+import { paramsRequestData, transactionData } from "./transaction.schema";
 import {
 
   forwardTransactionHandler,
@@ -14,12 +14,15 @@ import {
   receivedTransactionHandler,
   transactionFilesHandler,
   transactionHandler,
+  transactionSignedUrl,
 } from "./transaction.controller";
 import { forwardTransaction } from "./transaction.service";
 const router = express.Router();
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+
+router.post("/transactionSignedUrl" ,transactionSignedUrl )
 router.post("/upload", upload.array("files"), transactionFilesHandler);
 
 router.post("/", validateData(transactionData), transactionHandler);
