@@ -9,8 +9,61 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCompanyRelationsById = exports.getCompaniesRelations = exports.getCompanyById = exports.getCompanies = exports.insertCompany = exports.deleteCompany = void 0;
+exports.getCompanyRelationsById = exports.getCompaniesRelations = exports.getCompanyById = exports.getCompanies = exports.insertCompany = exports.deleteCompany = exports.updateCompany = void 0;
 const prisma_1 = require("../../prisma");
+const updateCompany = (id, data) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const response = yield prisma_1.db.company.update({
+            where: {
+                id: id,
+            },
+            data: {
+                companyName: data.companyName,
+                companyAddress: data.companyAddress,
+                companyId: data.companyId,
+                companyProjects: {
+                    deleteMany: {},
+                    create: data.companyProjects.map((project) => ({
+                        projectId: project.projectId,
+                        projectName: project.projectName,
+                        projectAddress: project.projectAddress,
+                        email: project.email,
+                        retainer: project.retainer,
+                        date_expiry: project.date_expiry || null,
+                        contactPersons: {
+                            create: {
+                                name: project.contactPersons.name,
+                                contactNumber: project.contactPersons.contactNumber,
+                                email: project.contactPersons.email,
+                            },
+                        },
+                    })),
+                },
+                contactPersons: {
+                    upsert: {
+                        where: {
+                            id: data.contactPersons.id,
+                        },
+                        update: {
+                            name: data.contactPersons.name,
+                            contactNumber: data.contactPersons.contactNumber,
+                        },
+                        create: {
+                            name: data.contactPersons.name,
+                            contactNumber: data.contactPersons.contactNumber,
+                        },
+                    },
+                },
+            },
+        });
+        return response;
+    }
+    catch (error) {
+        console.log(error);
+        throw new Error("Something went wrong while updating company");
+    }
+});
+exports.updateCompany = updateCompany;
 const deleteCompany = (id) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const response = yield prisma_1.db.company.delete({
@@ -18,7 +71,7 @@ const deleteCompany = (id) => __awaiter(void 0, void 0, void 0, function* () {
                 id,
             },
         });
-        return response;
+        return response.id;
     }
     catch (error) {
         throw new Error("Error while deleting company");
@@ -32,16 +85,20 @@ const insertCompany = (data) => __awaiter(void 0, void 0, void 0, function* () {
                 companyName: data.companyName,
                 companyAddress: data.companyAddress,
                 companyId: data.companyId,
+                email: data.email,
                 companyProjects: {
                     create: data.companyProjects.map((project) => ({
+                        projectId: project.projectId,
                         projectName: project.projectName,
                         projectAddress: project.projectAddress,
                         retainer: project.retainer,
+                        email: project.email,
                         date_expiry: project.date_expiry || null,
                         contactPersons: {
                             create: {
                                 name: project.contactPersons.name,
                                 contactNumber: project.contactPersons.contactNumber,
+                                email: project.contactPersons.email,
                             },
                         },
                     })),
@@ -50,11 +107,11 @@ const insertCompany = (data) => __awaiter(void 0, void 0, void 0, function* () {
                     create: {
                         name: data.contactPersons.name,
                         contactNumber: data.contactPersons.contactNumber,
+                        email: data.contactPersons.email,
                     },
                 },
             },
         });
-        console.log(response);
         return response;
     }
     catch (error) {
@@ -65,16 +122,7 @@ const insertCompany = (data) => __awaiter(void 0, void 0, void 0, function* () {
 exports.insertCompany = insertCompany;
 const getCompanies = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield prisma_1.db.company.findMany({
-            include: {
-                companyProjects: {
-                    include: {
-                        contactPersons: true
-                    }
-                },
-                contactPersons: true
-            }
-        });
+        const response = yield prisma_1.db.company.findMany({ include: { companyProjects: true } });
         return response;
     }
     catch (error) {
@@ -87,6 +135,14 @@ const getCompanyById = (id) => __awaiter(void 0, void 0, void 0, function* () {
         const response = yield prisma_1.db.company.findUnique({
             where: {
                 id,
+            },
+            include: {
+                companyProjects: {
+                    include: {
+                        contactPersons: true,
+                    },
+                },
+                contactPersons: true,
             },
         });
         return response;

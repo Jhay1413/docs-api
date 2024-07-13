@@ -13,4 +13,5 @@ router.get('/', company_controller_1.getCompaniesHandler);
 router.get('/:id', company_controller_1.getCompanyHandler);
 router.get('/:id/details', company_controller_1.getCompanyDetailsHandler);
 router.delete('/:id', company_controller_1.deleteCompanyHandler);
+router.put('/:id', company_controller_1.updateCompanyDetailsHandler);
 exports.default = router;

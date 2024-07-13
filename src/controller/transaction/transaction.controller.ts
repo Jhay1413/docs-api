@@ -1,6 +1,14 @@
-import { TFilesData, transactionData, transactionFormData } from "./transaction.schema";
+import {
+  paramsRequestData,
+  TFilesData,
+  transactionData,
+} from "./transaction.schema";
 import { Request, Response } from "express";
-import { uploadToS3 } from "../../services/aws-config";
+import {
+  getSignedUrlFromS3,
+  getUploadSignedUrlFromS3,
+  uploadToS3,
+} from "../../services/aws-config";
 import { StatusCodes } from "http-status-codes";
 import {
   getTransactionService,
@@ -16,12 +24,58 @@ import {
   forwardTransaction,
 } from "./transaction.service";
 import { GenerateId } from "../../utils/generate-id";
-import { getUser } from "../user/user.controller";
 
+
+export const transactionGetSignedUrl = async(req:Request,res:Response)=>{
+  const {key} = req.query
+  try {
+    const signedUrl = await getSignedUrlFromS3(key as string);
+    res.status(StatusCodes.OK).json(signedUrl)
+  } catch (error) {
+    res.status(StatusCodes.GATEWAY_TIMEOUT).json(error)
+  }
+}
+export const transactionSignedUrl = async (req: Request, res: Response) => {
+  const data = req.body;
+  try {
+    const validateData = paramsRequestData.safeParse(data);
+
+    if (!validateData.success) {
+      console.log(validateData.error);
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json("Invalid Data on request");
+    }
+
+    const signedUrls = await Promise.all(
+      validateData.data.map(async (data) => {
+        try {
+          const {key,url} = await getUploadSignedUrlFromS3(
+            data.company,
+            data.fileName
+          );
+          return { ...data, key,signedUrl:url,signedStatus:true };
+        } catch (error) {
+          console.error(
+            `Error fetching signed URL for ${data.fileName}:`,
+            error
+          );
+          return { ...data, signedStatus: false };
+        }
+      })
+    );
+
+    res.status(StatusCodes.CREATED).json(signedUrls);
+  } catch (error) {
+    res.status(StatusCodes.BAD_GATEWAY).json(error);
+  }
+};
 export const transactionFilesHandler = async (req: Request, res: Response) => {
   const files = req.files;
   const fileNames = req.body.fileNames;
   const payload: TFilesData[] = [];
+
+  console.log(files);
   try {
     if (files && Array.isArray(files) && files.length > 0) {
       const results = await Promise.all(
@@ -54,13 +108,13 @@ export const transactionHandler = async (req: Request, res: Response) => {
     if (validatedData.error) {
       return res.status(500).json("something went wrong!");
     }
-    console.log(validatedData.data);
+
     const cleanedData = {
       ...validatedData.data,
       company: validatedData.data.company?.companyName!,
       project: validatedData.data.project?.projectName!,
       forwardedBy: validatedData.data.forwarder!.email,
-      attachments: validatedData.data.attachment!,
+      attachments: validatedData.data.attachments!,
       receivedBy: validatedData.data.receive?.email || null,
       transactionId: validatedData.data.id!,
     };
@@ -82,16 +136,14 @@ export const getTransactionsHandler = async (req: Request, res: Response) => {
 
     res.status(StatusCodes.OK).json(documents);
   } catch (error) {
-    console.log(error);
+  
     console.log(error);
     return res.status(500).json(error);
   }
 };
 export const getTransactionHandler = async (req: Request, res: Response) => {
-  console.log(req.params.id);
   try {
     const transaction = await getTransactionById(req.params.id);
-    console.log(transaction);
     res.status(200).json(transaction);
   } catch (error) {
     console.log(error);
@@ -105,7 +157,6 @@ export const incomingTransactionHandler = async (
 ) => {
   try {
     const user = await getUserInfo(req.params.id);
-    console.log(user?.accountRole);
     if (user?.accountRole === "MANAGER") {
       if (!user.userInfo?.assignedDivision) {
         return res
@@ -148,7 +199,7 @@ export const receivedTransactionHandler = async (
       company: validatedData.data.company?.companyName!,
       project: validatedData.data.project?.projectName!,
       forwardedBy: validatedData.data.forwarder!.email,
-      attachments: validatedData.data.attachment!,
+      attachments: validatedData.data.attachments!,
       receivedBy: validatedData.data.receive?.email || null,
       transactionId: validatedData.data.id!,
     };
@@ -182,7 +233,6 @@ export const getTransactionByParamsHandler = async (
 type TransactionFilterOptions = "INCOMING" | "INBOX";
 export const getTransactionByParams = async (req: Request, res: Response) => {
   const { option } = req.query;
-  console.log(option);
   const id = req.params.id;
   try {
     const userInfo = await getUserInfo(id);
@@ -217,7 +267,7 @@ export const forwardTransactionHandler = async (
       company: validatedData.data.company?.companyName!,
       project: validatedData.data.project?.projectName!,
       forwardedBy: validatedData.data.forwarder!.email,
-      attachments: validatedData.data.attachment!,
+      attachments: validatedData.data.attachments!,
       receivedBy: validatedData.data.receive?.email || null,
       transactionId: validatedData.data.id!,
     };
@@ -225,7 +275,7 @@ export const forwardTransactionHandler = async (
     const { receivedById, receive, forwarder, id, ...payload } = cleanedData;
 
     const logData = await logPostTransactions(payload);
-    res.status(StatusCodes.OK).json(result)
+    res.status(StatusCodes.OK).json(result);
   } catch (error) {
     res.status(StatusCodes.BAD_GATEWAY).json(error);
   }

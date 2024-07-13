@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userInfoWithSignedUrl = exports.userInfoWithProfile = exports.userWithIdSchema = exports.userLoginSchema = exports.userRegisterSchema = exports.accountSchema = exports.userInfoSchema = void 0;
+exports.AccountSchema = exports.userInfoWithSignedUrl = exports.userInfoWithProfile = exports.userWithIdSchema = exports.userLoginSchema = exports.userRegisterSchema = exports.accountSchema = exports.userInfoSchema = void 0;
 const zod_1 = require("zod");
 const zod_2 = __importDefault(require("zod"));
 exports.userInfoSchema = {
@@ -93,4 +93,10 @@ exports.userInfoWithSignedUrl = exports.userRegisterSchema
     dateStarted: true,
     password: true,
     accountRole: true,
+});
+exports.AccountSchema = zod_2.default.object({
+    id: zod_2.default.string(),
+    email: zod_2.default.string(),
+    accountRole: zod_2.default.string(),
+    password: zod_2.default.string(),
 });

@@ -18,11 +18,7 @@ const config = {
 };
 export const s3 = new S3Client(config);
 
-const signer = new S3RequestPresigner({
-  region: config.region,
-  credentials: config.credentials,
-  sha256: Hash.bind(null, "sha256"), // In Node.
-});
+
 export const uploadImageToS3 = async (file: Express.Multer.File) => {
   try {
     const company = "envicomm";
@@ -70,18 +66,40 @@ export const uploadToS3 = async (file: Express.Multer.File) => {
   }
 };
 
-export const getSignedUrlFromS3 = async (fileName: string) => {
+export const getUploadSignedUrlFromS3 = async (company:string,fileName: string) => {
   try {
-    const command = new GetObjectCommand({
+
+    const generatedFilename = generateFileName();
+    const key = `${company}/${fileName}${generatedFilename}`;
+
+    const command = new PutObjectCommand({
       Bucket: process.env.BUCKET_NAME!,
-      Key: fileName,
+      Key: key,
+      Metadata: {
+        "Content-Disposition": "inline",
+      },
     });
     const url = await getSignedUrl(s3, command, {
       expiresIn: 3600,
     });
-    return url;
+    return {url,key};
   } catch (error) {
     console.log(error);
    throw new Error ('Error getting signed url from S3')
   }
 };
+export const getSignedUrlFromS3 =async (key:string)=>{
+  try {
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: process.env.BUCKET_NAME!,
+      Key: key,
+    });
+    console.log(getObjectCommand)
+    const signedURL = await getSignedUrl(s3, getObjectCommand, {
+      expiresIn: 60 * 60,
+    });
+    return signedURL
+  } catch (error) {
+    throw new Error ('Error getting signed url from S3')
+  }
+}

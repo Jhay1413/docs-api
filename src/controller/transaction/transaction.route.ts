@@ -13,13 +13,17 @@ import {
   incomingTransactionHandler,
   receivedTransactionHandler,
   transactionFilesHandler,
+  transactionGetSignedUrl,
   transactionHandler,
+  transactionSignedUrl,
 } from "./transaction.controller";
-import { forwardTransaction } from "./transaction.service";
 const router = express.Router();
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+router.get("/transactionGetUrl",transactionGetSignedUrl)
+
+router.post("/transactionSignedUrl" ,transactionSignedUrl )
 router.post("/upload", upload.array("files"), transactionFilesHandler);
 
 router.post("/", validateData(transactionData), transactionHandler);

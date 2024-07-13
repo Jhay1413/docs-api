@@ -22,7 +22,7 @@ export const insertTransactionService = async (
     companyId,
     status,
     priority,
-    fileData,
+    attachments,
   } = data;
 
   try {
@@ -47,7 +47,7 @@ export const insertTransactionService = async (
         originDepartment,
         attachments: {
           createMany: {
-            data: fileData,
+            data: attachments,
           },
         },
       },
@@ -138,9 +138,17 @@ export const getTransactionById = async (id: string) => {
         },
         receive: true,
         transactionLogs: true,
+        attachments:true
       },
     });
-    return response;
+
+    const parseResponse = response?.transactionLogs.map(respo=>{
+      return {...respo, attachments: JSON.parse(respo.attachments)}
+    })
+
+    
+    return {...response, transactionLogs:parseResponse};
+    
   } catch (error) {
     console.log(error);
     throw new Error("Error fetching transaction");
@@ -193,7 +201,6 @@ export const getIncomingTransactionByManager = async (
         forwardedTo: true,
       },
     });
-    console.log(response);
 
     return response;
   } catch (error) {
@@ -222,7 +229,6 @@ export const receiveTransactionById = async (
         project: true,
       },
     });
-    console.log(response.receive);
     const result = {
       ...response,
       dueDate: new Date(response.dueDate).toISOString(),
@@ -276,15 +282,10 @@ export const logPostTransactions = async (
       transactionId: data.transactionId,
       dueDate: data.dueDate!,
       dateForwarded: data.dateForwarded!,
+      attachments:JSON.stringify(data.attachments)
     };
-
-    if (data.attachments) {
-      createData.attachments = {
-        connect: data.attachments.map((attachment) => ({
-          id: attachment.id,
-        })),
-      };
-    }
+    
+   
     await db.transactionLogs.create({
       data: createData,
     });
@@ -318,13 +319,16 @@ export const forwardTransaction = async (
     id,
     status,
     priority,
-   
+    attachments
   } = data;
-  console.log(transactionId,id)
   try {
+
+
+    const createAttachment = attachments.filter(attachment => !attachment.id);
+    const updateAttachment = attachments.filter(attachment=>attachment.id)
     const response = await db.transaction.update({
       where:{
-        transactionId:data.transactionId,
+        transactionId:transactionId,
       },
       data:{
         documentType : documentType,
@@ -343,6 +347,17 @@ export const forwardTransaction = async (
         originDepartment:originDepartment,
         targetDepartment:targetDepartment,
         forwardedByRole:forwardedByRole,
+        attachments:{
+          createMany:{
+            data:createAttachment
+          },
+          update:updateAttachment.map(attachment=>({
+            where:{
+              id:attachment.id!
+            },
+            data:attachment
+          }))
+        }
       },
       include: {
         attachments: true,
@@ -356,7 +371,7 @@ export const forwardTransaction = async (
       ...response,
       dueDate: new Date(response.dueDate).toISOString(),
       dateForwarded: new Date(response.dateForwarded).toISOString(),
-      dateReceived: new Date(response.dateReceived!).toISOString(),
+      dateReceived: response.dateReceived ? new Date(response.dateReceived!).toISOString() : null,
     };
     return result
   } catch (error) {
@@ -376,7 +391,7 @@ export const fetchTransactions = async (
   const adminRole = ["MANAGER", "RECORDS"];
 
   const commonRole = ["TL", "CH"];
-  console.log(role);
+
   try {
     if (adminRole.includes(role!)) {
     
