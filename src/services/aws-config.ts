@@ -88,3 +88,18 @@ export const getUploadSignedUrlFromS3 = async (company:string,fileName: string) 
    throw new Error ('Error getting signed url from S3')
   }
 };
+export const getSignedUrlFromS3 =async (key:string)=>{
+  try {
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: process.env.BUCKET_NAME!,
+      Key: key,
+    });
+    console.log(getObjectCommand)
+    const signedURL = await getSignedUrl(s3, getObjectCommand, {
+      expiresIn: 60 * 60,
+    });
+    return signedURL
+  } catch (error) {
+    throw new Error ('Error getting signed url from S3')
+  }
+}

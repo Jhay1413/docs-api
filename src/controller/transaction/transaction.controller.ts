@@ -5,6 +5,7 @@ import {
 } from "./transaction.schema";
 import { Request, Response } from "express";
 import {
+  getSignedUrlFromS3,
   getUploadSignedUrlFromS3,
   uploadToS3,
 } from "../../services/aws-config";
@@ -24,6 +25,16 @@ import {
 } from "./transaction.service";
 import { GenerateId } from "../../utils/generate-id";
 
+
+export const transactionGetSignedUrl = async(req:Request,res:Response)=>{
+  const {key} = req.query
+  try {
+    const signedUrl = await getSignedUrlFromS3(key as string);
+    res.status(StatusCodes.OK).json(signedUrl)
+  } catch (error) {
+    res.status(StatusCodes.GATEWAY_TIMEOUT).json(error)
+  }
+}
 export const transactionSignedUrl = async (req: Request, res: Response) => {
   const data = req.body;
   try {
@@ -97,7 +108,7 @@ export const transactionHandler = async (req: Request, res: Response) => {
     if (validatedData.error) {
       return res.status(500).json("something went wrong!");
     }
-    console.log(validatedData.data);
+
     const cleanedData = {
       ...validatedData.data,
       company: validatedData.data.company?.companyName!,
@@ -125,7 +136,7 @@ export const getTransactionsHandler = async (req: Request, res: Response) => {
 
     res.status(StatusCodes.OK).json(documents);
   } catch (error) {
-    console.log(error);
+  
     console.log(error);
     return res.status(500).json(error);
   }
@@ -133,7 +144,6 @@ export const getTransactionsHandler = async (req: Request, res: Response) => {
 export const getTransactionHandler = async (req: Request, res: Response) => {
   try {
     const transaction = await getTransactionById(req.params.id);
-    console.log(transaction);
     res.status(200).json(transaction);
   } catch (error) {
     console.log(error);
@@ -147,7 +157,6 @@ export const incomingTransactionHandler = async (
 ) => {
   try {
     const user = await getUserInfo(req.params.id);
-    console.log(user?.accountRole);
     if (user?.accountRole === "MANAGER") {
       if (!user.userInfo?.assignedDivision) {
         return res
@@ -224,7 +233,6 @@ export const getTransactionByParamsHandler = async (
 type TransactionFilterOptions = "INCOMING" | "INBOX";
 export const getTransactionByParams = async (req: Request, res: Response) => {
   const { option } = req.query;
-  console.log(option);
   const id = req.params.id;
   try {
     const userInfo = await getUserInfo(id);

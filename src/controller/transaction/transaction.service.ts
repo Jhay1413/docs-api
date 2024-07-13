@@ -201,7 +201,6 @@ export const getIncomingTransactionByManager = async (
         forwardedTo: true,
       },
     });
-    console.log(response);
 
     return response;
   } catch (error) {
@@ -230,7 +229,6 @@ export const receiveTransactionById = async (
         project: true,
       },
     });
-    console.log(response.receive);
     const result = {
       ...response,
       dueDate: new Date(response.dueDate).toISOString(),
@@ -321,13 +319,16 @@ export const forwardTransaction = async (
     id,
     status,
     priority,
-   
+    attachments
   } = data;
-  console.log("asdqwerty")
   try {
+
+
+    const createAttachment = attachments.filter(attachment => !attachment.id);
+    const updateAttachment = attachments.filter(attachment=>attachment.id)
     const response = await db.transaction.update({
       where:{
-        transactionId:data.transactionId,
+        transactionId:transactionId,
       },
       data:{
         documentType : documentType,
@@ -346,6 +347,17 @@ export const forwardTransaction = async (
         originDepartment:originDepartment,
         targetDepartment:targetDepartment,
         forwardedByRole:forwardedByRole,
+        attachments:{
+          createMany:{
+            data:createAttachment
+          },
+          update:updateAttachment.map(attachment=>({
+            where:{
+              id:attachment.id!
+            },
+            data:attachment
+          }))
+        }
       },
       include: {
         attachments: true,
@@ -379,7 +391,7 @@ export const fetchTransactions = async (
   const adminRole = ["MANAGER", "RECORDS"];
 
   const commonRole = ["TL", "CH"];
-  console.log(role);
+
   try {
     if (adminRole.includes(role!)) {
     
