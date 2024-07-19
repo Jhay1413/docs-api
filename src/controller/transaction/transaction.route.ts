@@ -6,6 +6,7 @@ import { transactionData } from "./transaction.schema";
 import {
 
   forwardTransactionHandler,
+  getCswHandler,
   getTransactionByParams,
   getTransactionByParamsHandler,
   getTransactionHandler,
@@ -41,4 +42,8 @@ router.get("/inbox/:id",getTransactionByParamsHandler)
 
 router.get("/temp/:id",getTransactionByParams);
 router.put("/:id",forwardTransactionHandler)
+
+
+//CSW ROUTES
+router.get('/csw/:id',getCswHandler);
 export default router;

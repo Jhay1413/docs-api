@@ -86,4 +86,21 @@ export const paramsRequestData = z.array(
   })
 );
 
+//CSW SCHEMA
+
+export const transactionLog = z.object({
+  id:z.number(),
+  old_data :z.nullable(z.string()).optional(),
+  new_data : z.nullable(z.string()).optional(),
+  method :z.string(),
+  createdById:z.string(),
+  transactionId : z.string()
+})
+export const CSWSchema = z.object({
+  id:z.nullable(z.string()).optional(),
+  date: z.string().datetime(),
+  remarks : z.string(),
+  transactionId : z.nullable(z.string()).optional()
+
+})
 export type TFilesData = z.infer<typeof filesSchema>;
