@@ -1,5 +1,5 @@
 import { db } from "../../prisma";
-import { transactionFormData, transactionLogsData } from "./transaction.schema";
+import { completeStaffWork, transactionFormData, transactionLogsData } from "./transaction.schema";
 import * as z from "zod";
 export const insertTransactionService = async (
   data: z.infer<typeof transactionFormData>
@@ -90,13 +90,12 @@ export const getTransactionService = async () => {
         originDepartment: true,
         targetDepartment: true,
         forwardedTo: true,
+        attachments:true
       },
     });
 
     return transaction;
   } catch (error) {
-    const response = await 
-    console.log(error);
     throw new Error("Error fetching documents");
   }
 };
@@ -139,7 +138,8 @@ export const getTransactionById = async (id: string) => {
         },
         receive: true,
         transactionLogs: true,
-        attachments:true
+        attachments:true,
+        completeStaffWork : true
       },
     });
 
@@ -292,24 +292,24 @@ export const logPostTransactions = async (
     throw new Error("something went wrong while adding logs. ");
   }
 };
-export const logPostTransactionsV2 = async (method:string,transactionId:string,accountId:string,new_data:string,old_data?:string)=>{
-  try {
-    const response = await db.transactionLog.create({
-      data:{
-        old_data : method === "POST" ? null : old_data,
-        current_data : new_data,
-        transactionId:transactionId,
-        createdById:accountId,
-        operation:method
-      } 
-    })
-    console.log(response)
-    return response;
-  } catch (error) {
-    await revertTransaction(old_data || new_data,method)
-    throw new Error("something went wrong ! ")
-  }
-}
+// export const logPostTransactionsV2 = async (method:string,transactionId:string,accountId:string,new_data:string,old_data?:string)=>{
+//   try {
+//     const response = await db.transactionLog.create({
+//       data:{
+//         old_data : method === "POST" ? null : old_data,
+//         current_data : new_data,
+//         transactionId:transactionId,
+//         createdById:accountId,
+//         operation:method
+//       } 
+//     })
+//     console.log(response)
+//     return response;
+//   } catch (error) {
+//     await revertTransaction(old_data || new_data,method)
+//     throw new Error("something went wrong ! ")
+//   }
+// }
 
 export const revertTransaction = async(data:string,method:string)=>{
   try {
@@ -532,11 +532,54 @@ export const receivedLatestLogs = async(transactionId:string,dateReceived:Date,r
 
 //CSW SERVICES
 
-export const fetchAllCSW = async(id:string) =>{
+
+export const updateTransactionCswById = async (transactionId:string,data:z.infer<typeof completeStaffWork>[])=>{
+
+  const cswToUpdate = data.filter(csw=>csw.id);
+  const cswToCreate = data.filter(csw=>!csw.id);
+
   try {
-    const response = await db.transaction.findMany({
+    const response = await db.transaction.update({
       where:{
-        id:id
+        id:transactionId
+      },
+      data:{
+        completeStaffWork:{
+          update:cswToUpdate.map(csw=>({
+            where:{
+              id:csw.id!
+            },data:{
+              date:csw.date,
+              remarks:csw.remarks,
+              attachmentUrl:csw.attachmentUrl
+            }
+          })),
+          createMany:{
+            data:cswToCreate
+          }
+        }
+      },
+      include: {
+        attachments: true,
+        forwarder: true,
+        receive: true,
+        company: true,
+        project: true,
+        completeStaffWork:true
+     
+      },
+    })
+
+    return response;
+  } catch (error) {
+    throw new Error("Something went wrong while adding csw ! ")
+  }
+}
+export const fetchCSWByTransactionId = async(id:string) =>{
+  try {
+    const response = await db.completeStaffWork.findMany({
+      where:{
+        transactionId:id
       },
       
     });

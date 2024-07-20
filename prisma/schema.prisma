@@ -39,7 +39,6 @@ model UserAccounts {
   accountStatus  Status           @default(ACTIVE)
   received       Transaction[]    @relation("ReceivedDocuments")
   forwarded      Transaction[]    @relation("ForwardedDocuments")
-  transactionLog TransactionLog[]
   userInfo       UserInfo?
 }
 
@@ -122,7 +121,7 @@ model Transaction {
   forwarder        UserAccounts      @relation("ReceivedDocuments", fields: [forwardedById], references: [id])
   project          CompanyProject    @relation(fields: [projectId], references: [id])
   receive          UserAccounts?     @relation("ForwardedDocuments", fields: [receivedById], references: [id])
-  transactionLog   TransactionLog[]
+  completeStaffWork CompleteStaffWork[] 
   transactionLogs  TransactionLogs[]
 }
 
@@ -153,16 +152,19 @@ model TransactionLogs {
   transaction      Transaction @relation(fields: [transactionId], references: [id])
 }
 
-model TransactionLog {
-  id            Int          @id @default(autoincrement())
-  old_data      String?
-  current_data  String
-  operation     String
-  createdById   String
-  transactionId String
-  createdBy     UserAccounts @relation(fields: [createdById], references: [id])
-  transaction   Transaction  @relation(fields: [transactionId], references: [id])
+
+model CompleteStaffWork{
+  id String @id @default(uuid())
+  date DateTime 
+  remarks String 
+  attachmentUrl String
+  transaction Transaction? @relation(fields:[transactionId], references: [id])
+  transactionId String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
 }
+
 
 enum Roles {
   SUPERADMIN

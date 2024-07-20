@@ -17,6 +17,7 @@ import {
   transactionGetSignedUrl,
   transactionHandler,
   transactionSignedUrl,
+  updateCswHandler,
 } from "./transaction.controller";
 const router = express.Router();
 
@@ -46,4 +47,5 @@ router.put("/:id",forwardTransactionHandler)
 
 //CSW ROUTES
 router.get('/csw/:id',getCswHandler);
+router.put("/:id/csw",updateCswHandler);
 export default router;

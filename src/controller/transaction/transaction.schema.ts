@@ -96,11 +96,12 @@ export const transactionLog = z.object({
   createdById:z.string(),
   transactionId : z.string()
 })
-export const CSWSchema = z.object({
-  id:z.nullable(z.string()).optional(),
+export const completeStaffWork = z.object({
+  id:z.string().optional(),
   date: z.string().datetime(),
   remarks : z.string(),
+  attachmentUrl:z.string(),
   transactionId : z.nullable(z.string()).optional()
-
+  
 })
 export type TFilesData = z.infer<typeof filesSchema>;

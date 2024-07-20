@@ -22,9 +22,9 @@ import {
   getReceivedTransactions,
   fetchTransactions,
   forwardTransaction,
-  fetchAllCSW,
   receivedLatestLogs,
-  logPostTransactionsV2,
+  fetchCSWByTransactionId,
+  updateTransactionCswById,
 } from "./transaction.service";
 import { GenerateId } from "../../utils/generate-id";
 
@@ -268,12 +268,26 @@ export const forwardTransactionHandler = async (
   }
 };
 
+
+//CSW CONTROLLER
+
 export const getCswHandler = async (req:Request,res:Response) =>{
   const {id} = req.params
   try {
-    const result = await fetchAllCSW(id);
+    const result = await fetchCSWByTransactionId(id);
     res.status(StatusCodes.CONTINUE).json(result)
   } catch (error) {
     res.status(StatusCodes.BAD_GATEWAY).json(error)
+  }
+}
+
+export const updateCswHandler = async (req:Request,res:Response)=>{
+  const {id} = req.params;
+  try {
+    const result = updateTransactionCswById(id,req.body)
+
+    res.status(StatusCodes.CREATED).json(result);
+  } catch (error) {
+    res.status(StatusCodes.BAD_GATEWAY).json(error) 
   }
 }
