@@ -82,7 +82,8 @@ export const paramsRequestData = z.array(
     fileName:z.string(),
     signedUrl:z.string().optional(),
     uploadstatus:z.string().optional(),
-    signedStatus : z.string().optional()
+    signedStatus : z.string().optional(),
+    index:z.number().optional()
   })
 );
 

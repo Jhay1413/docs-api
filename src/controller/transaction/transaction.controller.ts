@@ -40,6 +40,7 @@ export const transactionGetSignedUrl = async(req:Request,res:Response)=>{
 }
 export const transactionSignedUrl = async (req: Request, res: Response) => {
   const data = req.body;
+  console.log(data);
   try {
     const validateData = paramsRequestData.safeParse(data);
 
