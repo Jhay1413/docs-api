@@ -152,6 +152,7 @@ export const getTransactionsHandler = async (req: Request, res: Response) => {
 };
 export const getTransactionHandler = async (req: Request, res: Response) => {
   try {
+    console.log("refetch")
     const transaction = await getTransactionById(req.params.id);
     res.status(200).json(transaction);
   } catch (error) {
@@ -285,8 +286,9 @@ export const getCswHandler = async (req:Request,res:Response) =>{
 export const updateCswHandler = async (req:Request,res:Response)=>{
   const {id} = req.params;
   try {
-    const result = updateTransactionCswById(id,req.body)
 
+    const result = await updateTransactionCswById(id,req.body)
+    console.log(result)
     res.status(StatusCodes.CREATED).json(result);
   } catch (error) {
     res.status(StatusCodes.BAD_GATEWAY).json(error) 

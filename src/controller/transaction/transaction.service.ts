@@ -572,6 +572,7 @@ export const updateTransactionCswById = async (transactionId:string,data:z.infer
 
     return response;
   } catch (error) {
+    console.log(error)
     throw new Error("Something went wrong while adding csw ! ")
   }
 }

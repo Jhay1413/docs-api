@@ -78,31 +78,32 @@ export const transactionLogsData = z.object({
 
 export const paramsRequestData = z.array(
   z.object({
-    company:z.string(),
-    fileName:z.string(),
-    signedUrl:z.string().optional(),
-    uploadstatus:z.string().optional(),
-    signedStatus : z.string().optional(),
-    index:z.number().optional()
+    company: z.string(),
+    fileName: z.string(),
+    signedUrl: z.string().optional(),
+    uploadStatus: z.boolean().optional(),
+    signedStatus: z.boolean().optional(),
+    key: z.nullable(z.string()).optional(),
+    fileOriginalName: z.nullable(z.string()).optional(),
+    index: z.number().optional(),
   })
 );
 
 //CSW SCHEMA
 
 export const transactionLog = z.object({
-  id:z.number(),
-  old_data :z.nullable(z.string()).optional(),
-  new_data : z.nullable(z.string()).optional(),
-  method :z.string(),
-  createdById:z.string(),
-  transactionId : z.string()
-})
+  id: z.number(),
+  old_data: z.nullable(z.string()).optional(),
+  new_data: z.nullable(z.string()).optional(),
+  method: z.string(),
+  createdById: z.string(),
+  transactionId: z.string(),
+});
 export const completeStaffWork = z.object({
-  id:z.string().optional(),
+  id: z.string().optional(),
   date: z.string().datetime(),
-  remarks : z.string(),
-  attachmentUrl:z.string(),
-  transactionId : z.nullable(z.string()).optional()
-  
-})
+  remarks: z.string(),
+  attachmentUrl: z.string(),
+  transactionId: z.nullable(z.string()).optional(),
+});
 export type TFilesData = z.infer<typeof filesSchema>;
