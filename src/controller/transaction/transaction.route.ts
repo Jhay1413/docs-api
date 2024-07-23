@@ -18,11 +18,23 @@ import {
   transactionHandler,
   transactionSignedUrl,
   updateCswHandler,
-} from "./transaction.controller";
+} from "./transaction.controller-v1";
+import { TransactionController } from "./transaction.controller-v2";
+
 const router = express.Router();
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+
+const transactionController = new TransactionController();
+
+//transactions v2
+
+router.get("/v2/",transactionController.fetchAllTransactions.bind(transactionController) );
+router.get("/v2/:id",transactionController.fetchTransactionById.bind(transactionController))
+router.put("/v2/:id/csw",transactionController.updateCswById.bind(transactionController))
+
+//transaction v1
 router.get("/transactionGetUrl",transactionGetSignedUrl)
 
 router.post("/transactionSignedUrl" ,transactionSignedUrl )

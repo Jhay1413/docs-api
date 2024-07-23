@@ -25,7 +25,7 @@ import {
   receivedLatestLogs,
   fetchCSWByTransactionId,
   updateTransactionCswById,
-} from "./transaction.service";
+} from "./transaction.service-v1";
 import { GenerateId } from "../../utils/generate-id";
 
 
