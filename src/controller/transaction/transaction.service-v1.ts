@@ -123,7 +123,7 @@ export const getTransactionById = async (id: string) => {
   try {
     const response = await db.transaction.findUnique({
       where: {
-        transactionId: id,
+        id: id,
       },
       include: {
         company: {
