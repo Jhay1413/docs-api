@@ -1,5 +1,5 @@
 import { db } from "../../prisma";
-import { transactionFormData, transactionLogsData } from "./transaction.schema";
+import { completeStaffWork, transactionFormData, transactionLogsData } from "./transaction.schema";
 import * as z from "zod";
 export const insertTransactionService = async (
   data: z.infer<typeof transactionFormData>
@@ -90,12 +90,12 @@ export const getTransactionService = async () => {
         originDepartment: true,
         targetDepartment: true,
         forwardedTo: true,
+        attachments:true
       },
     });
 
     return transaction;
   } catch (error) {
-    console.log(error);
     throw new Error("Error fetching documents");
   }
 };
@@ -138,7 +138,8 @@ export const getTransactionById = async (id: string) => {
         },
         receive: true,
         transactionLogs: true,
-        attachments:true
+        attachments:true,
+        completeStaffWork : true
       },
     });
 
@@ -227,16 +228,12 @@ export const receiveTransactionById = async (
         receive: true,
         company: true,
         project: true,
+     
       },
     });
-    const result = {
-      ...response,
-      dueDate: new Date(response.dueDate).toISOString(),
-      dateForwarded: new Date(response.dateForwarded).toISOString(),
-      dateReceived: new Date(response.dateReceived!).toISOString(),
-    };
+    
 
-    return result;
+    return response;
   } catch (error) {
     throw new Error("Error while receiving transaction .");
   }
@@ -295,7 +292,63 @@ export const logPostTransactions = async (
     throw new Error("something went wrong while adding logs. ");
   }
 };
+// export const logPostTransactionsV2 = async (method:string,transactionId:string,accountId:string,new_data:string,old_data?:string)=>{
+//   try {
+//     const response = await db.transactionLog.create({
+//       data:{
+//         old_data : method === "POST" ? null : old_data,
+//         current_data : new_data,
+//         transactionId:transactionId,
+//         createdById:accountId,
+//         operation:method
+//       } 
+//     })
+//     console.log(response)
+//     return response;
+//   } catch (error) {
+//     await revertTransaction(old_data || new_data,method)
+//     throw new Error("something went wrong ! ")
+//   }
+// }
 
+export const revertTransaction = async(data:string,method:string)=>{
+  try {
+    if(method === "POST"){
+      const payload = JSON.parse(data);
+      const response = await db.transaction.delete({
+        where:{
+          id:payload.id
+        }
+      })
+      return response
+    }
+    else if (method =="UPDATE"){
+      const payload = JSON.parse(data) as z.infer<typeof transactionFormData>
+    
+      await db.transaction.update({
+        where:{
+          id:payload.id
+        },
+        data: {
+          ...payload,
+          attachments:{
+            update:payload.attachments.map(attachment=>({
+              where:{
+                id:attachment.id,
+              },
+              data:attachment
+            }))
+          }
+
+        },
+      })
+      return 
+    }
+
+  } catch (error) {
+    throw new Error("Something went wrong performing cleanup ! ");
+  }
+}
 //refactor starts here
 
 export const forwardTransaction = async (
@@ -445,3 +498,95 @@ export const fetchTransactions = async (
     throw new Error("something went wrong while fetching transaction. ");
   }
 };
+
+export const receivedLatestLogs = async(transactionId:string,dateReceived:Date,receivedByEmail:string) =>{
+  try {
+    console.log()
+    const recentLogs = await db.transactionLogs.findFirst({
+      where:{
+        transactionId,
+        
+
+      },
+      orderBy:{createdAt:"desc"}
+    });
+    console.log(recentLogs)
+    if(!recentLogs){
+      throw new Error("No logs found !")
+    }
+    const updateLogs = await db.transactionLogs.update({
+      where:{
+        id: recentLogs.id
+      },
+      data:{
+        dateReceived,
+        receivedBy:receivedByEmail
+      }
+    })
+    console.log(updateLogs);
+    return
+  } catch (error) {
+    throw new Error("Something went wrong ")
+  }
+}
+
+//CSW SERVICES
+
+
+export const updateTransactionCswById = async (transactionId:string,data:z.infer<typeof completeStaffWork>[])=>{
+
+  const cswToUpdate = data.filter(csw=>csw.id);
+  const cswToCreate = data.filter(csw=>!csw.id);
+
+  try {
+    const response = await db.transaction.update({
+      where:{
+        id:transactionId
+      },
+      data:{
+        completeStaffWork:{
+          update:cswToUpdate.map(csw=>({
+            where:{
+              id:csw.id!
+            },data:{
+              date:csw.date,
+              remarks:csw.remarks,
+              attachmentUrl:csw.attachmentUrl
+            }
+          })),
+          createMany:{
+            data:cswToCreate
+          }
+        }
+      },
+      include: {
+        attachments: true,
+        forwarder: true,
+        receive: true,
+        company: true,
+        project: true,
+        completeStaffWork:true
+     
+      },
+    })
+
+    return response;
+  } catch (error) {
+    console.log(error)
+    throw new Error("Something went wrong while adding csw ! ")
+  }
+}
+export const fetchCSWByTransactionId = async(id:string) =>{
+  try {
+    const response = await db.completeStaffWork.findMany({
+      where:{
+        transactionId:id
+      },
+      
+    });
+    return response
+  } catch (error) {
+    console.log(error);
+    throw new Error("something went wrong while fetching csw. ");
+  }
+}

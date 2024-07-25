@@ -8,29 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Roles {
-  SUPERADMIN
-  ADMIN
-  TL
-  CH
-  RECORDS
-  MANAGER
-  GUEST
-}
-
-enum Status {
-  ACTIVE
-  INACTIVE
-  DISABLE
-}
-
-enum FileType {
-  INITIAL_DOC
-  FOLLOWED_UP
-  FOR_ARCHIEVE
-  FOR_REVIEW
-}
-
 model UserInfo {
   id               String       @id @default(uuid())
   email            String       @unique
@@ -53,55 +30,55 @@ model UserInfo {
 }
 
 model UserAccounts {
-  id            String        @id @default(uuid())
-  password      String
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  email         String        @unique
-  accountRole   Roles         @default(GUEST)
-  received      Transaction[] @relation("ReceivedDocuments")
-  forwarded     Transaction[] @relation("ForwardedDocuments")
-  userInfo      UserInfo?
-  accountStatus Status        @default(ACTIVE)
+  id             String           @id @default(uuid())
+  password       String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  email          String           @unique
+  accountRole    Roles            @default(GUEST)
+  accountStatus  Status           @default(ACTIVE)
+  received       Transaction[]    @relation("ReceivedDocuments")
+  forwarded      Transaction[]    @relation("ForwardedDocuments")
+  userInfo       UserInfo?
 }
 
 model Attachment {
-  id                String           @id @default(uuid())
-  fileName          String
-  fileUrl           String?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  remarks           String?
-  fileOriginalName  String?
-  fileStatus        String?
-  fileType          FileType         @default(INITIAL_DOC)
-  transactions      Transaction      @relation(fields: [transactionId], references: [transactionId])
-  transactionId     String
+  id               String      @id @default(uuid())
+  fileName         String
+  fileUrl          String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  remarks          String?
+  fileOriginalName String?
+  transactionId    String
+  fileStatus       String?
+  fileType         FileType    @default(INITIAL_DOC)
+  transactions     Transaction @relation(fields: [transactionId], references: [id],onDelete: Cascade)
 }
 
 model Company {
   id              String           @id @default(uuid())
-  companyId       String           @unique
   companyName     String
   companyAddress  String
+  companyId       String           @unique
   email           String?
-  companyProjects CompanyProject[]
   contactPersonId String?          @unique
   contactPersons  ContactPerson?   @relation(fields: [contactPersonId], references: [id])
+  companyProjects CompanyProject[]
   transaction     Transaction[]
 }
 
 model CompanyProject {
   id              String         @id @default(uuid())
-  projectId       String         @unique
   projectName     String
   projectAddress  String
-  retainer        Boolean
-  email           String?
-  date_expiry     DateTime?
-  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId       String
+  date_expiry     DateTime?
+  retainer        Boolean
+  projectId       String         @unique
+  email           String?
   contactPersonId String?        @unique
+  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contactPersons  ContactPerson? @relation(fields: [contactPersonId], references: [id])
   transaction     Transaction[]
 }
@@ -110,55 +87,53 @@ model ContactPerson {
   id               String          @id @default(uuid())
   name             String
   contactNumber    String
+  companyProjectId String?
   email            String?
   company          Company?
   companyProject   CompanyProject?
-  companyProjectId String?
 }
 
 model Transaction {
-  id              String   @id @default(uuid())
-  transactionId   String   @unique
-  documentType    String
-  subject         String
-  dueDate         DateTime
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  documentSubType String
-  team            String
-  status          String
-  priority        String
-
-  companyId String
-
+  id               String            @id @unique @default(uuid())
+  transactionId    String            @unique
+  documentType     String
+  subject          String
+  dueDate          DateTime
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  documentSubType  String
+  team             String
+  status           String
+  priority         String
+  companyId        String
   projectId        String
   forwardedTo      String
   remarks          String
-  receivedById     String?
-  forwardedById    String
   dateForwarded    DateTime
   dateReceived     DateTime?
+  forwardedByRole  String            @default("")
   originDepartment String
   targetDepartment String
-  forwardedByRole  String       @default("")
+  forwardedById    String
+  receivedById     String?
   attachments      Attachment[]
-
-  transactionLogs TransactionLogs[]
-  forwarder       UserAccounts      @relation("ReceivedDocuments", fields: [forwardedById], references: [id])
-  receive         UserAccounts?     @relation("ForwardedDocuments", fields: [receivedById], references: [id])
-  project         CompanyProject    @relation(fields: [projectId], references: [id])
-  company         Company           @relation(fields: [companyId], references: [id])
+  company          Company           @relation(fields: [companyId], references: [id])
+  forwarder        UserAccounts      @relation("ReceivedDocuments", fields: [forwardedById], references: [id])
+  project          CompanyProject    @relation(fields: [projectId], references: [id])
+  receive          UserAccounts?     @relation("ForwardedDocuments", fields: [receivedById], references: [id])
+  completeStaffWork CompleteStaffWork[] 
+  transactionLogs  TransactionLogs[]
 }
 
 model TransactionLogs {
-  id               String       @id @default(uuid())
+  id               String      @id @default(uuid())
   transactionId    String
   documentType     String
   subject          String
   dueDate          DateTime
   documentSubType  String
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
   team             String
   status           String
   priority         String
@@ -166,13 +141,50 @@ model TransactionLogs {
   project          String
   forwardedTo      String
   remarks          String
-  receivedBy       String?
   forwardedBy      String
-  dateForwarded    DateTime
-  dateReceived     DateTime?
   originDepartment String
   targetDepartment String
   forwardedByRole  String
-  attachments      String  @default("")
-  transaction      Transaction  @relation(fields: [transactionId], references: [id])
+  dateForwarded    DateTime
+  dateReceived     DateTime?
+  receivedBy       String?
+  attachments      String      @default("")
+  transaction      Transaction @relation(fields: [transactionId], references: [id])
+}
+
+
+model CompleteStaffWork{
+  id String @id @default(uuid())
+  date DateTime 
+  remarks String 
+  attachmentUrl String
+  transaction Transaction? @relation(fields:[transactionId], references: [id])
+  transactionId String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+}
+
+
+enum Roles {
+  SUPERADMIN
+  ADMIN
+  TL
+  CH
+  GUEST
+  RECORDS
+  MANAGER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+  DISABLE
+}
+
+enum FileType {
+  INITIAL_DOC
+  FOLLOWED_UP
+  FOR_ARCHIEVE
+  FOR_REVIEW
 }

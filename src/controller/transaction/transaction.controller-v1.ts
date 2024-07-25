@@ -22,7 +22,10 @@ import {
   getReceivedTransactions,
   fetchTransactions,
   forwardTransaction,
-} from "./transaction.service";
+  receivedLatestLogs,
+  fetchCSWByTransactionId,
+  updateTransactionCswById,
+} from "./transaction.service-v1";
 import { GenerateId } from "../../utils/generate-id";
 
 
@@ -37,6 +40,7 @@ export const transactionGetSignedUrl = async(req:Request,res:Response)=>{
 }
 export const transactionSignedUrl = async (req: Request, res: Response) => {
   const data = req.body;
+  console.log(data);
   try {
     const validateData = paramsRequestData.safeParse(data);
 
@@ -103,6 +107,12 @@ export const transactionHandler = async (req: Request, res: Response) => {
     const data = { ...req.body, transactionId: generatedId };
     const response = await insertTransactionService(data);
 
+    // const stringfyData =JSON.stringify(response);
+
+
+    // const logResult = await logPostTransactionsV2("POST",response.id,response.forwardedById,stringfyData);
+
+    // console.log(logResult)
     const validatedData = transactionData.safeParse(response);
     console.log(validatedData.error?.errors);
     if (validatedData.error) {
@@ -136,13 +146,13 @@ export const getTransactionsHandler = async (req: Request, res: Response) => {
 
     res.status(StatusCodes.OK).json(documents);
   } catch (error) {
-  
     console.log(error);
     return res.status(500).json(error);
   }
 };
 export const getTransactionHandler = async (req: Request, res: Response) => {
   try {
+    console.log("refetch")
     const transaction = await getTransactionById(req.params.id);
     res.status(200).json(transaction);
   } catch (error) {
@@ -179,36 +189,15 @@ export const receivedTransactionHandler = async (
   res: Response
 ) => {
   const { receivedBy, dateReceived } = req.body;
-  const transactionID = req.params.id;
+  const transactionId = req.params.id;
   try {
     const result = await receiveTransactionById(
-      transactionID,
+      transactionId,
       receivedBy,
       dateReceived
     );
-    const validatedData = transactionData.safeParse(result);
-    console.log(validatedData.error?.errors);
-    if (validatedData.error) {
-      return res
-        .status(StatusCodes.EXPECTATION_FAILED)
-        .json("something went wrong!");
-    }
-
-    const cleanedData = {
-      ...validatedData.data,
-      company: validatedData.data.company?.companyName!,
-      project: validatedData.data.project?.projectName!,
-      forwardedBy: validatedData.data.forwarder!.email,
-      attachments: validatedData.data.attachments!,
-      receivedBy: validatedData.data.receive?.email || null,
-      transactionId: validatedData.data.id!,
-    };
-
-    const { receivedById, receive, forwarder, id, ...payload } = cleanedData;
-
-    await logPostTransactions(payload);
-
-    res.status(StatusCodes.ACCEPTED).json(validatedData.data.id);
+    await receivedLatestLogs(result.id,dateReceived,result.receive?.email!)
+    res.status(StatusCodes.ACCEPTED).json(result.id);
   } catch (error) {
     res.status(StatusCodes.CONFLICT).json(error);
   }
@@ -280,3 +269,28 @@ export const forwardTransactionHandler = async (
     res.status(StatusCodes.BAD_GATEWAY).json(error);
   }
 };
+
+
+//CSW CONTROLLER
+
+export const getCswHandler = async (req:Request,res:Response) =>{
+  const {id} = req.params
+  try {
+    const result = await fetchCSWByTransactionId(id);
+    res.status(StatusCodes.CONTINUE).json(result)
+  } catch (error) {
+    res.status(StatusCodes.BAD_GATEWAY).json(error)
+  }
+}
+
+export const updateCswHandler = async (req:Request,res:Response)=>{
+  const {id} = req.params;
+  try {
+
+    const result = await updateTransactionCswById(id,req.body)
+    console.log(result)
+    res.status(StatusCodes.CREATED).json(result);
+  } catch (error) {
+    res.status(StatusCodes.BAD_GATEWAY).json(error) 
+  }
+}
