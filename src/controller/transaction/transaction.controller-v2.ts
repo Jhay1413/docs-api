@@ -40,7 +40,6 @@ export class TransactionController {
         id,
         req.body
       );
-      console.log(result);
       res.status(StatusCodes.CREATED).json(result);
     } catch (error) {
       res.status(StatusCodes.BAD_GATEWAY).json(error);

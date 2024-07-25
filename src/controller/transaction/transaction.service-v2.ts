@@ -29,7 +29,7 @@ export class TransactionService {
       const parseResponse = transaction?.transactionLogs.map((respo) => {
         return { ...respo, attachments: JSON.parse(respo.attachments) };
       });
-      console.log(transaction);
+     
 
       return { ...transaction, transactionLogs: parseResponse };
     } catch (error) {
@@ -65,7 +65,7 @@ export class TransactionService {
         GROUP BY t.id
                 `;
 
-      console.log(transactions);
+    
       return transactions;
     } catch (error) {
       console.error("Error fetching transaction", error);
@@ -74,11 +74,8 @@ export class TransactionService {
   }
   public async updateTransactionCswById(
     transactionId: string,
-    data: z.infer<typeof completeStaffWork>[]
+    data: z.infer<typeof completeStaffWork>
   ) {
-    const cswToUpdate = data.filter((csw) => csw.id);
-    const cswToCreate = data.filter((csw) => !csw.id);
-
     try {
       const response = await db.transaction.update({
         where: {
@@ -86,18 +83,20 @@ export class TransactionService {
         },
         data: {
           completeStaffWork: {
-            update: cswToUpdate.map((csw) => ({
+            upsert: {
               where: {
-                id: csw.id!,
+                id: data.id || "",
               },
-              data: {
-                date: csw.date,
-                remarks: csw.remarks,
-                attachmentUrl: csw.attachmentUrl,
+              update: {
+                date: data.date,
+                remarks: data.remarks,
+                attachmentUrl: data.attachmentUrl,
               },
-            })),
-            createMany: {
-              data: cswToCreate,
+              create: {
+                date: data.date,
+                remarks: data.remarks,
+                attachmentUrl: data.attachmentUrl,
+              },
             },
           },
         },
@@ -110,7 +109,7 @@ export class TransactionService {
           completeStaffWork: true,
         },
       });
-      console.log(response)
+      console.log(response);
       return response;
     } catch (error) {
       console.log(error);
