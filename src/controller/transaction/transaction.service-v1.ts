@@ -1,5 +1,9 @@
 import { db } from "../../prisma";
-import { completeStaffWork, transactionFormData, transactionLogsData } from "./transaction.schema";
+import {
+  completeStaffWork,
+  transactionFormData,
+  transactionLogsData,
+} from "./transaction.schema";
 import * as z from "zod";
 export const insertTransactionService = async (
   data: z.infer<typeof transactionFormData>
@@ -90,7 +94,7 @@ export const getTransactionService = async () => {
         originDepartment: true,
         targetDepartment: true,
         forwardedTo: true,
-        attachments:true
+        attachments: true,
       },
     });
 
@@ -138,18 +142,16 @@ export const getTransactionById = async (id: string) => {
         },
         receive: true,
         transactionLogs: true,
-        attachments:true,
-        completeStaffWork : true
+        attachments: true,
+        completeStaffWork: true,
       },
     });
 
-    const parseResponse = response?.transactionLogs.map(respo=>{
-      return {...respo, attachments: JSON.parse(respo.attachments)}
-    })
+    const parseResponse = response?.transactionLogs.map((respo) => {
+      return { ...respo, attachments: JSON.parse(respo.attachments) };
+    });
 
-    
-    return {...response, transactionLogs:parseResponse};
-    
+    return { ...response, transactionLogs: parseResponse };
   } catch (error) {
     console.log(error);
     throw new Error("Error fetching transaction");
@@ -228,11 +230,8 @@ export const receiveTransactionById = async (
         receive: true,
         company: true,
         project: true,
-     
       },
     });
-    
-
     return response;
   } catch (error) {
     throw new Error("Error while receiving transaction .");
@@ -279,10 +278,9 @@ export const logPostTransactions = async (
       transactionId: data.transactionId,
       dueDate: data.dueDate!,
       dateForwarded: data.dateForwarded!,
-      attachments:JSON.stringify(data.attachments)
+      attachments: JSON.stringify(data.attachments),
     };
-    
-   
+
     await db.transactionLogs.create({
       data: createData,
     });
@@ -301,7 +299,7 @@ export const logPostTransactions = async (
 //         transactionId:transactionId,
 //         createdById:accountId,
 //         operation:method
-//       } 
+//       }
 //     })
 //     console.log(response)
 //     return response;
@@ -311,51 +309,47 @@ export const logPostTransactions = async (
 //   }
 // }
 
-export const revertTransaction = async(data:string,method:string)=>{
+export const revertTransaction = async (data: string, method: string) => {
   try {
-    if(method === "POST"){
+    if (method === "POST") {
       const payload = JSON.parse(data);
       const response = await db.transaction.delete({
-        where:{
-          id:payload.id
-        }
-      })
-      return response
-    }
-    else if (method =="UPDATE"){
-      const payload = JSON.parse(data) as z.infer<typeof transactionFormData>
-    
+        where: {
+          id: payload.id,
+        },
+      });
+      return response;
+    } else if (method == "UPDATE") {
+      const payload = JSON.parse(data) as z.infer<typeof transactionFormData>;
+
       await db.transaction.update({
-        where:{
-          id:payload.id
+        where: {
+          id: payload.id,
         },
         data: {
           ...payload,
-          attachments:{
-            update:payload.attachments.map(attachment=>({
-              where:{
-                id:attachment.id,
+          attachments: {
+            update: payload.attachments.map((attachment) => ({
+              where: {
+                id: attachment.id,
               },
-              data:attachment
-            }))
-          }
-
+              data: attachment,
+            })),
+          },
         },
-      })
-      return 
+      });
+      return;
     }
-
   } catch (error) {
     throw new Error("Something went wrong performing cleanup ! ");
   }
-}
+};
 //refactor starts here
 
 export const forwardTransaction = async (
   data: z.infer<typeof transactionFormData>
 ) => {
   const {
- 
     documentType,
     subject,
     forwardedTo,
@@ -372,45 +366,43 @@ export const forwardTransaction = async (
     id,
     status,
     priority,
-    attachments
+    attachments,
   } = data;
   try {
-
-
-    const createAttachment = attachments.filter(attachment => !attachment.id);
-    const updateAttachment = attachments.filter(attachment=>attachment.id)
+    const createAttachment = attachments.filter((attachment) => !attachment.id);
+    const updateAttachment = attachments.filter((attachment) => attachment.id);
     const response = await db.transaction.update({
-      where:{
-        transactionId:transactionId,
+      where: {
+        transactionId: transactionId,
       },
-      data:{
-        documentType : documentType,
-        documentSubType:documentSubType,
-        subject :subject,
-        dueDate  : dueDate,
-        team:team,
-        status:status,
-        priority:priority,
-        forwardedTo:forwardedTo,
-        remarks:remarks,
-        receivedById:null,
-        forwardedById:forwardedById, 
-        dateForwarded:dateForwarded,
-        dateReceived:null,
-        originDepartment:originDepartment,
-        targetDepartment:targetDepartment,
-        forwardedByRole:forwardedByRole,
-        attachments:{
-          createMany:{
-            data:createAttachment
+      data: {
+        documentType: documentType,
+        documentSubType: documentSubType,
+        subject: subject,
+        dueDate: dueDate,
+        team: team,
+        status: status,
+        priority: priority,
+        forwardedTo: forwardedTo,
+        remarks: remarks,
+        receivedById: null,
+        forwardedById: forwardedById,
+        dateForwarded: dateForwarded,
+        dateReceived: null,
+        originDepartment: originDepartment,
+        targetDepartment: targetDepartment,
+        forwardedByRole: forwardedByRole,
+        attachments: {
+          createMany: {
+            data: createAttachment,
           },
-          update:updateAttachment.map(attachment=>({
-            where:{
-              id:attachment.id!
+          update: updateAttachment.map((attachment) => ({
+            where: {
+              id: attachment.id!,
             },
-            data:attachment
-          }))
-        }
+            data: attachment,
+          })),
+        },
       },
       include: {
         attachments: true,
@@ -424,12 +416,14 @@ export const forwardTransaction = async (
       ...response,
       dueDate: new Date(response.dueDate).toISOString(),
       dateForwarded: new Date(response.dateForwarded).toISOString(),
-      dateReceived: response.dateReceived ? new Date(response.dateReceived!).toISOString() : null,
+      dateReceived: response.dateReceived
+        ? new Date(response.dateReceived!).toISOString()
+        : null,
     };
-    return result
+    return result;
   } catch (error) {
-    console.log(error)
-    throw new Error("something went wrong while updating transaction ")
+    console.log(error);
+    throw new Error("something went wrong while updating transaction ");
   }
 };
 export const fetchTransactions = async (
@@ -447,25 +441,21 @@ export const fetchTransactions = async (
 
   try {
     if (adminRole.includes(role!)) {
-    
-        filters = {
-          targetDepartment: department,
-          forwardedTo: role,
-          ...(option === "INCOMING"
-            ? { dateReceived: null }
-            : { receivedById: accountId }),
-       
-      }
+      filters = {
+        forwardedTo: role,
+        ...(role === "MANAGER" && { targetDepartment: department }),
+        ...(option === "INCOMING"
+          ? { dateReceived: null }
+          : { receivedById: accountId }),
+      };
     } else if (commonRole.includes(role!)) {
-   
-        filters = {
-          team: section,
-          forwardedTo: role,
-          ...(option === "INCOMING"
-            ? { dateReceived: null }
-            : { receivedById: accountId }),
-       
-      }
+      filters = {
+        team: section,
+        forwardedTo: role,
+        ...(option === "INCOMING"
+          ? { dateReceived: null }
+          : { receivedById: accountId }),
+      };
     } else {
       filters = {
         id: transactionId,
@@ -491,7 +481,7 @@ export const fetchTransactions = async (
         forwardedTo: true,
       },
     });
-
+    console.log(response, "asdsad");
     return response;
   } catch (error) {
     console.log(error);
@@ -499,65 +489,69 @@ export const fetchTransactions = async (
   }
 };
 
-export const receivedLatestLogs = async(transactionId:string,dateReceived:Date,receivedByEmail:string) =>{
+export const receivedLatestLogs = async (
+  transactionId: string,
+  dateReceived: Date,
+  receivedByEmail: string
+) => {
   try {
-    console.log()
+    console.log();
     const recentLogs = await db.transactionLogs.findFirst({
-      where:{
+      where: {
         transactionId,
-        
-
       },
-      orderBy:{createdAt:"desc"}
+      orderBy: { createdAt: "desc" },
     });
-    console.log(recentLogs)
-    if(!recentLogs){
-      throw new Error("No logs found !")
+    console.log(recentLogs);
+    if (!recentLogs) {
+      throw new Error("No logs found !");
     }
     const updateLogs = await db.transactionLogs.update({
-      where:{
-        id: recentLogs.id
+      where: {
+        id: recentLogs.id,
       },
-      data:{
+      data: {
         dateReceived,
-        receivedBy:receivedByEmail
-      }
-    })
+        receivedBy: receivedByEmail,
+      },
+    });
     console.log(updateLogs);
-    return
+    return;
   } catch (error) {
-    throw new Error("Something went wrong ")
+    throw new Error("Something went wrong ");
   }
-}
+};
 
 //CSW SERVICES
 
-
-export const updateTransactionCswById = async (transactionId:string,data:z.infer<typeof completeStaffWork>[])=>{
-
-  const cswToUpdate = data.filter(csw=>csw.id);
-  const cswToCreate = data.filter(csw=>!csw.id);
+export const updateTransactionCswById = async (
+  transactionId: string,
+  data: z.infer<typeof completeStaffWork>[]
+) => {
+  const cswToUpdate = data.filter((csw) => csw.id);
+  const cswToCreate = data.filter((csw) => !csw.id);
 
   try {
     const response = await db.transaction.update({
-      where:{
-        id:transactionId
+      where: {
+        id: transactionId,
       },
-      data:{
-        completeStaffWork:{
-          update:cswToUpdate.map(csw=>({
-            where:{
-              id:csw.id!
-            },data:{
-              date:csw.date,
-              remarks:csw.remarks,
-              attachmentUrl:csw.attachmentUrl
-            }
+      data: {
+        completeStaffWork: {
+          update: cswToUpdate.map((csw) => ({
+            where: {
+              id: csw.id!,
+            },
+            data: {
+              date: csw.date,
+              remarks: csw.remarks,
+              attachmentUrl: csw.attachmentUrl,
+            },
           })),
-          createMany:{
-            data:cswToCreate
-          }
-        }
+          createMany: {
+            data: cswToCreate,
+          },
+        },
       },
       include: {
         attachments: true,
@@ -565,28 +559,26 @@ export const updateTransactionCswById = async (transactionId:string,data:z.infer
         receive: true,
         company: true,
         project: true,
-        completeStaffWork:true
-     
+        completeStaffWork: true,
       },
-    })
+    });
 
     return response;
   } catch (error) {
-    console.log(error)
-    throw new Error("Something went wrong while adding csw ! ")
+    console.log(error);
+    throw new Error("Something went wrong while adding csw ! ");
   }
-}
-export const fetchCSWByTransactionId = async(id:string) =>{
+};
+export const fetchCSWByTransactionId = async (id: string) => {
   try {
     const response = await db.completeStaffWork.findMany({
-      where:{
-        transactionId:id
+      where: {
+        transactionId: id,
       },
-      
     });
-    return response
+    return response;
   } catch (error) {
     console.log(error);
     throw new Error("something went wrong while fetching csw. ");
   }
-}
+};

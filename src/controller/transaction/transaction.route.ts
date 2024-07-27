@@ -32,7 +32,8 @@ const transactionController = new TransactionController();
 
 router.get("/v2/",transactionController.fetchAllTransactions.bind(transactionController) );
 router.get("/v2/:id",transactionController.fetchTransactionById.bind(transactionController))
-router.put("/v2/:id/csw",transactionController.updateCswById.bind(transactionController))
+router.put("/v2/:id/csw",transactionController.updateCswById.bind(transactionController));
+router.get("/v2/:id/notification",transactionController.countIncomingAndInboxTransactions.bind(transactionController))
 
 //transaction v1
 router.get("/transactionGetUrl",transactionGetSignedUrl)

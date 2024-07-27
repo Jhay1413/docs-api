@@ -13,6 +13,7 @@ export const loginHander = async (
 
   try {
     const user = await checkUserAccountExists(rest.email);
+    console.log("loggggingggg eeeeeinnn")
     if (!user) {
       return res.status(StatusCodes.BAD_REQUEST).send("User not found !");
     }

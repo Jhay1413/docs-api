@@ -29,7 +29,6 @@ export class TransactionService {
       const parseResponse = transaction?.transactionLogs.map((respo) => {
         return { ...respo, attachments: JSON.parse(respo.attachments) };
       });
-     
 
       return { ...transaction, transactionLogs: parseResponse };
     } catch (error) {
@@ -65,11 +64,83 @@ export class TransactionService {
         GROUP BY t.id
                 `;
 
-    
       return transactions;
     } catch (error) {
       console.error("Error fetching transaction", error);
       throw new Error("Failed to fetch transactions");
+    }
+  }
+  public async getIncomingTransaction(
+    accountId?: string,
+    assignedDivision?: string,
+    accountRole?: string,
+    option?: string,
+    section?: string
+  ) {
+    let filters: any = {};
+    const adminRole = ["MANAGER", "RECORDS"];
+    
+    const commonRole = ["TL", "CH"];
+    console.log(accountRole)
+    try {
+      if (adminRole.includes(accountRole!)) {
+        filters = {
+          forwardedTo: accountRole,
+          ...(accountRole === "MANAGER" && {
+            targetDepartment: assignedDivision,
+          }),
+          dateReceived: null,
+        };
+      } else if (commonRole.includes(accountRole!)) {
+        filters = {
+          team: section,
+          forwardedTo: accountRole,
+          dateReceived: null,
+        };
+      }
+      const response = await db.transaction.count({
+        where: filters,
+      });
+     
+      return response;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong !");
+    }
+  }
+  public async getReceivedTransaction(
+    accountId?: string,
+    assignedDivision?: string,
+    accountRole?: string,
+    option?: string,
+    section?: string
+  ) {
+    let filters: any = {};
+    const adminRole = ["MANAGER", "RECORDS"];
+
+    const commonRole = ["TL", "CH"];
+
+    try {
+      if (adminRole.includes(accountRole!)) {
+        filters = {
+          targetDepartment: assignedDivision,
+          forwardedTo: accountRole,
+          receivedById: accountId,
+        };
+      } else {
+        filters = {
+          team: section,
+          forwardedTo: accountRole,
+          receivedById: accountId,
+        };
+      }
+      const response = await db.transaction.count({
+        where: filters,
+      });
+      return response;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong !");
     }
   }
   public async updateTransactionCswById(
