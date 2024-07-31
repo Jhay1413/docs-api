@@ -13,6 +13,7 @@ export const loginHander = async (
 
   try {
     const user = await checkUserAccountExists(rest.email);
+    console.log("loggggingggg eeeeeinnn")
     if (!user) {
       return res.status(StatusCodes.BAD_REQUEST).send("User not found !");
     }
@@ -33,7 +34,7 @@ export const loginHander = async (
     );
 
     res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
+      httpOnly: true, 
       maxAge: 7 * 24 * 60 * 60 * 1000,
       secure: true,
       sameSite: "none",
