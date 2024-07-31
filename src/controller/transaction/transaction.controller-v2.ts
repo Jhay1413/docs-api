@@ -3,6 +3,7 @@ import { TransactionService } from "./transaction.service-v2";
 import { Request, Response } from "express";
 import * as z from "zod";
 import { getUserInfo } from "./transaction.service-v1";
+
 export class TransactionController {
   private transactionService: TransactionService;
 
@@ -38,7 +39,6 @@ export class TransactionController {
     const { id } = req.params;
     try {
       const userInfo = await getUserInfo(id);
-      console.log(userInfo);
       const incoming = await this.transactionService.getIncomingTransaction(
         undefined,
         userInfo?.userInfo?.assignedDivision,

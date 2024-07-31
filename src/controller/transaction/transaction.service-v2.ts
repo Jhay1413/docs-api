@@ -78,10 +78,10 @@ export class TransactionService {
     section?: string
   ) {
     let filters: any = {};
-    const adminRole = ["MANAGER", "RECORDS"];
-    
+    const adminRole = ["MANAGER", "RECORDS","QA"];
+
     const commonRole = ["TL", "CH"];
-    console.log(accountRole)
+    console.log(accountRole);
     try {
       if (adminRole.includes(accountRole!)) {
         filters = {
@@ -101,7 +101,7 @@ export class TransactionService {
       const response = await db.transaction.count({
         where: filters,
       });
-     
+
       return response;
     } catch (error) {
       console.log(error);
@@ -115,6 +115,7 @@ export class TransactionService {
     option?: string,
     section?: string
   ) {
+    console.log(accountRole);
     let filters: any = {};
     const adminRole = ["MANAGER", "RECORDS"];
 
@@ -123,7 +124,9 @@ export class TransactionService {
     try {
       if (adminRole.includes(accountRole!)) {
         filters = {
-          targetDepartment: assignedDivision,
+          ...(accountRole === "MANAGER" && {
+            targetDepartment: assignedDivision,
+          }),
           forwardedTo: accountRole,
           receivedById: accountId,
         };
@@ -180,7 +183,7 @@ export class TransactionService {
           completeStaffWork: true,
         },
       });
-      console.log(response);
+
       return response;
     } catch (error) {
       console.log(error);
