@@ -25,22 +25,21 @@ export const transactionFormData = z.object({
   priority: z.string(),
   companyId: z.string(),
   projectId: z.string(),
-  forwardedTo: z.string(),
+  receiverId: z.string(),
   remarks: z.string(),
   receivedById: z.nullable(z.string()).optional(),
-  forwardedById: z.string(),
+  forwarderId: z.string(),
   dateForwarded: z.string().datetime(),
   dateReceived: z.nullable(z.string().datetime()).optional(),
   originDepartment: z.string(),
   targetDepartment: z.string(),
-  forwardedByRole: z.string(),
   attachments: z.array(filesSchema),
 });
 
 export const transactionData = transactionFormData
   .extend({
     forwarder: AccountSchema.optional(),
-    receive: z.nullable(AccountSchema).optional(),
+    receiver: z.nullable(AccountSchema).optional(),
 
     company: companyFormData.optional(),
     project: projects.optional(),
@@ -48,7 +47,7 @@ export const transactionData = transactionFormData
   .omit({
     companyId: true,
     projectId: true,
-    forwardedById: true,
+    forwarderId: true,
   });
 export const transactionLogsData = z.object({
   id: z.string().optional(),
@@ -64,15 +63,13 @@ export const transactionLogsData = z.object({
   priority: z.string(),
   company: z.string(),
   project: z.string(),
-  forwardedTo: z.string(),
+  forwarder: z.string(),
   remarks: z.string(),
-  receivedBy: z.nullable(z.string()).optional(),
-  forwardedBy: z.string(),
+  receiver: z.nullable(z.string()).optional(),
   dateForwarded: z.string().datetime(),
   dateReceived: z.nullable(z.string().datetime()).optional(),
   originDepartment: z.string(),
   targetDepartment: z.string(),
-  forwardedByRole: z.string(),
   attachments: z.array(filesSchema),
 });
 

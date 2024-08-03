@@ -4,8 +4,6 @@ import authRouter from "./controller/auth/auth.route";
 import userRouter from "./controller/user/user.routes";
 import transactionRouter from "./controller/transaction/transaction.route";
 import companyRouter from "./controller/company/company.route";
-
-
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import http from "http";
