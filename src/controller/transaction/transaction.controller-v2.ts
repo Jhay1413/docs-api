@@ -71,6 +71,14 @@ export class TransactionController {
         .json("Something went wrong ! ");
     }
   }
+  public async fetchArchievedTransactionHandler(req:Request,res:Response){
+    try {
+      const transactions = await this.transactionService.getArchievedTransaction();
+      res.status(StatusCodes.OK).json(transactions)
+    } catch (error) {
+      return res.status(StatusCodes.BAD_GATEWAY).json("Something went wrong ! ")
+    }
+  }
   public async fetchTransactionsByParamsHandler(req: Request, res: Response) {
     const { option } = req.query;
     const { id } = req.params;

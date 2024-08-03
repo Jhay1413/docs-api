@@ -117,7 +117,11 @@ export class TransactionService {
           receiverId: id,
           dateReceived: {
             equals: null,
+            
           },
+          status:{
+            not : "ARCHIEVED"
+        },
         },
       });
       return response;
@@ -191,6 +195,29 @@ export class TransactionService {
       throw new Error("Failed to fetch transactions");
     }
   }
+  public async getArchievedTransaction(){
+    try {
+      const response = await db.transaction.findMany({
+        where:{
+          status :"ARCHIEVED"
+
+        },
+        select:{
+          id:true,
+          transactionId:true,
+          company:true,
+          project:true,
+          documentSubType:true,
+          createdAt:true,
+          remarks:true
+        }
+      })
+      return response
+    } catch (error) {
+      console.log(error)
+      throw new Error("Failed to fetch archieved transactions ! ")
+    }
+  }
   public async getIncomingTransaction(accountId?: string) {
     try {
       const [incomingCount, outgoingCount] = await Promise.all([
@@ -199,7 +226,10 @@ export class TransactionService {
             receiverId: accountId,
             dateReceived: {
               equals: null,
-            }, // Condition for incoming transactions
+            },
+            status:{
+                not : "ARCHIEVED"
+            },
           },
         }),
         db.transaction.count({
@@ -208,6 +238,9 @@ export class TransactionService {
             dateReceived: {
               not: null,
             },
+            status:{
+              not : "ARCHIEVED"
+          },
           },
         }),
       ]);

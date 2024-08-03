@@ -114,7 +114,7 @@ model Transaction {
   targetDepartment  String
   receiverId        String
   forwarderId       String
-  receiver          UserAccounts        @relation("ReceivingTransactions", fields: [receiverId], references: [id])
+  receiver          UserAccounts       @relation("ReceivingTransactions", fields: [receiverId], references: [id])
   attachments       Attachment[]
   company           Company             @relation(fields: [companyId], references: [id])
   forwarder         UserAccounts        @relation("ForwardedTransactions", fields: [forwarderId], references: [id])
