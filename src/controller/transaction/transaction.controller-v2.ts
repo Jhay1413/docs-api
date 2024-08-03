@@ -24,7 +24,7 @@ export class TransactionController {
       const generatedId = GenerateId(lastId);
 
       const data = { ...req.body, transactionId: generatedId };
-
+      console.log(data);
       await db.$transaction(async () => {
         const response = await this.transactionService.insertTransaction(data);
         const validatedData = transactionData.safeParse(response);
@@ -176,7 +176,7 @@ export class TransactionController {
   public async transactionEntities(req: Request, res: Response) {
     try {
       const result = await this.transactionService.getDepartmentEntities();
-      console.log(result);
+     
       res.status(StatusCodes.OK).json(result);
     } catch (error) {
       console.log(error);

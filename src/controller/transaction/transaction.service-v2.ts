@@ -30,7 +30,9 @@ export class TransactionService {
       attachments,
     } = data;
 
+   
     try {
+      console.log(data);
       const createdTransaction = await db.transaction.create({
         data: {
           transactionId,
@@ -463,7 +465,6 @@ export class TransactionService {
       LEFT JOIN "UserInfo" a ON t.id = a."accountId"
               `;
 
-      console.log(transactions);
       return transactions;
     } catch (error) {
       console.log(error);

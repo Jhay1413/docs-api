@@ -20,6 +20,7 @@ import { transactionData } from "./transaction.schema";
 //   updateCswHandler,
 // } from "./transaction.controller-v1";
 import { TransactionController } from "./transaction.controller-v2";
+import { transactionGetSignedUrl, transactionSignedUrl } from "../aws/aws.controller";
 
 const router = express.Router();
 
@@ -49,9 +50,9 @@ router.get("/v2/:id/transactions",transactionController.fetchTransactionsByParam
 
 
 //transaction v1
-// router.get("/transactionGetUrl",transactionGetSignedUrl)
+ router.get("/transactionGetUrl",transactionGetSignedUrl)
 
-// router.post("/transactionSignedUrl" ,transactionSignedUrl )
+ router.post("/transactionSignedUrl" ,transactionSignedUrl )
 // router.post("/upload", upload.array("files"), transactionFilesHandler);
 
 // router.post("/", validateData(transactionData), transactionHandler);
