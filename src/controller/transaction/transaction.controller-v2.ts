@@ -46,7 +46,7 @@ export class TransactionController {
   }
   public async fetchAllTransactions(req: Request, res: Response) {
     try {
-      console.log("asdsad");
+    
       const transactions =
         await this.transactionService.getTransactionsService();
 
