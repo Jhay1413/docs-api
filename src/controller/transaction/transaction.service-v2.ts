@@ -32,7 +32,7 @@ export class TransactionService {
 
    
     try {
-      console.log(data);
+     
       const createdTransaction = await db.transaction.create({
         data: {
           transactionId,
