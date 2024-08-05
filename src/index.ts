@@ -7,7 +7,6 @@ import companyRouter from "./controller/company/company.route";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import http from "http";
-import { Server } from "socket.io";
 const app = express();
 
 app.locals.HIGHER_ROLE = ["MANAGER", "RECORDS"];
@@ -32,12 +31,6 @@ app.use("/api/transaction", transactionRouter);
 app.use("/api/companies", companyRouter);
 
 const server = http.createServer(app);
-
-const io = new Server(server, {});
-
-io.on("connection", (socket) => {
-  // ...
-});
 
 server.listen(3001 || process.env.PORT, () => {
   console.log("Server is running on port 3001");
