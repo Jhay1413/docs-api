@@ -13,12 +13,9 @@ router.get('/logout', (req, res) => {
     res.clearCookie('accessToken');
     res.status(200).send("Logged out!");
 });
-router.post("/logout", (req, res) => { 
-    res.send("Logout route");
-})
 
 router.post("/dashboardGateApi",verifyUser,(req:Request,res:Response)=>{
-    
+
     res.status(200).send("Verified User!")
 })
 

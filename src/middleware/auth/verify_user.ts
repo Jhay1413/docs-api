@@ -13,6 +13,7 @@ export const verifyUser = async (
   res: Response,
   next: NextFunction
 ) => {
+  console.log("verifying");
   const accessToken = req.cookies.accessToken;
 
   if (!accessToken) {
