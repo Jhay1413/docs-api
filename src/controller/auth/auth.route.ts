@@ -13,7 +13,7 @@ router.get('/logout', (req, res) => {
     res.clearCookie('accessToken', { path: '/', domain: 'docs-api-9r6n.onrender.com',secure: true, httpOnly: true,sameSite:"none" });
 
     res.clearCookie('refreshToken', { path: '/', domain: 'localhost',secure: true, httpOnly: true,sameSite:"none" });
-    res.clearCookie('accessToken', { path: '/', domain: 'localhost' ,secure: true, httpOnly: true,sameSite:"none" });});
+    res.clearCookie('accessToken', { path: '/', domain: 'localhost' ,secure: true, httpOnly: true,sameSite:"none" });
     res.status(200).send("Logged out!");
 });
 
