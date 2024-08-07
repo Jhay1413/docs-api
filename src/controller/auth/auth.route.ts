@@ -9,8 +9,11 @@ const router = express.Router();
 router.post("/login",processRequestBody(loginSchema.body),loginHander)
 
 router.get('/logout', (req, res) => {
-    res.clearCookie('refreshToken');
-    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken', { path: '/', domain: 'docs-api-9r6n.onrender.com' });
+    res.clearCookie('accessToken', { path: '/', domain: 'docs-api-9r6n.onrender.com' });
+
+    res.clearCookie('refreshToken', { path: '/', domain: 'localhost' });
+    res.clearCookie('accessToken', { path: '/', domain: 'localhost' });
     res.status(200).send("Logged out!");
 });
 
