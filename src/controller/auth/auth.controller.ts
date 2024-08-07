@@ -5,6 +5,7 @@ import { db } from "../../prisma";
 import { signJwt } from "./auth.utils";
 import { checkUserAccountExists } from "./auth.service";
 import jwt from "jsonwebtoken";
+
 export const loginHander = async (
   req: Request<{}, {}, LoginBody>,
   res: Response
@@ -13,12 +14,11 @@ export const loginHander = async (
 
   try {
     const user = await checkUserAccountExists(rest.email);
-    console.log("loggggingggg eeeeeinnn")
+    console.log("loggggingggg eeeeeinnn");
     if (!user) {
       return res.status(StatusCodes.BAD_REQUEST).send("User not found !");
     }
     if (user.password !== rest.password) {
-  
       return res.status(StatusCodes.UNAUTHORIZED).send("Incorrect password !");
     }
 
@@ -32,19 +32,37 @@ export const loginHander = async (
       process.env.JWT_REFRESH_TOKEN_SECRET!,
       { expiresIn: "7d" }
     );
-
-    res.cookie("refreshToken", refreshToken, {path:"/",domain:"docs-api-9r6n.onrender.com",
-      httpOnly: true, 
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      secure: true,
-      sameSite: "none",
-    });
-    res.cookie("accessToken", accessToken, {path:"/",domain:"docs-api-9r6n.onrender.com",
-      httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-      secure: true,
-      sameSite: "none",
-    });
+    if (process.env.NODE_ENV == "PRODUCTION") {
+      res.cookie("refreshToken", refreshToken, {
+        path: "/",
+        domain: "docs-api-9r6n.onrender.com",
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        secure: true,
+        sameSite: "none",
+      });
+      res.cookie("accessToken", accessToken, {
+        path: "/",
+        domain: "docs-api-9r6n.onrender.com",
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        secure: true,
+        sameSite: "none",
+      });
+    } else {
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        secure: true,
+        sameSite: "none",
+      });
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        secure: true,
+        sameSite: "none",
+      });
+    }
 
     const payload = {
       email: user.email,
