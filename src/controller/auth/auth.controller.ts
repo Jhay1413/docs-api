@@ -33,13 +33,13 @@ export const loginHander = async (
       { expiresIn: "7d" }
     );
 
-    res.cookie("refreshToken", refreshToken, {
+    res.cookie("refreshToken", refreshToken, {path:"/",domain:"docs-api-9r6n.onrender.com",
       httpOnly: true, 
       maxAge: 7 * 24 * 60 * 60 * 1000,
       secure: true,
       sameSite: "none",
     });
-    res.cookie("accessToken", accessToken, {
+    res.cookie("accessToken", accessToken, {path:"/",domain:"docs-api-9r6n.onrender.com",
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
       secure: true,
