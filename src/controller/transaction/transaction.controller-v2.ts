@@ -1,11 +1,8 @@
 import { StatusCodes } from "http-status-codes";
 import { TransactionService } from "./transaction.service-v2";
 import { Request, Response } from "express";
-import * as z from "zod";
 import {
-  TFilesData,
-  transactionData,
-  transactionLogsData,
+  transactionData
 } from "./transaction.schema";
 import { GenerateId } from "../../utils/generate-id";
 import { cleanedDataUtils } from "./transaction.utils";
@@ -71,9 +68,9 @@ export class TransactionController {
         .json("Something went wrong ! ");
     }
   }
-  public async fetchArchievedTransactionHandler(req:Request,res:Response){
+  public async fetchArchivedTransactionHandler(req:Request,res:Response){
     try {
-      const transactions = await this.transactionService.getArchievedTransaction();
+      const transactions = await this.transactionService.getArchivedTransaction();
       res.status(StatusCodes.OK).json(transactions)
     } catch (error) {
       return res.status(StatusCodes.BAD_GATEWAY).json("Something went wrong ! ")

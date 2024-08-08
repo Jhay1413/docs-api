@@ -197,11 +197,11 @@ export class TransactionService {
       throw new Error("Failed to fetch transactions");
     }
   }
-  public async getArchievedTransaction(){
+  public async getArchivedTransaction(){
     try {
       const response = await db.transaction.findMany({
         where:{
-          status :"ARCHIEVED"
+          status :"ARCHIVED"
 
         },
         select:{

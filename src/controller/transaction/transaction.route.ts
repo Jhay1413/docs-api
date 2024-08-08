@@ -33,7 +33,7 @@ const transactionController = new TransactionController();
 
 //transactions v2
 router.get("/v2/",transactionController.fetchAllTransactions.bind(transactionController) );
-router.get("/v2/archieved",transactionController.fetchArchievedTransactionHandler.bind(transactionController))
+router.get("/v2/archived",transactionController.fetchArchivedTransactionHandler.bind(transactionController))
 router.get("/v2/departmentEntities",transactionController.transactionEntities.bind(transactionController));
 router.get("/v2/:id",transactionController.fetchTransactionByIdHandler.bind(transactionController));
 router.put("/v2/:id",transactionController.forwardTransactionHandler.bind(transactionController))
