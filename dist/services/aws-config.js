@@ -9,11 +9,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSignedUrlFromS3 = exports.uploadToS3 = exports.uploadImageToS3 = exports.s3 = void 0;
+exports.getSignedUrlFromS3 = exports.getUploadSignedUrlFromS3 = exports.uploadToS3 = exports.uploadImageToS3 = exports.s3 = void 0;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const utils_1 = require("../utils/utils");
 const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
-const hash_node_1 = require("@smithy/hash-node");
 const config = {
     region: "ap-southeast-2",
     credentials: {
@@ -22,11 +21,6 @@ const config = {
     },
 };
 exports.s3 = new client_s3_1.S3Client(config);
-const signer = new s3_request_presigner_1.S3RequestPresigner({
-    region: config.region,
-    credentials: config.credentials,
-    sha256: hash_node_1.Hash.bind(null, "sha256"), // In Node.
-});
 const uploadImageToS3 = (file) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const company = "envicomm";
@@ -72,19 +66,41 @@ const uploadToS3 = (file) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.uploadToS3 = uploadToS3;
-const getSignedUrlFromS3 = (fileName) => __awaiter(void 0, void 0, void 0, function* () {
+const getUploadSignedUrlFromS3 = (company, fileName) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const command = new client_s3_1.GetObjectCommand({
+        const generatedFilename = (0, utils_1.generateFileName)();
+        const key = `${company}/${fileName}${generatedFilename}`;
+        const command = new client_s3_1.PutObjectCommand({
             Bucket: process.env.BUCKET_NAME,
-            Key: fileName,
+            Key: key,
+            Metadata: {
+                "Content-Disposition": "inline",
+            },
         });
         const url = yield (0, s3_request_presigner_1.getSignedUrl)(exports.s3, command, {
             expiresIn: 3600,
         });
-        return url;
+        return { url, key };
     }
     catch (error) {
         console.log(error);
+        throw new Error('Error getting signed url from S3');
+    }
+});
+exports.getUploadSignedUrlFromS3 = getUploadSignedUrlFromS3;
+const getSignedUrlFromS3 = (key) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const getObjectCommand = new client_s3_1.GetObjectCommand({
+            Bucket: process.env.BUCKET_NAME,
+            Key: key,
+        });
+        console.log(getObjectCommand);
+        const signedURL = yield (0, s3_request_presigner_1.getSignedUrl)(exports.s3, getObjectCommand, {
+            expiresIn: 60 * 60,
+        });
+        return signedURL;
+    }
+    catch (error) {
         throw new Error('Error getting signed url from S3');
     }
 });

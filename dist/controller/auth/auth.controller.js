@@ -32,6 +32,7 @@ const loginHander = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const rest = __rest(req.body, []);
     try {
         const user = yield (0, auth_service_1.checkUserAccountExists)(rest.email);
+        console.log("loggggingggg eeeeeinnn");
         if (!user) {
             return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).send("User not found !");
         }
@@ -40,18 +41,38 @@ const loginHander = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
         const accessToken = jsonwebtoken_1.default.sign({ email: user.email }, process.env.JWT_ACCESS_TOKEN_SECRET, { expiresIn: "1d" });
         const refreshToken = jsonwebtoken_1.default.sign({ email: user.email }, process.env.JWT_REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            secure: true,
-            sameSite: "none",
-        });
-        res.cookie("accessToken", accessToken, {
-            httpOnly: true,
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-            secure: true,
-            sameSite: "none",
-        });
+        if (process.env.NODE_ENV == "PRODUCTION") {
+            res.cookie("refreshToken", refreshToken, {
+                path: "/",
+                domain: "docs-api-9r6n.onrender.com",
+                httpOnly: true,
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+                secure: true,
+                sameSite: "none",
+            });
+            res.cookie("accessToken", accessToken, {
+                path: "/",
+                domain: "docs-api-9r6n.onrender.com",
+                httpOnly: true,
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+                secure: true,
+                sameSite: "none",
+            });
+        }
+        else {
+            res.cookie("refreshToken", refreshToken, {
+                httpOnly: true,
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+                secure: true,
+                sameSite: "none",
+            });
+            res.cookie("accessToken", accessToken, {
+                httpOnly: true,
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+                secure: true,
+                sameSite: "none",
+            });
+        }
         const payload = {
             email: user.email,
             name: (_a = user.userInfo) === null || _a === void 0 ? void 0 : _a.firstName,

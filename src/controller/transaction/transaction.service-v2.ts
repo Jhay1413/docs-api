@@ -94,7 +94,11 @@ export class TransactionService {
           },
           receiver: true,
           forwarder: true,
-          transactionLogs: true,
+          transactionLogs: {
+            orderBy:{
+              createdAt:"asc"
+            }
+          },
           attachments: true,
           completeStaffWork: true,
         },
@@ -123,6 +127,9 @@ export class TransactionService {
             not: "ARCHIEVED",
           },
         },
+        orderBy:{
+          createdAt:"desc"
+        }
       });
       return response;
     } catch (error) {
@@ -139,6 +146,9 @@ export class TransactionService {
             not: null,
           },
         },
+        orderBy:{
+          createdAt:"desc"
+        }
       });
       return response;
     } catch (error) {
@@ -186,8 +196,9 @@ export class TransactionService {
           t."dateForwarded",
           b."accountRole",
           t.status,
-          t.priority;
-        `;
+          t.priority
+          ORDER BY 
+          t."createdAt" DESC`;
 
       return transactions;
     } catch (error) {

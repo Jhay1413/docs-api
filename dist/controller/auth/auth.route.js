@@ -10,13 +10,44 @@ const auth_controller_1 = require("./auth.controller");
 const verify_user_1 = require("../../middleware/auth/verify_user");
 const router = express_1.default.Router();
 router.post("/login", (0, zod_express_middleware_1.processRequestBody)(auth_schema_1.loginSchema.body), auth_controller_1.loginHander);
-router.get('/logout', (req, res) => {
-    res.clearCookie('refreshToken');
-    res.clearCookie('accessToken');
+router.get("/logout", (req, res) => {
+    if (process.env.NODE_ENV === "PRODUCTION") {
+        res.cookie("refreshToken", "", {
+            path: "/",
+            domain: "docs-api-9r6n.onrender.com",
+            expires: new Date(0),
+            secure: true,
+            httpOnly: true,
+            sameSite: "none",
+        });
+        res.cookie("accessToken", "", {
+            path: "/",
+            domain: "docs-api-9r6n.onrender.com",
+            expires: new Date(0),
+            secure: true,
+            httpOnly: true,
+            sameSite: "none",
+        });
+    }
+    else {
+        res.cookie("refreshToken", "", {
+            path: "/",
+            domain: "localhost",
+            expires: new Date(0),
+            secure: true,
+            httpOnly: true,
+            sameSite: "none",
+        });
+        res.cookie("accessToken", "", {
+            path: "/",
+            domain: "localhost",
+            expires: new Date(0),
+            secure: true,
+            httpOnly: true,
+            sameSite: "none",
+        });
+    }
     res.status(200).send("Logged out!");
-});
-router.post("/logout", (req, res) => {
-    res.send("Logout route");
 });
 router.post("/dashboardGateApi", verify_user_1.verifyUser, (req, res) => {
     res.status(200).send("Verified User!");
