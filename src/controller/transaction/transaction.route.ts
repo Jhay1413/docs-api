@@ -32,17 +32,40 @@ const transactionController = new TransactionController();
 
 
 //transactions v2
-router.get("/v2/",transactionController.fetchAllTransactions.bind(transactionController) );
-router.get("/v2/archived",transactionController.fetchArchivedTransactionHandler.bind(transactionController))
-router.get("/v2/departmentEntities",transactionController.transactionEntities.bind(transactionController));
-router.get("/v2/:id",transactionController.fetchTransactionByIdHandler.bind(transactionController));
-router.put("/v2/:id",transactionController.forwardTransactionHandler.bind(transactionController))
-router.put("/v2/:id/csw",transactionController.updateCswById.bind(transactionController));
-router.put("/v2/incoming/:id/received",transactionController.receivedTransactionHandler.bind(transactionController))
-router.post("/v2/",transactionController.insertTransactionHandler.bind(transactionController));
-router.get("/v2/:id/notification",transactionController.countIncomingAndInboxTransactions.bind(transactionController));
-router.get("/v2/:id/transactions",transactionController.fetchTransactionsByParamsHandler.bind(transactionController));
+router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
 
+// Fetch archived transactions
+router.get("/v2/archived", transactionController.fetchArchivedTransactionHandler.bind(transactionController));
+
+// Fetch department entities
+router.get("/v2/departmentEntities", transactionController.transactionEntities.bind(transactionController));
+
+// Fetch transaction by ID
+router.get("/v2/:id", transactionController.fetchTransactionByIdHandler.bind(transactionController));
+
+// Forward a transaction
+router.put("/v2/:id", transactionController.forwardTransactionHandler.bind(transactionController));
+
+// Update CSW by ID
+router.put("/v2/:id/csw", transactionController.updateCswById.bind(transactionController));
+
+// Mark incoming transaction as received
+router.put("/v2/incoming/:id/received", transactionController.receivedTransactionHandler.bind(transactionController));
+
+// Insert a new transaction
+router.post("/v2/", transactionController.insertTransactionHandler.bind(transactionController));
+
+// Count incoming and inbox transactions for a specific ID
+router.get("/v2/:id/notification", transactionController.countIncomingAndInboxTransactions.bind(transactionController));
+
+// Fetch transactions by specific parameters for a particular ID
+router.get("/v2/:id/transactions", transactionController.fetchTransactionsByParamsHandler.bind(transactionController));
+
+// Fetch notifications related to a specific transaction ID
+router.get("/v2/:id/notifications", transactionController.fetchNotificationsHandler.bind(transactionController));
+
+//read all notification
+router.put("/v2/:id/readNotification",transactionController.readAllNotificationHandler.bind(transactionController));
 
 
 //Aws endpoint
