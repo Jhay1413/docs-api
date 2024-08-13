@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { db } from "../../prisma";
 import {
   completeStaffWork,
+  notification,
   transactionData,
   transactionFormData,
   transactionLogsData,
@@ -30,9 +31,7 @@ export class TransactionService {
       attachments,
     } = data;
 
-   
     try {
-     
       const createdTransaction = await db.transaction.create({
         data: {
           transactionId,
@@ -119,11 +118,10 @@ export class TransactionService {
           receiverId: id,
           dateReceived: {
             equals: null,
-            
           },
-          status:{
-            not : "ARCHIEVED"
-        },
+          status: {
+            not: "ARCHIEVED",
+          },
         },
       });
       return response;
@@ -197,27 +195,26 @@ export class TransactionService {
       throw new Error("Failed to fetch transactions");
     }
   }
-  public async getArchivedTransaction(){
+  public async getArchivedTransaction() {
     try {
       const response = await db.transaction.findMany({
-        where:{
-          status :"ARCHIVED"
-
+        where: {
+          status: "ARCHIVED",
         },
-        select:{
-          id:true,
-          transactionId:true,
-          company:true,
-          project:true,
-          documentSubType:true,
-          createdAt:true,
-          remarks:true
-        }
-      })
-      return response
+        select: {
+          id: true,
+          transactionId: true,
+          company: true,
+          project: true,
+          documentSubType: true,
+          createdAt: true,
+          remarks: true,
+        },
+      });
+      return response;
     } catch (error) {
-      console.log(error)
-      throw new Error("Failed to fetch archieved transactions ! ")
+      console.log(error);
+      throw new Error("Failed to fetch archieved transactions ! ");
     }
   }
   public async getIncomingTransaction(accountId?: string) {
@@ -229,8 +226,8 @@ export class TransactionService {
             dateReceived: {
               equals: null,
             },
-            status:{
-                not : "ARCHIEVED"
+            status: {
+              not: "ARCHIEVED",
             },
           },
         }),
@@ -240,9 +237,9 @@ export class TransactionService {
             dateReceived: {
               not: null,
             },
-            status:{
-              not : "ARCHIEVED"
-          },
+            status: {
+              not: "ARCHIEVED",
+            },
           },
         }),
       ]);
@@ -503,6 +500,49 @@ export class TransactionService {
       return response;
     } catch (error) {
       throw new Error("Error fetching user info on service .");
+    }
+  }
+  public async addNotificationService(data: z.infer<typeof notification>) {
+    try {
+      const response = await db.notification.create({
+        data,
+        include: {},
+      });
+      return response;
+    } catch (error) {
+      throw new Error("Error inserting notification");
+    }
+  }
+  public async fetchAllNotificationById(id: string) {
+    try {
+      const response = await db.notification.findMany({
+        where: {
+          receiverId: id,
+        },
+        orderBy: {
+          createdAt: 'desc',  // or 'desc'
+        },
+      });
+      return response;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Error fetching notification !");
+    }
+  }
+  public async readAllNotificationService(id:string){
+    try {
+       await db.notification.updateMany({
+        where:{
+          receiverId:id
+        },
+        data:{
+          isRead:true
+        }
+      })
+      return ;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong on read notification")
     }
   }
 }
