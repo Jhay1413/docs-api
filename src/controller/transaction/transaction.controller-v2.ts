@@ -46,14 +46,19 @@ export class TransactionController {
           await this.transactionService.fetchAllNotificationById(
             transaction.receiverId
           );
-
+        const { incomingCount, outgoingCount } =
+          await this.transactionService.getIncomingTransaction(
+            transaction.receiverId
+          );
         const message = "You have new notification";
         const receiverSocketId = userSockets.get(
           notificationPayload.receiverId
         );
+
+        const quantityTracker = {incoming:incomingCount,inbox:outgoingCount};
         if (receiverSocketId) {
-          console.log(notifications);
-          io.to(receiverSocketId).emit("notification", message, notifications);
+          console.log(quantityTracker);
+          io.to(receiverSocketId).emit("notification", message, notifications,quantityTracker );
         }
       });
       res.status(StatusCodes.OK).json(response);
@@ -135,7 +140,7 @@ export class TransactionController {
             );
         const payload = cleanedDataUtils(validatedData.data);
         await this.transactionService.logPostTransaction(payload);
-            
+
         const notificationPayload = {
           transactionId: validatedData.data.id,
           message: `New Transaction Forwarded by ${validatedData.data?.forwarder?.accountRole}`,
@@ -158,7 +163,6 @@ export class TransactionController {
           notificationPayload.receiverId
         );
         if (receiverSocketId) {
-          
           io.to(receiverSocketId).emit("notification", message, notifications);
         }
       });
@@ -251,7 +255,7 @@ export class TransactionController {
     try {
       const result = await this.transactionService.getDepartmentEntities();
 
-      console.log(result)
+      console.log(result);
       res.status(StatusCodes.OK).json(result);
     } catch (error) {
       console.log(error);
