@@ -33,9 +33,9 @@ const changeProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             throw new Error("No file provided");
         }
         const url = yield (0, aws_config_1.uploadImageToS3)(file);
-        const signedUrl = yield (0, aws_config_1.getSignedUrlFromS3)(url);
+        //const signedUrl = await getSignedUrlFromS3(url);
         const user = yield (0, user_service_1.insertUpdatedImageUrl)(id, url);
-        res.status(http_status_codes_1.StatusCodes.CREATED).send(Object.assign(Object.assign({}, user), { signedUrl }));
+        res.status(http_status_codes_1.StatusCodes.CREATED).send({ user });
     }
     catch (error) {
         console.error("Error in changeProfile:", error.message);

@@ -21,6 +21,7 @@ const decodedSchema = zod_1.default.object({
     exp: zod_1.default.number(),
 });
 const verifyUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("verifying");
     const accessToken = req.cookies.accessToken;
     if (!accessToken) {
         if (yield renewToken(req, res)) {

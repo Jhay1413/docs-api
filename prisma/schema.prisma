@@ -187,6 +187,7 @@ enum Roles {
   GUEST
   RECORDS
   MANAGER
+  QA
 }
 
 enum Status {
