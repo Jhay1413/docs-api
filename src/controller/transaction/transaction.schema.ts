@@ -103,4 +103,14 @@ export const completeStaffWork = z.object({
   attachmentUrl: z.string(),
   transactionId: z.nullable(z.string()).optional(),
 });
+
+export const notification = z.object({
+  id:z.string().optional(),
+  date: z.string().datetime(),
+  message:z.string(),
+  transactionId:z.string(),
+  forwarderId:z.string(),
+  receiverId:z.string(),
+  isRead: z.boolean()
+})
 export type TFilesData = z.infer<typeof filesSchema>;
