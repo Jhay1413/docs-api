@@ -55,10 +55,18 @@ export class TransactionController {
           notificationPayload.receiverId
         );
 
-        const quantityTracker = {incoming:incomingCount,inbox:outgoingCount};
+        const quantityTracker = {
+          incoming: incomingCount,
+          inbox: outgoingCount,
+        };
         if (receiverSocketId) {
           console.log(quantityTracker);
-          io.to(receiverSocketId).emit("notification", message, notifications,quantityTracker );
+          io.to(receiverSocketId).emit(
+            "notification",
+            message,
+            notifications,
+            quantityTracker
+          );
         }
       });
       res.status(StatusCodes.OK).json(response);
@@ -155,15 +163,29 @@ export class TransactionController {
 
         const notifications =
           await this.transactionService.fetchAllNotificationById(
-            validatedData.data.receiverId
+            result.receiverId
           );
-
+        const { incomingCount, outgoingCount } =
+          await this.transactionService.getIncomingTransaction(
+            result.receiverId
+          );
         const message = "You have new notification";
         const receiverSocketId = userSockets.get(
           notificationPayload.receiverId
         );
+
+        const quantityTracker = {
+          incoming: incomingCount,
+          inbox: outgoingCount,
+        };
         if (receiverSocketId) {
-          io.to(receiverSocketId).emit("notification", message, notifications);
+          console.log(quantityTracker);
+          io.to(receiverSocketId).emit(
+            "notification",
+            message,
+            notifications,
+            quantityTracker
+          );
         }
       });
       res.status(StatusCodes.OK).json(response);

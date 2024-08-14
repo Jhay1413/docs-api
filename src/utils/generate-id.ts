@@ -11,7 +11,7 @@ export const GenerateId = (lastId: string | null | undefined) => {
   const incremented_value = converted_value + 1;
 
   const number = String(incremented_value).padStart(4, "0");
-  const id = `CID-${year}-${number}`;
+  const id = `ECC-${year}-${number}`;
 
   return id;
 };
