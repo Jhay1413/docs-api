@@ -8,6 +8,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import http from "http";
 import { Server } from "socket.io";
+import { TransactionService } from "./controller/transaction/transaction.service-v2";
 const app = express();
 
 const corsOptions = {
@@ -32,7 +33,7 @@ app.use("/api/companies", companyRouter);
 const userSockets = new Map<string, string>();
 
 const server = http.createServer(app);
-
+const userService = new TransactionService();
 //SOCKET SETUP
 const io = new Server(server, {
   cors: {
@@ -43,9 +44,44 @@ const io = new Server(server, {
 
 io.on("connection", (socket) => {
   console.log("New client connected", userSockets);
-  socket.on("register", (userId) => {
+  socket.on("register", async (userId) => {
     userSockets.set(userId, socket.id);
     console.log(`User ${userId} registered with socket ID ${socket.id}`);
+    const receiverSocketId = userSockets.get(userId);
+
+    try {
+      const notifications = await userService.fetchAllNotificationById(userId);
+      const { incomingCount, outgoingCount } =
+        await userService.getIncomingTransaction(userId);
+      let message = null;
+      const countUnreadNotif = notifications.filter(
+        (data) => data.isRead === false
+      ).length;
+      const quantityTracker = { incoming: incomingCount, inbox: outgoingCount };
+
+      if (countUnreadNotif !== 0) {
+        message = `You have ${countUnreadNotif} unread notifications `;
+      } else {
+        message = null;
+      }
+
+      io.to(receiverSocketId!).emit(
+        "notification",
+        message,
+        notifications,
+        quantityTracker
+      );
+    } catch (error) {
+      const message = "Something went wrong !";
+      const notifications = null,
+        quantityTracker = null;
+      io.to(receiverSocketId!).emit(
+        "notification",
+        message,
+        notifications,
+        quantityTracker
+      );
+    }
   });
   socket.on("disconnect", () => {
     for (const [userId, socketId] of userSockets.entries()) {
@@ -69,9 +105,6 @@ io.on("connection", (socket) => {
 server.listen(3001 || process.env.PORT, () => {
   console.log("Server is running on port 3001");
 });
-export{
-  io,
-  userSockets
-}
+export { io, userSockets };
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 65000;

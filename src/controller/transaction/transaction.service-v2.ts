@@ -172,6 +172,7 @@ export class TransactionService {
             t."originDepartment",
             t."targetDepartment",
             t."dateForwarded",
+            c."projectName",
             b."accountRole",
             t.status,
             t.priority,
@@ -182,6 +183,7 @@ export class TransactionService {
         FROM "Transaction" t
         LEFT JOIN "Attachment" a ON t.id = a."transactionId"
         LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
+        LEFT JOIN "CompanyProject" c on c.id = t."projectId"
         GROUP BY
           t.id,
           t."transactionId",
@@ -196,7 +198,8 @@ export class TransactionService {
           t."dateForwarded",
           b."accountRole",
           t.status,
-          t.priority
+          t.priority,
+          c."projectName"
           ORDER BY 
           t."createdAt" DESC`;
 
