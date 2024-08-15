@@ -19,16 +19,20 @@ export class TransactionController {
       const generatedId = GenerateId(lastId);
       const data = { ...req.body, transactionId: generatedId };
 
-      const response = await db.$transaction(async () => {
+      const response = await db.$transaction(async (tx) => {
         const transaction = await this.transactionService.insertTransaction(
-          data
+          data,
+          tx
         );
         const validatedData = transactionData.safeParse(transaction);
-
+        console.log(validatedData.error);
         if (!validatedData.success)
           throw new Error("Validation failed after insertion");
         const payload = cleanedDataUtils(validatedData.data);
-        await this.transactionService.logPostTransaction(payload);
+        await this.transactionService.logPostTransaction(payload, tx);
+
+        if (transaction.status === "ARCHIVED" || !transaction.receiverId)
+          return;
 
         const notificationPayload = {
           transactionId: transaction.id,
@@ -39,12 +43,14 @@ export class TransactionController {
         } as z.infer<typeof notification>;
 
         await this.transactionService.addNotificationService(
-          notificationPayload
+          notificationPayload,
+          tx
         );
 
         const notifications =
           await this.transactionService.fetchAllNotificationById(
-            transaction.receiverId
+            transaction.receiverId,
+            tx
           );
         const { incomingCount, outgoingCount } =
           await this.transactionService.getIncomingTransaction(
@@ -134,9 +140,10 @@ export class TransactionController {
   }
   public async forwardTransactionHandler(req: Request, res: Response) {
     try {
-      const response = await db.$transaction(async () => {
+      const response = await db.$transaction(async (tx) => {
         const result = await this.transactionService.forwardTransactionService(
-          req.body
+          req.body,
+          tx
         );
         const validatedData = transactionData.safeParse(result);
 
@@ -147,8 +154,9 @@ export class TransactionController {
               "something went wrong while validating data after forwarding !"
             );
         const payload = cleanedDataUtils(validatedData.data);
-        await this.transactionService.logPostTransaction(payload);
+        await this.transactionService.logPostTransaction(payload, tx);
 
+        if (result.status === "ARCHIVED" || !result.receiverId) return;
         const notificationPayload = {
           transactionId: validatedData.data.id,
           message: `New Transaction Forwarded by ${validatedData.data?.forwarder?.accountRole}`,
@@ -200,19 +208,11 @@ export class TransactionController {
         id,
         dateReceived
       );
-
-      console.log(
-        result.transactionId,
-        result.dateForwarded,
-        result.dateReceived || new Date(),
-        result.receiver.id
-      );
-
       await this.transactionService.receivedLogsService(
         result.id,
         result.dateForwarded,
         result.dateReceived || new Date(),
-        result.receiver.id
+        result.receiver!.id
       );
       res.status(StatusCodes.OK).json(result.id);
     } catch (error) {
