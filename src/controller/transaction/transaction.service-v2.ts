@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { db } from "../../prisma";
 import {
   completeStaffWork,
@@ -10,7 +10,10 @@ import {
 import * as z from "zod";
 
 export class TransactionService {
-  public async insertTransaction(data: z.infer<typeof transactionFormData>) {
+  public async insertTransaction(
+    data: z.infer<typeof transactionFormData>,
+    tx: Prisma.TransactionClient
+  ) {
     const {
       transactionId,
       documentType,
@@ -32,7 +35,7 @@ export class TransactionService {
     } = data;
 
     try {
-      const createdTransaction = await db.transaction.create({
+      const createdTransaction = await tx.transaction.create({
         data: {
           transactionId,
           documentType,
@@ -95,9 +98,9 @@ export class TransactionService {
           receiver: true,
           forwarder: true,
           transactionLogs: {
-            orderBy:{
-              createdAt:"asc"
-            }
+            orderBy: {
+              createdAt: "asc",
+            },
           },
           attachments: true,
           completeStaffWork: true,
@@ -127,9 +130,9 @@ export class TransactionService {
             not: "ARCHIEVED",
           },
         },
-        orderBy:{
-          createdAt:"desc"
-        }
+        orderBy: {
+          createdAt: "desc",
+        },
       });
       return response;
     } catch (error) {
@@ -146,9 +149,9 @@ export class TransactionService {
             not: null,
           },
         },
-        orderBy:{
-          createdAt:"desc"
-        }
+        orderBy: {
+          createdAt: "desc",
+        },
       });
       return response;
     } catch (error) {
@@ -269,7 +272,8 @@ export class TransactionService {
   }
 
   public async forwardTransactionService(
-    data: z.infer<typeof transactionFormData>
+    data: z.infer<typeof transactionFormData>,
+    tx: Prisma.TransactionClient
   ) {
     const {
       documentType,
@@ -297,7 +301,7 @@ export class TransactionService {
       const updateAttachment = attachments.filter(
         (attachment) => attachment.id
       );
-      const response = await db.transaction.update({
+      const response = await tx.transaction.update({
         where: {
           transactionId: transactionId,
         },
@@ -397,7 +401,10 @@ export class TransactionService {
       throw new Error("Error while receiving transaction .");
     }
   }
-  public async logPostTransaction(data: z.infer<typeof transactionLogsData>) {
+  public async logPostTransaction(
+    data: z.infer<typeof transactionLogsData>,
+    tx: Prisma.TransactionClient
+  ) {
     try {
       const createData: any = {
         ...data,
@@ -407,7 +414,7 @@ export class TransactionService {
         attachments: JSON.stringify(data.attachments),
       };
 
-      await db.transactionLogs.create({
+      await tx.transactionLogs.create({
         data: createData,
       });
       return true;
@@ -516,47 +523,74 @@ export class TransactionService {
       throw new Error("Error fetching user info on service .");
     }
   }
-  public async addNotificationService(data: z.infer<typeof notification>) {
+  public async addNotificationService(
+    data: z.infer<typeof notification>,
+    tx?: Prisma.TransactionClient
+  ) {
     try {
-      const response = await db.notification.create({
-        data,
-        include: {},
-      });
+      let response;
+      if (tx) {
+        response = await tx.notification.create({
+          data,
+          include: {},
+        });
+      } else {
+        response = await db.notification.create({
+          data,
+          include: {},
+        });
+      }
+
       return response;
     } catch (error) {
       throw new Error("Error inserting notification");
     }
   }
-  public async fetchAllNotificationById(id: string) {
+  public async fetchAllNotificationById(
+    id: string,
+    tx?: Prisma.TransactionClient
+  ) {
     try {
-      const response = await db.notification.findMany({
-        where: {
-          receiverId: id,
-        },
-        orderBy: {
-          createdAt: 'desc',  // or 'desc'
-        },
-      });
+      let response;
+      if (tx) {
+        response = await tx.notification.findMany({
+          where: {
+            receiverId: id,
+          },
+          orderBy: {
+            createdAt: "desc", // or 'desc'
+          },
+        });
+      } else {
+        response = await db.notification.findMany({
+          where: {
+            receiverId: id,
+          },
+          orderBy: {
+            createdAt: "desc", // or 'desc'
+          },
+        });
+      }
       return response;
     } catch (error) {
       console.log(error);
       throw new Error("Error fetching notification !");
     }
   }
-  public async readAllNotificationService(id:string){
+  public async readAllNotificationService(id: string) {
     try {
-       await db.notification.updateMany({
-        where:{
-          receiverId:id
+      await db.notification.updateMany({
+        where: {
+          receiverId: id,
         },
-        data:{
-          isRead:true
-        }
-      })
-      return ;
+        data: {
+          isRead: true,
+        },
+      });
+      return;
     } catch (error) {
       console.log(error);
-      throw new Error("Something went wrong on read notification")
+      throw new Error("Something went wrong on read notification");
     }
   }
 }

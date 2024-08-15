@@ -115,9 +115,9 @@ model Transaction {
   dateReceived      DateTime?
   originDepartment  String
   targetDepartment  String
-  receiverId        String
+  receiverId        String?
   forwarderId       String
-  receiver          UserAccounts        @relation("ReceivingTransactions", fields: [receiverId], references: [id])
+  receiver          UserAccounts?        @relation("ReceivingTransactions", fields: [receiverId], references: [id])
   attachments       Attachment[]
   company           Company             @relation(fields: [companyId], references: [id])
   forwarder         UserAccounts        @relation("ForwardedTransactions", fields: [forwarderId], references: [id])
@@ -141,8 +141,8 @@ model TransactionLogs {
   priority         String
   company          String
   project          String
-  receiver         String
-  receiverId       String
+  receiver         String?
+  receiverId       String?
   remarks          String
   forwarder        String
   originDepartment String
