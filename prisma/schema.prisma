@@ -37,12 +37,11 @@ model UserAccounts {
   email                 String         @unique
   accountRole           Roles          @default(GUEST)
   accountStatus         Status         @default(ACTIVE)
+  forwardedNotification Notification[] @relation("ForwardedNotification")
+  receiveNotification   Notification[] @relation("ReceivingNotification")
   forwarded             Transaction[]  @relation("ForwardedTransactions")
   ReceivingTransaction  Transaction[]  @relation("ReceivingTransactions")
   userInfo              UserInfo?
-  receiveNotification   Notification[] @relation("ReceivingNotification")
-  forwardedNotification Notification[] @relation("ForwardedNotification")
-
 }
 
 model Attachment {
@@ -115,16 +114,16 @@ model Transaction {
   dateReceived      DateTime?
   originDepartment  String
   targetDepartment  String
-  receiverId        String
   forwarderId       String
-  receiver          UserAccounts        @relation("ReceivingTransactions", fields: [receiverId], references: [id])
+  receiverId        String
   attachments       Attachment[]
+  completeStaffWork CompleteStaffWork[]
+  notifications     Notification[]
   company           Company             @relation(fields: [companyId], references: [id])
   forwarder         UserAccounts        @relation("ForwardedTransactions", fields: [forwarderId], references: [id])
   project           CompanyProject      @relation(fields: [projectId], references: [id])
-  completeStaffWork CompleteStaffWork[]
+  receiver          UserAccounts        @relation("ReceivingTransactions", fields: [receiverId], references: [id])
   transactionLogs   TransactionLogs[]
-  notifications Notification[]
 }
 
 model TransactionLogs {
@@ -141,42 +140,42 @@ model TransactionLogs {
   priority         String
   company          String
   project          String
-  receiver         String
-  receiverId       String
   remarks          String
-  forwarder        String
   originDepartment String
   targetDepartment String
   dateForwarded    DateTime
   dateReceived     DateTime?
   attachments      String      @default("")
+  forwarder        String
+  receiver         String
+  receiverId       String
   transaction      Transaction @relation(fields: [transactionId], references: [id])
 
-  @@unique(name: "refId", [transactionId, receiverId, dateForwarded])
+  @@unique([transactionId, receiverId, dateForwarded], name: "refId")
 }
 
 model CompleteStaffWork {
   id            String       @id @default(uuid())
   date          DateTime
   remarks       String
-  attachmentUrl String
-  transaction   Transaction? @relation(fields: [transactionId], references: [id])
-  transactionId String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  transactionId String?
+  attachmentUrl String
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
 }
 
 model Notification {
-  id             String        @id @default(uuid())
-  message        String
-  createdAt      DateTime      @default(now())
-  receiverId     String
-  forwarderId    String
-  transactionId   String
-  transaction Transaction @relation(fields: [transactionId], references: [id])
-  receiver       UserAccounts  @relation("ReceivingNotification", fields: [receiverId], references: [id])
-  forwarder      UserAccounts  @relation("ForwardedNotification", fields: [forwarderId], references: [id])
+  id            String       @id @default(uuid())
+  message       String
+  createdAt     DateTime     @default(now())
+  receiverId    String
+  forwarderId   String
   isRead        Boolean
+  transactionId String
+  forwarder     UserAccounts @relation("ForwardedNotification", fields: [forwarderId], references: [id])
+  receiver      UserAccounts @relation("ReceivingNotification", fields: [receiverId], references: [id])
+  transaction   Transaction  @relation(fields: [transactionId], references: [id])
 }
 
 enum Roles {
