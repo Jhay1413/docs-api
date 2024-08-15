@@ -25,7 +25,7 @@ export const transactionFormData = z.object({
   priority: z.string(),
   companyId: z.string(),
   projectId: z.string(),
-  receiverId: z.string(),
+  receiverId: z.nullable(z.string()).optional(),
   remarks: z.string(),
   receivedById: z.nullable(z.string()).optional(),
   forwarderId: z.string(),
