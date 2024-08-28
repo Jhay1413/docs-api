@@ -35,7 +35,7 @@ export const loginHander = async (
     if (process.env.NODE_ENV == "PRODUCTION") {
       res.cookie("refreshToken", refreshToken, {
         path: "/",
-        domain: "docs-api-9r6n.onrender.com",
+        domain: process.env.PROD_COOKIE_URL,
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000,
         secure: true,
@@ -43,13 +43,32 @@ export const loginHander = async (
       });
       res.cookie("accessToken", accessToken, {
         path: "/",
-        domain: "docs-api-9r6n.onrender.com",
+        domain: process.env.PROD_COOKIE_URL,
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000,
         secure: true,
         sameSite: "none",
       });
-    } else {
+      
+    } 
+    else if(process.env.NODE_ENV == "DEVELOPMENT") {
+      res.cookie("refreshToken", refreshToken, {
+        path: "/",
+        domain: process.env.DEV_COOKIE_URL,
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        secure: true,
+        sameSite: "none",
+      });
+      res.cookie("accessToken", accessToken, {
+        path: "/",
+        domain: process.env.DEV_COOKIE_URL,
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        secure: true,
+        sameSite: "none",
+      });
+    }else {
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000,
