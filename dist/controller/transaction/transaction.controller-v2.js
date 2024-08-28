@@ -27,13 +27,16 @@ class TransactionController {
                 const lastId = yield this.transactionService.getLastId();
                 const generatedId = (0, generate_id_1.GenerateId)(lastId);
                 const data = Object.assign(Object.assign({}, req.body), { transactionId: generatedId });
-                const response = yield prisma_1.db.$transaction(() => __awaiter(this, void 0, void 0, function* () {
-                    const transaction = yield this.transactionService.insertTransaction(data);
+                const response = yield prisma_1.db.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    const transaction = yield this.transactionService.insertTransaction(data, tx);
                     const validatedData = transaction_schema_1.transactionData.safeParse(transaction);
+                    console.log(validatedData.error);
                     if (!validatedData.success)
                         throw new Error("Validation failed after insertion");
                     const payload = (0, transaction_utils_1.cleanedDataUtils)(validatedData.data);
-                    yield this.transactionService.logPostTransaction(payload);
+                    yield this.transactionService.logPostTransaction(payload, tx);
+                    if (transaction.status === "ARCHIVED" || !transaction.receiverId)
+                        return;
                     const notificationPayload = {
                         transactionId: transaction.id,
                         message: `New Transaction Forwarded by ${transaction.forwarder.accountRole}`,
@@ -41,13 +44,18 @@ class TransactionController {
                         forwarderId: transaction.forwarderId,
                         isRead: false,
                     };
-                    yield this.transactionService.addNotificationService(notificationPayload);
-                    const notifications = yield this.transactionService.fetchAllNotificationById(transaction.receiverId);
+                    yield this.transactionService.addNotificationService(notificationPayload, tx);
+                    const notifications = yield this.transactionService.fetchAllNotificationById(transaction.receiverId, tx);
+                    const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(transaction.receiverId);
                     const message = "You have new notification";
                     const receiverSocketId = __1.userSockets.get(notificationPayload.receiverId);
+                    const quantityTracker = {
+                        incoming: incomingCount,
+                        inbox: outgoingCount,
+                    };
                     if (receiverSocketId) {
-                        console.log(notifications);
-                        __1.io.to(receiverSocketId).emit("notification", message, notifications);
+                        console.log(quantityTracker);
+                        __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
                     }
                 }));
                 res.status(http_status_codes_1.StatusCodes.OK).json(response);
@@ -126,16 +134,18 @@ class TransactionController {
     forwardTransactionHandler(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const response = yield prisma_1.db.$transaction(() => __awaiter(this, void 0, void 0, function* () {
+                const response = yield prisma_1.db.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                     var _a, _b, _c;
-                    const result = yield this.transactionService.forwardTransactionService(req.body);
+                    const result = yield this.transactionService.forwardTransactionService(req.body, tx);
                     const validatedData = transaction_schema_1.transactionData.safeParse(result);
                     if (!validatedData.success)
                         return res
                             .status(500)
                             .json("something went wrong while validating data after forwarding !");
                     const payload = (0, transaction_utils_1.cleanedDataUtils)(validatedData.data);
-                    yield this.transactionService.logPostTransaction(payload);
+                    yield this.transactionService.logPostTransaction(payload, tx);
+                    if (result.status === "ARCHIVED" || !result.receiverId)
+                        return;
                     const notificationPayload = {
                         transactionId: validatedData.data.id,
                         message: `New Transaction Forwarded by ${(_b = (_a = validatedData.data) === null || _a === void 0 ? void 0 : _a.forwarder) === null || _b === void 0 ? void 0 : _b.accountRole}`,
@@ -144,11 +154,17 @@ class TransactionController {
                         isRead: false,
                     };
                     yield this.transactionService.addNotificationService(notificationPayload);
-                    const notifications = yield this.transactionService.fetchAllNotificationById(validatedData.data.receiverId);
+                    const notifications = yield this.transactionService.fetchAllNotificationById(result.receiverId);
+                    const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(result.receiverId);
                     const message = "You have new notification";
                     const receiverSocketId = __1.userSockets.get(notificationPayload.receiverId);
+                    const quantityTracker = {
+                        incoming: incomingCount,
+                        inbox: outgoingCount,
+                    };
                     if (receiverSocketId) {
-                        __1.io.to(receiverSocketId).emit("notification", message, notifications);
+                        console.log(quantityTracker);
+                        __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
                     }
                 }));
                 res.status(http_status_codes_1.StatusCodes.OK).json(response);
@@ -162,7 +178,6 @@ class TransactionController {
             const { dateReceived } = req.body;
             try {
                 const result = yield this.transactionService.receiveTransactionService(id, dateReceived);
-                console.log(result.transactionId, result.dateForwarded, result.dateReceived || new Date(), result.receiver.id);
                 yield this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiver.id);
                 res.status(http_status_codes_1.StatusCodes.OK).json(result.id);
             }

@@ -12,11 +12,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionService = void 0;
 const prisma_1 = require("../../prisma");
 class TransactionService {
-    insertTransaction(data) {
+    insertTransaction(data, tx) {
         return __awaiter(this, void 0, void 0, function* () {
             const { transactionId, documentType, subject, receiverId, remarks, dueDate, forwarderId, originDepartment, targetDepartment, dateForwarded, documentSubType, team, projectId, companyId, status, priority, attachments, } = data;
             try {
-                const createdTransaction = yield prisma_1.db.transaction.create({
+                const createdTransaction = yield tx.transaction.create({
                     data: {
                         transactionId,
                         documentType,
@@ -77,7 +77,11 @@ class TransactionService {
                         },
                         receiver: true,
                         forwarder: true,
-                        transactionLogs: true,
+                        transactionLogs: {
+                            orderBy: {
+                                createdAt: "asc",
+                            },
+                        },
                         attachments: true,
                         completeStaffWork: true,
                     },
@@ -106,6 +110,9 @@ class TransactionService {
                             not: "ARCHIEVED",
                         },
                     },
+                    orderBy: {
+                        createdAt: "desc",
+                    },
                 });
                 return response;
             }
@@ -124,6 +131,9 @@ class TransactionService {
                         dateReceived: {
                             not: null,
                         },
+                    },
+                    orderBy: {
+                        createdAt: "desc",
                     },
                 });
                 return response;
@@ -150,6 +160,7 @@ class TransactionService {
             t."originDepartment",
             t."targetDepartment",
             t."dateForwarded",
+            c."projectName",
             b."accountRole",
             t.status,
             t.priority,
@@ -160,6 +171,7 @@ class TransactionService {
         FROM "Transaction" t
         LEFT JOIN "Attachment" a ON t.id = a."transactionId"
         LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
+        LEFT JOIN "CompanyProject" c on c.id = t."projectId"
         GROUP BY
           t.id,
           t."transactionId",
@@ -174,8 +186,10 @@ class TransactionService {
           t."dateForwarded",
           b."accountRole",
           t.status,
-          t.priority;
-        `;
+          t.priority,
+          c."projectName"
+          ORDER BY 
+          t."createdAt" DESC`;
                 return transactions;
             }
             catch (error) {
@@ -247,13 +261,13 @@ class TransactionService {
             }
         });
     }
-    forwardTransactionService(data) {
+    forwardTransactionService(data, tx) {
         return __awaiter(this, void 0, void 0, function* () {
             const { documentType, subject, receiverId, remarks, dueDate, forwarderId, originDepartment, targetDepartment, dateForwarded, documentSubType, team, transactionId, id, status, priority, attachments, } = data;
             try {
                 const createAttachment = attachments.filter((attachment) => !attachment.id);
                 const updateAttachment = attachments.filter((attachment) => attachment.id);
-                const response = yield prisma_1.db.transaction.update({
+                const response = yield tx.transaction.update({
                     where: {
                         transactionId: transactionId,
                     },
@@ -351,11 +365,11 @@ class TransactionService {
             }
         });
     }
-    logPostTransaction(data) {
+    logPostTransaction(data, tx) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const createData = Object.assign(Object.assign({}, data), { transactionId: data.transactionId, dueDate: data.dueDate, dateForwarded: data.dateForwarded, attachments: JSON.stringify(data.attachments) });
-                yield prisma_1.db.transactionLogs.create({
+                yield tx.transactionLogs.create({
                     data: createData,
                 });
                 return true;
@@ -473,13 +487,22 @@ class TransactionService {
             }
         });
     }
-    addNotificationService(data) {
+    addNotificationService(data, tx) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const response = yield prisma_1.db.notification.create({
-                    data,
-                    include: {},
-                });
+                let response;
+                if (tx) {
+                    response = yield tx.notification.create({
+                        data,
+                        include: {},
+                    });
+                }
+                else {
+                    response = yield prisma_1.db.notification.create({
+                        data,
+                        include: {},
+                    });
+                }
                 return response;
             }
             catch (error) {
@@ -487,17 +510,30 @@ class TransactionService {
             }
         });
     }
-    fetchAllNotificationById(id) {
+    fetchAllNotificationById(id, tx) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const response = yield prisma_1.db.notification.findMany({
-                    where: {
-                        receiverId: id,
-                    },
-                    orderBy: {
-                        createdAt: 'desc', // or 'desc'
-                    },
-                });
+                let response;
+                if (tx) {
+                    response = yield tx.notification.findMany({
+                        where: {
+                            receiverId: id,
+                        },
+                        orderBy: {
+                            createdAt: "desc", // or 'desc'
+                        },
+                    });
+                }
+                else {
+                    response = yield prisma_1.db.notification.findMany({
+                        where: {
+                            receiverId: id,
+                        },
+                        orderBy: {
+                            createdAt: "desc", // or 'desc'
+                        },
+                    });
+                }
                 return response;
             }
             catch (error) {
@@ -511,11 +547,11 @@ class TransactionService {
             try {
                 yield prisma_1.db.notification.updateMany({
                     where: {
-                        receiverId: id
+                        receiverId: id,
                     },
                     data: {
-                        isRead: true
-                    }
+                        isRead: true,
+                    },
                 });
                 return;
             }
