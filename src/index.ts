@@ -14,7 +14,7 @@ const app = express();
 const corsOptions = {
   origin: [
     "https://dts-client.netlify.app",
-    "https://dts-new-client.vercel.app",
+    "https://sweet-arithmetic-8496a1.netlify.app",
     "http://localhost:5173",
     "http://localhost:4173",
   ], // This is the origin of the client
