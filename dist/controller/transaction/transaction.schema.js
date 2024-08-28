@@ -27,7 +27,7 @@ exports.transactionFormData = zod_1.z.object({
     priority: zod_1.z.string(),
     companyId: zod_1.z.string(),
     projectId: zod_1.z.string(),
-    receiverId: zod_1.z.string(),
+    receiverId: zod_1.z.nullable(zod_1.z.string()).optional(),
     remarks: zod_1.z.string(),
     receivedById: zod_1.z.nullable(zod_1.z.string()).optional(),
     forwarderId: zod_1.z.string(),
