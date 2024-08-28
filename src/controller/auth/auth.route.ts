@@ -10,16 +10,14 @@ router.post("/login", processRequestBody(loginSchema.body), loginHander);
 
 router.get("/logout", (req, res) => {
   if (process.env.NODE_ENV === "PRODUCTION") {
-    console.log("im on prod")
     res.cookie("refreshToken", "", {
       path: "/",
       domain: process.env.PROD_COOKIE_URL,
       expires: new Date(0),
       secure: true,
       httpOnly: true,
-      sameSite: "none", 
+      sameSite: "none",
     });
-
     res.cookie("accessToken", "", {
       path: "/",
       domain: process.env.PROD_COOKIE_URL,
@@ -28,8 +26,8 @@ router.get("/logout", (req, res) => {
       httpOnly: true,
       sameSite: "none",
     });
-  } else if (process.env.NODE_ENV === "DEVELOPMENT") {
-    console.log("im on dev")
+  }
+  if (process.env.NODE_ENV === "DEVELOPMENT") {
     res.cookie("refreshToken", "", {
       path: "/",
       domain: process.env.DEV_COOKIE_URL,
@@ -38,7 +36,6 @@ router.get("/logout", (req, res) => {
       httpOnly: true,
       sameSite: "none",
     });
-
     res.cookie("accessToken", "", {
       path: "/",
       domain: process.env.DEV_COOKIE_URL,
@@ -48,7 +45,6 @@ router.get("/logout", (req, res) => {
       sameSite: "none",
     });
   } else {
-    console.log("im on local")
     res.cookie("refreshToken", "", {
       path: "/",
       domain: "localhost",
