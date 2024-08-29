@@ -154,10 +154,14 @@ class TransactionController {
                         isRead: false,
                     };
                     yield this.transactionService.addNotificationService(notificationPayload);
-                    const notifications = yield this.transactionService.fetchAllNotificationById(result.receiverId);
-                    const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(result.receiverId);
+                    return validatedData.data;
+                }));
+                const validateReturnedData = transaction_schema_1.transactionData.safeParse(response);
+                if (validateReturnedData.success) {
+                    const notifications = yield this.transactionService.fetchAllNotificationById(validateReturnedData.data.receiverId);
+                    const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(validateReturnedData.data.receiverId);
                     const message = "You have new notification";
-                    const receiverSocketId = __1.userSockets.get(notificationPayload.receiverId);
+                    const receiverSocketId = __1.userSockets.get(validateReturnedData.data.receiverId);
                     const quantityTracker = {
                         incoming: incomingCount,
                         inbox: outgoingCount,
@@ -166,8 +170,9 @@ class TransactionController {
                         console.log(quantityTracker);
                         __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
                     }
-                }));
-                res.status(http_status_codes_1.StatusCodes.OK).json(response);
+                }
+                if (res)
+                    res.status(http_status_codes_1.StatusCodes.OK).json(response);
             }
             catch (error) { }
         });

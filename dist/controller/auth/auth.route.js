@@ -32,7 +32,7 @@ router.get("/logout", (req, res) => {
     if (process.env.NODE_ENV === "DEVELOPMENT") {
         res.cookie("refreshToken", "", {
             path: "/",
-            domain: "dts-dev.onrender.com",
+            domain: process.env.DEV_COOKIE_URL,
             expires: new Date(0),
             secure: true,
             httpOnly: true,
@@ -40,7 +40,7 @@ router.get("/logout", (req, res) => {
         });
         res.cookie("accessToken", "", {
             path: "/",
-            domain: "dts-dev.onrender.com",
+            domain: process.env.DEV_COOKIE_URL,
             expires: new Date(0),
             secure: true,
             httpOnly: true,
