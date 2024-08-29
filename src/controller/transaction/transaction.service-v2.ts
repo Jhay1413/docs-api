@@ -260,7 +260,7 @@ export class TransactionService {
           },
         }),
       ]);
-
+      console.log(incomingCount,outgoingCount,"test")
       return {
         incomingCount,
         outgoingCount,
