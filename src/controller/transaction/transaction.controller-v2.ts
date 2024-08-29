@@ -7,6 +7,7 @@ import { cleanedDataUtils } from "./transaction.utils";
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
+import { validateData } from "../../middleware/zodValidation";
 export class TransactionController {
   private transactionService: TransactionService;
 
@@ -169,17 +170,22 @@ export class TransactionController {
           notificationPayload
         );
 
+        return validatedData.data;
+      });
+      const validateReturnedData = transactionData.safeParse(response);
+
+      if (validateReturnedData.success) {
         const notifications =
           await this.transactionService.fetchAllNotificationById(
-            result.receiverId
+            validateReturnedData.data.receiverId!
           );
         const { incomingCount, outgoingCount } =
           await this.transactionService.getIncomingTransaction(
-            result.receiverId
+            validateReturnedData.data.receiverId!
           );
         const message = "You have new notification";
         const receiverSocketId = userSockets.get(
-          notificationPayload.receiverId
+          validateReturnedData.data.receiverId!
         );
 
         const quantityTracker = {
@@ -195,8 +201,9 @@ export class TransactionController {
             quantityTracker
           );
         }
-      });
-      res.status(StatusCodes.OK).json(response);
+      }
+
+      if (res) res.status(StatusCodes.OK).json(response);
     } catch (error) {}
   }
   public async receivedTransactionHandler(req: Request, res: Response) {
