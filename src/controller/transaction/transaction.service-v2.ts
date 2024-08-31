@@ -187,6 +187,7 @@ export class TransactionService {
         LEFT JOIN "Attachment" a ON t.id = a."transactionId"
         LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
         LEFT JOIN "CompanyProject" c on c.id = t."projectId"
+        where t.status <> 'ARCHIVED'
         GROUP BY
           t.id,
           t."transactionId",
