@@ -48,24 +48,25 @@ export class TransactionController {
           tx
         );
 
-        return validatedData.data
+        return validatedData.data;
       });
-      const returnedValidateData = transactionData.safeParse(response)
+      const returnedValidateData = transactionData.safeParse(response);
 
-      
-      if(returnedValidateData.success){
-        
+      if (returnedValidateData.data?.status === "ARCHIVED")
+        res.status(StatusCodes.OK).json(response);
+
+      if (returnedValidateData.success) {
         const notifications =
           await this.transactionService.fetchAllNotificationById(
-            returnedValidateData.data.receiverId!,
+            returnedValidateData.data.receiverId!
           );
         const { incomingCount, outgoingCount } =
           await this.transactionService.getIncomingTransaction(
-            returnedValidateData.data.receiverId!,
+            returnedValidateData.data.receiverId!
           );
         const message = "You have new notification";
         const receiverSocketId = userSockets.get(
-          returnedValidateData.data.receiverId!,
+          returnedValidateData.data.receiverId!
         );
 
         const quantityTracker = {
@@ -73,7 +74,6 @@ export class TransactionController {
           inbox: outgoingCount,
         };
         if (receiverSocketId) {
-          console.log(quantityTracker);
           io.to(receiverSocketId).emit(
             "notification",
             message,
@@ -147,61 +147,73 @@ export class TransactionController {
   }
   public async forwardTransactionHandler(req: Request, res: Response) {
     try {
-     
       // Start the transaction
       const response = await db.$transaction(async (tx) => {
-        const result = await this.transactionService.forwardTransactionService(req.body, tx);
+        const result = await this.transactionService.forwardTransactionService(
+          req.body,
+          tx
+        );
         const validatedData = transactionData.safeParse(result);
-  
+
         if (!validatedData.success) {
-          throw new Error("Something went wrong while validating data after forwarding!");
+          throw new Error(
+            "Something went wrong while validating data after forwarding!"
+          );
         }
-  
+
         const payload = cleanedDataUtils(validatedData.data);
         await this.transactionService.logPostTransaction(payload, tx);
-  
+
         if (result.status === "ARCHIVED" || !result.receiverId) {
-          return validatedData.data; // Early return if not needing further actions
+          return result; // Early return if not needing further actions
         }
-  
+
         const notificationPayload = {
-          transactionId: validatedData.data.id,
+          transactionId: result.id,
           message: `New Transaction Forwarded by ${validatedData.data?.forwarder?.accountRole}`,
           receiverId: validatedData.data.receiverId,
           forwarderId: validatedData.data.forwarder?.id,
           isRead: false,
         } as z.infer<typeof notification>;
-  
-        await this.transactionService.addNotificationService(notificationPayload);
-  
+
+        await this.transactionService.addNotificationService(
+          notificationPayload
+        );
+
         return validatedData.data;
       });
-  
+
       // After the transaction has completed
+      if (response.status === "ARCHIVED") {
+        return res.status(StatusCodes.OK).json(response);
+      }
       const validateReturnedData = transactionData.safeParse(response);
-  
+
       if (!validateReturnedData.success) {
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-          error: "Failed to validate returned data after transaction."
+          error: "Failed to validate returned data after transaction.",
         });
       }
-  
-      const notifications = await this.transactionService.fetchAllNotificationById(
+      const notifications =
+        await this.transactionService.fetchAllNotificationById(
+          validateReturnedData.data.receiverId!
+        );
+      const { incomingCount, outgoingCount } =
+        await this.transactionService.getIncomingTransaction(
+          validateReturnedData.data.receiverId!
+        );
+
+      const message = "You have a new notification";
+      const receiverSocketId = userSockets.get(
         validateReturnedData.data.receiverId!
       );
-      const { incomingCount, outgoingCount } =
-        await this.transactionService.getIncomingTransaction(validateReturnedData.data.receiverId!);
-  
-      const message = "You have a new notification";
-      const receiverSocketId = userSockets.get(validateReturnedData.data.receiverId!);
-  
+
       const quantityTracker = {
         incoming: incomingCount,
         inbox: outgoingCount,
       };
 
       if (receiverSocketId) {
-      
         io.to(receiverSocketId).emit(
           "notification",
           message,
@@ -209,16 +221,18 @@ export class TransactionController {
           quantityTracker
         );
       }
-  
+
       res.status(StatusCodes.OK).json(response);
     } catch (error) {
       console.error("Error in forwardTransactionHandler:", error);
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        error: "An error occurred while forwarding the transaction."
+        error: "An error occurred while forwarding the transaction.",
       });
+    } finally {
+      await db.$disconnect();
     }
   }
-  
+
   public async receivedTransactionHandler(req: Request, res: Response) {
     const { id } = req.params;
     const { dateReceived } = req.body;
@@ -295,8 +309,6 @@ export class TransactionController {
   public async transactionEntities(req: Request, res: Response) {
     try {
       const result = await this.transactionService.getDepartmentEntities();
-
-      console.log(result);
       res.status(StatusCodes.OK).json(result);
     } catch (error) {
       console.log(error);

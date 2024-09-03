@@ -261,7 +261,7 @@ export class TransactionService {
           },
         }),
       ]);
-      console.log(incomingCount,outgoingCount,"test")
+
       return {
         incomingCount,
         outgoingCount,
@@ -281,6 +281,8 @@ export class TransactionService {
       subject,
       receiverId,
       remarks,
+      companyId,
+      projectId,
       dueDate,
       forwarderId,
       originDepartment,
@@ -312,6 +314,8 @@ export class TransactionService {
           subject: subject,
           dueDate: dueDate,
           team: team,
+          companyId: companyId,
+          projectId:projectId,
           status: status,
           priority: priority,
           forwarderId,
@@ -418,7 +422,7 @@ export class TransactionService {
       await tx.transactionLogs.create({
         data: createData,
       });
-      return true;
+      return;
     } catch (error) {
       console.log(error);
       throw new Error("something went wrong while adding logs. ");
