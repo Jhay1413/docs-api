@@ -34,6 +34,7 @@ const transactionController = new TransactionController();
 //transactions v2
 router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
 
+router.get("/v2/dashboardData",transactionController.getDashboardData.bind(transactionController));
 // Fetch archived transactions
 router.get("/v2/archived", transactionController.fetchArchivedTransactionHandler.bind(transactionController));
 
@@ -67,6 +68,7 @@ router.get("/v2/:id/notifications", transactionController.fetchNotificationsHand
 //read all notification
 router.put("/v2/:id/readNotification",transactionController.readAllNotificationHandler.bind(transactionController));
 
+//get dashboard data
 
 //Aws endpoint
 

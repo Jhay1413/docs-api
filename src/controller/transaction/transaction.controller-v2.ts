@@ -315,4 +315,40 @@ export class TransactionController {
       res.status(StatusCodes.BAD_GATEWAY).json(error);
     }
   }
+
+  public async getDashboardData(req:Request,res:Response){
+    try {
+      console.log("asdasdsas")
+      const priority = await this.transactionService.getDashboardPriority();
+      const perApplication = await this.transactionService.getNumberPerApplication();
+      const perSection = await this.transactionService.getNumberPerSection();
+      const total = await this.transactionService.getTotalNumberOfProjects();
+
+
+      const dashbaordData = [
+        {
+          category: 'Priority',
+          data: priority,
+        },
+        {
+          category: 'Per Application',
+          data: perApplication,
+        },
+        {
+          category: 'Per Section',
+          data: perSection,
+        },
+        {
+          category: 'Total Projects',
+          data: total,
+        },
+      ];
+
+      res.status(StatusCodes.OK).json(dashbaordData);
+    } catch (error) {
+      console.log(error);
+      res.status(StatusCodes.BAD_GATEWAY).json(error);
+    }
+  }
+
 }

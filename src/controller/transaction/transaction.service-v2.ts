@@ -315,7 +315,7 @@ export class TransactionService {
           dueDate: dueDate,
           team: team,
           companyId: companyId,
-          projectId:projectId,
+          projectId: projectId,
           status: status,
           priority: priority,
           forwarderId,
@@ -474,7 +474,7 @@ export class TransactionService {
   }
   public async getDepartmentEntities() {
     try {
-      console.log("Adsadsad12312321");
+     
       const transactions = await db.$queryRaw`
       SELECT 
         t.id,
@@ -596,6 +596,100 @@ export class TransactionService {
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong on read notification");
+    }
+  }
+  public async getDashboardPriority() {
+    try {
+      const transactions = await db.$queryRaw`
+      SELECT 
+          t.id,
+          t."transactionId",
+          c."projectName",
+          COALESCE(
+              ROUND(
+                  (SUM(CASE WHEN a."fileStatus" = 'FINAL_ATTACHMENT' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(a.id), 0)
+              ),
+              0
+          ) AS percentage
+      FROM "Transaction" t
+      LEFT JOIN "Attachment" a ON t.id = a."transactionId"
+      LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
+      LEFT JOIN "CompanyProject" c ON c.id = t."projectId"
+      WHERE t.status <> 'ARCHIVED' AND t.priority = 'HIGH'
+      GROUP BY
+          t.id,
+          t."transactionId",
+          c."projectName"
+      ORDER BY 
+          t."createdAt" DESC
+      LIMIT 10;
+  `;
+
+      return transactions;
+    } catch (error) {
+      console.error("Error fetching transaction", error);
+      throw new Error("Failed to fetch transactions");
+    }
+  }
+  public async getTotalNumberOfProjects(){
+    try {
+      const transactions = await db.transaction.count({
+        where:{
+          status: {
+            not : "ARCHIVED"
+          }
+        }
+      })
+      return transactions
+    } catch (error) {
+      console.error("Error fetching transaction", error);
+      throw new Error("Failed to fetch transactions");
+    }
+  }
+  public async getNumberPerApplication(){
+    try {
+      const transactions = await db.transaction.groupBy({
+        by:['documentSubType'],
+        _count:{
+          id:true
+        },
+        where:{
+          status:{
+            not:"ARCHIVED"
+          }
+        }
+      })
+      const countEachType = transactions.map((item) => ({
+        categoryName: item.documentSubType,
+        count: item._count.id,
+      }));
+      return countEachType
+    } catch (error) {
+      console.error("Error fetching transaction", error);
+      throw new Error("Failed to fetch transactions");
+    }
+  }
+  public async getNumberPerSection(){
+    try {
+      const transactions = await db.transaction.groupBy({
+        by:['team'],
+        _count:{
+          id:true
+        },
+        where:{
+          status:{
+            not:"ARCHIVED"
+          }
+        }
+      })
+      const data =  transactions.map((item) => ({
+        categoryName: item.team,
+        count: item._count.id,
+      }));  
+      return data;
+    } catch (error) {
+      console.error("Error fetching transaction", error);
+      throw new Error("Failed to fetch transactions");
     }
   }
 }
