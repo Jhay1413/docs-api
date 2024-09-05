@@ -17,6 +17,7 @@ const corsOptions = {
     "https://sweet-arithmetic-8496a1.netlify.app",
     "http://localhost:5173",
     "http://localhost:4173",
+    "https://dts.envicomm.org",
   ], // This is the origin of the client
   credentials: true, // This allows the session cookie to be sent with the request
 };
