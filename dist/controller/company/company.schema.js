@@ -15,7 +15,7 @@ exports.projects = zod_1.z.object({
     projectAddress: zod_1.z.string(),
     retainer: zod_1.z.boolean(),
     date_expiry: zod_1.z.nullable(zod_1.z.date()),
-    contactPersons: exports.contacts.optional(),
+    contactPersons: zod_1.z.nullable(exports.contacts).optional(),
     email: zod_1.z.nullable(zod_1.z.string())
 });
 exports.companyFormData = zod_1.z.object({
@@ -24,6 +24,6 @@ exports.companyFormData = zod_1.z.object({
     companyName: zod_1.z.string(),
     companyAddress: zod_1.z.string(),
     email: zod_1.z.nullable(zod_1.z.string()),
-    companyProjects: zod_1.z.array(exports.projects).optional(),
-    contactPersons: exports.contacts.optional(),
+    companyProjects: zod_1.z.nullable(zod_1.z.array(exports.projects)).optional(),
+    contactPersons: zod_1.z.nullable(exports.contacts).optional(),
 });

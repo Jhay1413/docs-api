@@ -12,28 +12,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionController = void 0;
 const http_status_codes_1 = require("http-status-codes");
 const transaction_service_v2_1 = require("./transaction.service-v2");
-const transaction_schema_1 = require("./transaction.schema");
 const generate_id_1 = require("../../utils/generate-id");
 const transaction_utils_1 = require("./transaction.utils");
 const prisma_1 = require("../../prisma");
 const __1 = require("../..");
+const shared_contract_1 = require("shared-contract");
 class TransactionController {
     constructor() {
         this.transactionService = new transaction_service_v2_1.TransactionService();
     }
-    insertTransactionHandler(req, res) {
+    insertTransactionHandler(data) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             try {
                 const lastId = yield this.transactionService.getLastId();
                 const generatedId = (0, generate_id_1.GenerateId)(lastId);
-                const data = Object.assign(Object.assign({}, req.body), { transactionId: generatedId });
+                const data_payload = Object.assign(Object.assign({}, data), { transactionId: generatedId });
                 const response = yield prisma_1.db.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    const transaction = yield this.transactionService.insertTransaction(data, tx);
-                    const validatedData = transaction_schema_1.transactionData.safeParse(transaction);
-                    console.log(validatedData.error);
-                    if (!validatedData.success)
-                        throw new Error("Validation failed after insertion");
-                    const payload = (0, transaction_utils_1.cleanedDataUtils)(validatedData.data);
+                    const transaction = yield this.transactionService.insertTransaction(data_payload, tx);
+                    const payload = (0, transaction_utils_1.cleanedDataUtils)(transaction);
                     yield this.transactionService.logPostTransaction(payload, tx);
                     if (transaction.status === "ARCHIVED" || !transaction.receiverId)
                         return;
@@ -45,24 +42,29 @@ class TransactionController {
                         isRead: false,
                     };
                     yield this.transactionService.addNotificationService(notificationPayload, tx);
-                    const notifications = yield this.transactionService.fetchAllNotificationById(transaction.receiverId, tx);
-                    const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(transaction.receiverId);
+                    return transaction;
+                }));
+                const returnedValidateData = shared_contract_1.transactionQueryData.safeParse(response);
+                if (((_a = returnedValidateData.data) === null || _a === void 0 ? void 0 : _a.status) === "ARCHIVED")
+                    return response;
+                if (returnedValidateData.success) {
+                    const notifications = yield this.transactionService.fetchAllNotificationById(returnedValidateData.data.receiverId);
+                    const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(returnedValidateData.data.receiverId);
                     const message = "You have new notification";
-                    const receiverSocketId = __1.userSockets.get(notificationPayload.receiverId);
+                    const receiverSocketId = __1.userSockets.get(returnedValidateData.data.receiverId);
                     const quantityTracker = {
                         incoming: incomingCount,
                         inbox: outgoingCount,
                     };
                     if (receiverSocketId) {
-                        console.log(quantityTracker);
                         __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
                     }
-                }));
-                res.status(http_status_codes_1.StatusCodes.OK).json(response);
+                }
+                return response;
             }
             catch (error) {
                 console.log(error);
-                return res.status(500).json(error);
+                throw new Error("Something went wrong ! ");
             }
             finally {
                 yield prisma_1.db.$disconnect();
@@ -134,20 +136,21 @@ class TransactionController {
     forwardTransactionHandler(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                // Start the transaction
                 const response = yield prisma_1.db.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                     var _a, _b, _c;
                     const result = yield this.transactionService.forwardTransactionService(req.body, tx);
-                    const validatedData = transaction_schema_1.transactionData.safeParse(result);
-                    if (!validatedData.success)
-                        return res
-                            .status(500)
-                            .json("something went wrong while validating data after forwarding !");
+                    const validatedData = shared_contract_1.transactionQueryData.safeParse(result);
+                    if (!validatedData.success) {
+                        throw new Error("Something went wrong while validating data after forwarding!");
+                    }
                     const payload = (0, transaction_utils_1.cleanedDataUtils)(validatedData.data);
                     yield this.transactionService.logPostTransaction(payload, tx);
-                    if (result.status === "ARCHIVED" || !result.receiverId)
-                        return;
+                    if (result.status === "ARCHIVED" || !result.receiverId) {
+                        return result; // Early return if not needing further actions
+                    }
                     const notificationPayload = {
-                        transactionId: validatedData.data.id,
+                        transactionId: result.id,
                         message: `New Transaction Forwarded by ${(_b = (_a = validatedData.data) === null || _a === void 0 ? void 0 : _a.forwarder) === null || _b === void 0 ? void 0 : _b.accountRole}`,
                         receiverId: validatedData.data.receiverId,
                         forwarderId: (_c = validatedData.data.forwarder) === null || _c === void 0 ? void 0 : _c.id,
@@ -156,25 +159,30 @@ class TransactionController {
                     yield this.transactionService.addNotificationService(notificationPayload);
                     return validatedData.data;
                 }));
-                const validateReturnedData = transaction_schema_1.transactionData.safeParse(response);
-                if (validateReturnedData.success) {
-                    const notifications = yield this.transactionService.fetchAllNotificationById(validateReturnedData.data.receiverId);
-                    const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(validateReturnedData.data.receiverId);
-                    const message = "You have new notification";
-                    const receiverSocketId = __1.userSockets.get(validateReturnedData.data.receiverId);
-                    const quantityTracker = {
-                        incoming: incomingCount,
-                        inbox: outgoingCount,
-                    };
-                    if (receiverSocketId) {
-                        console.log(quantityTracker);
-                        __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
-                    }
+                // After the transaction has completed
+                if (response.status === "ARCHIVED" || !response.receiverId) {
+                    return response;
                 }
-                if (res)
-                    res.status(http_status_codes_1.StatusCodes.OK).json(response);
+                const notifications = yield this.transactionService.fetchAllNotificationById(response.receiverId);
+                const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(response.receiverId);
+                const message = "You have a new notification";
+                const receiverSocketId = __1.userSockets.get(response.receiverId);
+                const quantityTracker = {
+                    incoming: incomingCount,
+                    inbox: outgoingCount,
+                };
+                if (receiverSocketId) {
+                    __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
+                }
+                return response;
             }
-            catch (error) { }
+            catch (error) {
+                console.error("Error in forwardTransactionHandler:", error);
+                throw new Error("Something went wrong ! ");
+            }
+            finally {
+                yield prisma_1.db.$disconnect();
+            }
         });
     }
     receivedTransactionHandler(req, res) {
@@ -254,8 +262,41 @@ class TransactionController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const result = yield this.transactionService.getDepartmentEntities();
-                console.log(result);
                 res.status(http_status_codes_1.StatusCodes.OK).json(result);
+            }
+            catch (error) {
+                console.log(error);
+                res.status(http_status_codes_1.StatusCodes.BAD_GATEWAY).json(error);
+            }
+        });
+    }
+    getDashboardData(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                console.log("asdasdsas");
+                const priority = yield this.transactionService.getDashboardPriority();
+                const perApplication = yield this.transactionService.getNumberPerApplication();
+                const perSection = yield this.transactionService.getNumberPerSection();
+                const total = yield this.transactionService.getTotalNumberOfProjects();
+                const dashbaordData = [
+                    {
+                        category: "Priority",
+                        data: priority,
+                    },
+                    {
+                        category: "Per Application",
+                        data: perApplication,
+                    },
+                    {
+                        category: "Per Section",
+                        data: perSection,
+                    },
+                    {
+                        category: "Total Projects",
+                        data: total,
+                    },
+                ];
+                res.status(http_status_codes_1.StatusCodes.OK).json(dashbaordData);
             }
             catch (error) {
                 console.log(error);

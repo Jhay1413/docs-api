@@ -14,7 +14,7 @@ export const projects = z.object({
   projectAddress: z.string(),
   retainer:z.boolean(),
   date_expiry : z.nullable(z.date()),
-  contactPersons: contacts.optional(),
+  contactPersons: z.nullable(contacts).optional(),
   email : z.nullable(z.string())
 });
 export const companyFormData = z.object({
@@ -23,8 +23,8 @@ export const companyFormData = z.object({
   companyName: z.string(),
   companyAddress: z.string(),
   email : z.nullable(z.string()),
-  companyProjects: z.array(projects).optional(),
-  contactPersons: contacts.optional(),
+  companyProjects: z.nullable(z.array(projects)).optional(),
+  contactPersons: z.nullable(contacts).optional(),
 
 });
 export type TProject = z.infer<typeof projects>

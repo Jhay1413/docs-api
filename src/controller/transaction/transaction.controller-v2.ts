@@ -1,35 +1,38 @@
 import { StatusCodes } from "http-status-codes";
 import { TransactionService } from "./transaction.service-v2";
 import { Request, Response } from "express";
-import { notification, transactionData } from "./transaction.schema";
+import { notification } from "./transaction.schema";
 import { GenerateId } from "../../utils/generate-id";
 import { cleanedDataUtils } from "./transaction.utils";
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
-import { validateData } from "../../middleware/zodValidation";
+import {
+  transactionMutationSchema,
+  transactionQueryData,
+} from "shared-contract";
 export class TransactionController {
   private transactionService: TransactionService;
 
   constructor() {
     this.transactionService = new TransactionService();
   }
-  public async insertTransactionHandler(req: Request, res: Response) {
+  public async insertTransactionHandler(
+    data: z.infer<typeof transactionMutationSchema>
+  ) {
     try {
       const lastId = await this.transactionService.getLastId();
       const generatedId = GenerateId(lastId);
-      const data = { ...req.body, transactionId: generatedId };
+      const data_payload = { ...data, transactionId: generatedId };
 
       const response = await db.$transaction(async (tx) => {
         const transaction = await this.transactionService.insertTransaction(
-          data,
+          data_payload,
           tx
         );
-        const validatedData = transactionData.safeParse(transaction);
-        console.log(validatedData.error);
-        if (!validatedData.success)
-          throw new Error("Validation failed after insertion");
-        const payload = cleanedDataUtils(validatedData.data);
+
+        const payload = cleanedDataUtils(transaction);
+
         await this.transactionService.logPostTransaction(payload, tx);
 
         if (transaction.status === "ARCHIVED" || !transaction.receiverId)
@@ -48,52 +51,47 @@ export class TransactionController {
           tx
         );
 
-        return validatedData.data;
+        return transaction;
       });
-      const returnedValidateData = transactionData.safeParse(response);
 
-      if (returnedValidateData.data?.status === "ARCHIVED")
-        res.status(StatusCodes.OK).json(response);
+      if (!response) throw new Error("Something went wrong inserting data !");
+      if (response.status === "ARCHIVED") return response;
 
-      if (returnedValidateData.success) {
-        const notifications =
-          await this.transactionService.fetchAllNotificationById(
-            returnedValidateData.data.receiverId!
-          );
-        const { incomingCount, outgoingCount } =
-          await this.transactionService.getIncomingTransaction(
-            returnedValidateData.data.receiverId!
-          );
-        const message = "You have new notification";
-        const receiverSocketId = userSockets.get(
-          returnedValidateData.data.receiverId!
+      const notifications =
+        await this.transactionService.fetchAllNotificationById(
+          response.receiverId!
         );
+      const { incomingCount, outgoingCount } =
+        await this.transactionService.getIncomingTransaction(
+          response.receiverId!
+        );
+      const message = "You have new notification";
+      const receiverSocketId = userSockets.get(response.receiverId!);
 
-        const quantityTracker = {
-          incoming: incomingCount,
-          inbox: outgoingCount,
-        };
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit(
-            "notification",
-            message,
-            notifications,
-            quantityTracker
-          );
-        }
+      const quantityTracker = {
+        incoming: incomingCount,
+        inbox: outgoingCount,
+      };
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit(
+          "notification",
+          message,
+          notifications,
+          quantityTracker
+        );
       }
-      res.status(StatusCodes.OK).json(response);
+
+      return response;
     } catch (error) {
       console.log(error);
-      return res.status(500).json(error);
+      throw new Error("Something went wrong ! ");
     } finally {
       await db.$disconnect();
     }
   }
   public async fetchAllTransactions(req: Request, res: Response) {
     try {
-      const transactions =
-        await this.transactionService.getTransactionsService();
+      const transactions = await this.transactionService.getTransactionsService();
       return res.status(StatusCodes.OK).json(transactions);
     } catch (error) {
       console.log(error);
@@ -102,16 +100,22 @@ export class TransactionController {
         .json("Something went wrong ! ");
     }
   }
-  public async fetchTransactionByIdHandler(req: Request, res: Response) {
-    const { id } = req.params;
+  public async fetchTransactionByIdHandler(id: string) {
     try {
       const transaction =
         await this.transactionService.getTransactionByIdService(id);
-      return res.status(StatusCodes.OK).json(transaction);
+
+      const validateData = transactionQueryData.safeParse(transaction);
+
+      if (validateData.error) {
+        console.log(validateData.error.errors)
+        throw new Error("Something went wrong ! ");
+      }
+
+      return validateData.data;
     } catch (error) {
-      return res
-        .status(StatusCodes.BAD_GATEWAY)
-        .json("Something went wrong ! ");
+      console.log(error);
+       throw new Error("Something went wrong ! ");
     }
   }
   public async fetchArchivedTransactionHandler(req: Request, res: Response) {
@@ -145,23 +149,18 @@ export class TransactionController {
         .json("Something went wrong ! ");
     }
   }
-  public async forwardTransactionHandler(req: Request, res: Response) {
+  public async forwardTransactionHandler(data:z.infer<typeof transactionMutationSchema>) {
     try {
       // Start the transaction
       const response = await db.$transaction(async (tx) => {
         const result = await this.transactionService.forwardTransactionService(
-          req.body,
+          data,
           tx
         );
-        const validatedData = transactionData.safeParse(result);
+       
 
-        if (!validatedData.success) {
-          throw new Error(
-            "Something went wrong while validating data after forwarding!"
-          );
-        }
-
-        const payload = cleanedDataUtils(validatedData.data);
+      
+        const payload = cleanedDataUtils(result);
         await this.transactionService.logPostTransaction(payload, tx);
 
         if (result.status === "ARCHIVED" || !result.receiverId) {
@@ -170,9 +169,9 @@ export class TransactionController {
 
         const notificationPayload = {
           transactionId: result.id,
-          message: `New Transaction Forwarded by ${validatedData.data?.forwarder?.accountRole}`,
-          receiverId: validatedData.data.receiverId,
-          forwarderId: validatedData.data.forwarder?.id,
+          message: `New Transaction Forwarded by ${result.forwarder?.accountRole}`,
+          receiverId: result.receiverId,
+          forwarderId: result.forwarder?.id,
           isRead: false,
         } as z.infer<typeof notification>;
 
@@ -180,33 +179,25 @@ export class TransactionController {
           notificationPayload
         );
 
-        return validatedData.data;
+        return result ;
       });
 
       // After the transaction has completed
-      if (response.status === "ARCHIVED") {
-        return res.status(StatusCodes.OK).json(response);
+      if (response.status === "ARCHIVED" || !response.receiverId) {
+        return response;
       }
-      const validateReturnedData = transactionData.safeParse(response);
 
-      if (!validateReturnedData.success) {
-        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-          error: "Failed to validate returned data after transaction.",
-        });
-      }
       const notifications =
         await this.transactionService.fetchAllNotificationById(
-          validateReturnedData.data.receiverId!
+          response.receiverId!
         );
       const { incomingCount, outgoingCount } =
         await this.transactionService.getIncomingTransaction(
-          validateReturnedData.data.receiverId!
+          response.receiverId!
         );
 
       const message = "You have a new notification";
-      const receiverSocketId = userSockets.get(
-        validateReturnedData.data.receiverId!
-      );
+      const receiverSocketId = userSockets.get(response.receiverId);
 
       const quantityTracker = {
         incoming: incomingCount,
@@ -222,12 +213,10 @@ export class TransactionController {
         );
       }
 
-      res.status(StatusCodes.OK).json(response);
+      return response;
     } catch (error) {
       console.error("Error in forwardTransactionHandler:", error);
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        error: "An error occurred while forwarding the transaction.",
-      });
+      throw new Error("Something went wrong ! ");
     } finally {
       await db.$disconnect();
     }
@@ -316,30 +305,30 @@ export class TransactionController {
     }
   }
 
-  public async getDashboardData(req:Request,res:Response){
+  public async getDashboardData(req: Request, res: Response) {
     try {
-      console.log("asdasdsas")
+      console.log("asdasdsas");
       const priority = await this.transactionService.getDashboardPriority();
-      const perApplication = await this.transactionService.getNumberPerApplication();
+      const perApplication =
+        await this.transactionService.getNumberPerApplication();
       const perSection = await this.transactionService.getNumberPerSection();
       const total = await this.transactionService.getTotalNumberOfProjects();
 
-
       const dashbaordData = [
         {
-          category: 'Priority',
+          category: "Priority",
           data: priority,
         },
         {
-          category: 'Per Application',
+          category: "Per Application",
           data: perApplication,
         },
         {
-          category: 'Per Section',
+          category: "Per Section",
           data: perSection,
         },
         {
-          category: 'Total Projects',
+          category: "Total Projects",
           data: total,
         },
       ];
@@ -350,5 +339,13 @@ export class TransactionController {
       res.status(StatusCodes.BAD_GATEWAY).json(error);
     }
   }
-
+  public async getSearchedTransation (query:string){
+    try {
+      const transactions = await this.transactionService.searchTransaction(query);
+      if(!transactions) throw new Error("undefined")
+      return transactions
+    } catch (error) {
+      throw new Error("Something went wrong searching transactions")
+    }
+  }
 }

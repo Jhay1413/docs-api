@@ -15,7 +15,8 @@ exports.cleanedDataUtils = void 0;
 const cleanedDataUtils = (data) => {
     var _a, _b, _c, _d, _e, _f;
     const cleanedData = Object.assign(Object.assign({}, data), { company: (_a = data.company) === null || _a === void 0 ? void 0 : _a.companyName, project: (_b = data.project) === null || _b === void 0 ? void 0 : _b.projectName, forwarder: `${(_c = data.forwarder) === null || _c === void 0 ? void 0 : _c.email} - ${(_d = data.forwarder) === null || _d === void 0 ? void 0 : _d.accountRole}`, attachments: data.attachments, receiver: `${(_e = data.receiver) === null || _e === void 0 ? void 0 : _e.email} - ${(_f = data.receiver) === null || _f === void 0 ? void 0 : _f.accountRole}` || null, transactionId: data.id });
-    const { receivedById, id } = cleanedData, payload = __rest(cleanedData, ["receivedById", "id"]);
-    return payload;
+    const { id } = cleanedData, payload = __rest(cleanedData, ["id"]);
+    const createData = Object.assign(Object.assign({}, payload), { transactionId: payload.transactionId, dueDate: payload.dueDate, dateForwarded: payload.dateForwarded, attachments: JSON.stringify(payload.attachments) });
+    return createData;
 };
 exports.cleanedDataUtils = cleanedDataUtils;

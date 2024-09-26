@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
 import express from "express";
+import s from "../src/utils/ts-rest-server";
 import authRouter from "./controller/auth/auth.route";
 import userRouter from "./controller/user/user.routes";
 import transactionRouter from "./controller/transaction/transaction.route";
@@ -9,8 +9,12 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import { Server } from "socket.io";
 import { TransactionService } from "./controller/transaction/transaction.service-v2";
-const app = express();
 
+import { registerTransactionRoutes } from "./controller/transaction/transaction.routes";
+
+import { registerCompanyRoutes } from "./controller/company/company.routes";
+
+const app = express();
 const corsOptions = {
   origin: [
     "https://dts-client.netlify.app",
@@ -26,6 +30,8 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
+registerCompanyRoutes(app);
+registerTransactionRoutes(app);
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
@@ -34,6 +40,7 @@ app.use("/api/companies", companyRouter);
 const userSockets = new Map<string, string>();
 
 const server = http.createServer(app);
+
 const userService = new TransactionService();
 //SOCKET SETUP
 const io = new Server(server, {
@@ -106,6 +113,6 @@ io.on("connection", (socket) => {
 server.listen(3001 || process.env.PORT, () => {
   console.log("Server is running on port 3001");
 });
-export { io, userSockets };
+export { io, userSockets, s };
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 65000;

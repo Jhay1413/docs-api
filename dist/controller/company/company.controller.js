@@ -22,15 +22,23 @@ const deleteCompanyHandler = (req, res) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.deleteCompanyHandler = deleteCompanyHandler;
-const createCompanyHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const data = req.body;
+const createCompanyHandler = (_a) => __awaiter(void 0, [_a], void 0, function* ({ body, }) {
+    const data = body;
     try {
         const result = yield (0, company_service_1.insertCompany)(data);
-        return res.status(201).json(result);
+        return {
+            status: 201,
+            body: result,
+        };
     }
     catch (error) {
         console.log(error);
-        return res.status(500).json(error);
+        return {
+            status: 500, // Use 500 for server error
+            body: {
+                error: "Failed to create company",
+            },
+        };
     }
 });
 exports.createCompanyHandler = createCompanyHandler;

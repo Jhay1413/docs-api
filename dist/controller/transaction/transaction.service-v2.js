@@ -41,14 +41,18 @@ class TransactionService {
                         },
                     },
                     include: {
-                        attachments: true,
+                        attachments: {
+                            omit: {
+                                createdAt: true
+                            }
+                        },
                         forwarder: true,
                         receiver: true,
                         company: true,
                         project: true,
                     },
                 });
-                const result = Object.assign(Object.assign({}, createdTransaction), { dueDate: new Date(createdTransaction.dueDate).toISOString(), dateForwarded: new Date(createdTransaction.dateForwarded).toISOString() });
+                const result = Object.assign(Object.assign({}, createdTransaction), { dueDate: new Date(createdTransaction.dueDate).toISOString(), dateForwarded: new Date(createdTransaction.dateForwarded).toISOString(), dateReceived: null });
                 return result;
             }
             catch (error) {
@@ -157,13 +161,13 @@ class TransactionService {
             t."createdAt",
             t."updatedAt",
             t."documentSubType",
-            t."originDepartment",
-            t."targetDepartment",
             t."dateForwarded",
             c."projectName",
             b."accountRole",
             t.status,
             t.priority,
+           CONCAT (d."firstName",' ',d."lastName") as "forwarderName",
+           CONCAT (e."firstName",' ',e."lastName") as "receiverName",
             COALESCE(
                 ROUND((SUM(CASE WHEN a."fileStatus" = 'FINAL_ATTACHMENT' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(a.id), 0)),
                 0
@@ -172,6 +176,9 @@ class TransactionService {
         LEFT JOIN "Attachment" a ON t.id = a."transactionId"
         LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
         LEFT JOIN "CompanyProject" c on c.id = t."projectId"
+        LEFT JOIN "UserInfo" d on d."accountId" = t."forwarderId"
+        LEFT JOIN "UserInfo" e on e."accountId" = t."receiverId"
+        where t.status <> 'ARCHIVED'
         GROUP BY
           t.id,
           t."transactionId",
@@ -187,7 +194,11 @@ class TransactionService {
           b."accountRole",
           t.status,
           t.priority,
-          c."projectName"
+          c."projectName",
+          d."firstName",
+          d."lastName",
+          e."firstName",
+         e."lastName"
           ORDER BY 
           t."createdAt" DESC`;
                 return transactions;
@@ -263,7 +274,7 @@ class TransactionService {
     }
     forwardTransactionService(data, tx) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { documentType, subject, receiverId, remarks, dueDate, forwarderId, originDepartment, targetDepartment, dateForwarded, documentSubType, team, transactionId, id, status, priority, attachments, } = data;
+            const { documentType, subject, receiverId, remarks, companyId, projectId, dueDate, forwarderId, originDepartment, targetDepartment, dateForwarded, documentSubType, team, transactionId, id, status, priority, attachments, } = data;
             try {
                 const createAttachment = attachments.filter((attachment) => !attachment.id);
                 const updateAttachment = attachments.filter((attachment) => attachment.id);
@@ -277,6 +288,8 @@ class TransactionService {
                         subject: subject,
                         dueDate: dueDate,
                         team: team,
+                        companyId: companyId,
+                        projectId: projectId,
                         status: status,
                         priority: priority,
                         forwarderId,
@@ -372,7 +385,7 @@ class TransactionService {
                 yield tx.transactionLogs.create({
                     data: createData,
                 });
-                return true;
+                return;
             }
             catch (error) {
                 console.log(error);
@@ -426,7 +439,6 @@ class TransactionService {
     getDepartmentEntities() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log("Adsadsad12312321");
                 const transactions = yield prisma_1.db.$queryRaw `
       SELECT 
         t.id,
@@ -558,6 +570,111 @@ class TransactionService {
             catch (error) {
                 console.log(error);
                 throw new Error("Something went wrong on read notification");
+            }
+        });
+    }
+    getDashboardPriority() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const transactions = yield prisma_1.db.$queryRaw `
+      SELECT 
+          t.id,
+          t."transactionId",
+          c."projectName",
+          COALESCE(
+              ROUND(
+                  (SUM(CASE WHEN a."fileStatus" = 'FINAL_ATTACHMENT' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(a.id), 0)
+              ),
+              0
+          ) AS percentage
+      FROM "Transaction" t
+      LEFT JOIN "Attachment" a ON t.id = a."transactionId"
+      LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
+      LEFT JOIN "CompanyProject" c ON c.id = t."projectId"
+      WHERE t.status <> 'ARCHIVED' AND t.priority = 'HIGH'
+      GROUP BY
+          t.id,
+          t."transactionId",
+          c."projectName"
+      ORDER BY 
+          t."createdAt" DESC
+      LIMIT 10;
+  `;
+                return transactions;
+            }
+            catch (error) {
+                console.error("Error fetching transaction", error);
+                throw new Error("Failed to fetch transactions");
+            }
+        });
+    }
+    getTotalNumberOfProjects() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const transactions = yield prisma_1.db.transaction.count({
+                    where: {
+                        status: {
+                            not: "ARCHIVED"
+                        }
+                    }
+                });
+                return transactions;
+            }
+            catch (error) {
+                console.error("Error fetching transaction", error);
+                throw new Error("Failed to fetch transactions");
+            }
+        });
+    }
+    getNumberPerApplication() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const transactions = yield prisma_1.db.transaction.groupBy({
+                    by: ['documentSubType'],
+                    _count: {
+                        id: true
+                    },
+                    where: {
+                        status: {
+                            not: "ARCHIVED"
+                        }
+                    }
+                });
+                const countEachType = transactions.map((item) => ({
+                    categoryName: item.documentSubType,
+                    count: item._count.id,
+                }));
+                return countEachType;
+            }
+            catch (error) {
+                console.error("Error fetching transaction", error);
+                throw new Error("Failed to fetch transactions");
+            }
+        });
+    }
+    getNumberPerSection() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const transactions = yield prisma_1.db.transaction.groupBy({
+                    by: ['team'],
+                    _count: {
+                        id: true
+                    },
+                    where: {
+                        status: {
+                            not: "ARCHIVED"
+                        }
+                    }
+                });
+                const data = transactions.map((item) => ({
+                    categoryName: item.team,
+                    count: item._count.id,
+                }));
+                return data;
+            }
+            catch (error) {
+                console.error("Error fetching transaction", error);
+                throw new Error("Failed to fetch transactions");
             }
         });
     }

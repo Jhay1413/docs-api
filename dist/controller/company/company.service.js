@@ -22,21 +22,48 @@ const updateCompany = (id, data) => __awaiter(void 0, void 0, void 0, function* 
                 companyAddress: data.companyAddress,
                 companyId: data.companyId,
                 companyProjects: {
-                    deleteMany: {},
-                    create: data.companyProjects.map((project) => ({
-                        projectId: project.projectId,
-                        projectName: project.projectName,
-                        projectAddress: project.projectAddress,
-                        email: project.email,
-                        retainer: project.retainer,
-                        date_expiry: project.date_expiry || null,
-                        contactPersons: {
-                            create: {
-                                name: project.contactPersons.name,
-                                contactNumber: project.contactPersons.contactNumber,
-                                email: project.contactPersons.email,
+                    upsert: data.companyProjects.map((project) => ({
+                        where: {
+                            projectId: project.projectId,
+                        },
+                        create: {
+                            projectId: project.projectId,
+                            projectName: project.projectName,
+                            projectAddress: project.projectAddress,
+                            email: project.email,
+                            retainer: project.retainer,
+                            date_expiry: project.date_expiry || null,
+                            contactPersons: {
+                                create: {
+                                    name: project.contactPersons.name,
+                                    contactNumber: project.contactPersons.contactNumber,
+                                    email: project.contactPersons.email,
+                                },
                             },
                         },
+                        update: {
+                            projectId: project.projectId,
+                            projectName: project.projectName,
+                            projectAddress: project.projectAddress,
+                            email: project.email,
+                            retainer: project.retainer,
+                            date_expiry: project.date_expiry || null,
+                            contactPersons: {
+                                upsert: {
+                                    where: {
+                                        id: data.contactPersons.id,
+                                    },
+                                    update: {
+                                        name: data.contactPersons.name,
+                                        contactNumber: data.contactPersons.contactNumber,
+                                    },
+                                    create: {
+                                        name: data.contactPersons.name,
+                                        contactNumber: data.contactPersons.contactNumber,
+                                    },
+                                },
+                            }
+                        }
                     })),
                 },
                 contactPersons: {
@@ -122,7 +149,9 @@ const insertCompany = (data) => __awaiter(void 0, void 0, void 0, function* () {
 exports.insertCompany = insertCompany;
 const getCompanies = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const response = yield prisma_1.db.company.findMany({ include: { companyProjects: true } });
+        const response = yield prisma_1.db.company.findMany({
+            include: { companyProjects: true },
+        });
         return response;
     }
     catch (error) {

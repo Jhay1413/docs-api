@@ -5,13 +5,17 @@ import {
   notification,
   transactionData,
   transactionFormData,
-  transactionLogsData,
 } from "./transaction.schema";
 import * as z from "zod";
+import {
+  transactionLogsData,
+  transactionMutationSchema,
+  transactionQueryData,
+} from "shared-contract";
 
 export class TransactionService {
   public async insertTransaction(
-    data: z.infer<typeof transactionFormData>,
+    data: z.infer<typeof transactionMutationSchema>,
     tx: Prisma.TransactionClient
   ) {
     const {
@@ -37,7 +41,7 @@ export class TransactionService {
     try {
       const createdTransaction = await tx.transaction.create({
         data: {
-          transactionId,
+          transactionId: data.transactionId!,
           documentType,
           subject,
           dueDate,
@@ -67,12 +71,25 @@ export class TransactionService {
           project: true,
         },
       });
-      const result = {
+
+      const new_attachments = createdTransaction.attachments.map(
+        (attachment) => {
+          return {
+            ...attachment,
+            createdAt: attachment.createdAt.toISOString(),
+          };
+        }
+      );
+      const modified_transaction = {
         ...createdTransaction,
-        dueDate: new Date(createdTransaction.dueDate).toISOString(),
-        dateForwarded: new Date(createdTransaction.dateForwarded).toISOString(),
+        dueDate: createdTransaction.dueDate.toISOString(),
+        dateForwarded: createdTransaction.dateForwarded.toISOString(),
+        dateReceived: createdTransaction.dateReceived
+          ? createdTransaction.dateReceived.toISOString()
+          : null,
+        attachments: new_attachments,
       };
-      return result;
+      return modified_transaction;
     } catch (error) {
       console.log(error);
       throw new Error("Error creating transaction");
@@ -106,12 +123,40 @@ export class TransactionService {
           completeStaffWork: true,
         },
       });
-
-      const parseResponse = transaction?.transactionLogs.map((respo) => {
-        return { ...respo, attachments: JSON.parse(respo.attachments) };
+      if (!transaction) throw new Error("transaction not found");
+      const new_attachments = transaction.attachments.map((data) => {
+        return { ...data, createdAt: data.createdAt.toISOString() };
+      });
+      const parseTransactionLogs = transaction?.transactionLogs.map((respo) => {
+        return {
+          ...respo,
+          attachments: JSON.parse(respo.attachments),
+          createdAt: respo.createdAt.toISOString(),
+          updatedAt: respo.updatedAt.toISOString(),
+          dateForwarded: respo.dateForwarded.toISOString(),
+          dueDate: respo.dueDate.toISOString(),
+        };
       });
 
-      return { ...transaction, transactionLogs: parseResponse };
+      //  const {transactionLogs, ...transationData} = transaction
+      const parseData = {
+        ...transaction,
+        dueDate: transaction.dueDate.toISOString(),
+        dateForwarded: transaction.dateForwarded.toISOString(),
+        dateReceived: transaction.dateReceived
+          ? transaction.dateReceived.toISOString()
+          : null,
+        transactionLogs: parseTransactionLogs,
+        attachments: new_attachments,
+      };
+
+      // const validateData = transactionQueryData.safeParse(parseResponse);
+      // if(validateData.error){
+      //   console.log(validateData.error.errors)
+      //   throw new Error("data not validated")
+      // }
+
+      return parseData;
     } catch (error) {
       console.error("Error fetching transaction", error);
       throw new Error("Failed to fetch transaction");
@@ -133,6 +178,13 @@ export class TransactionService {
         orderBy: {
           createdAt: "desc",
         },
+        include: {
+          forwarder: {
+            include: {
+              userInfo: true,
+            },
+          },
+        },
       });
       return response;
     } catch (error) {
@@ -151,6 +203,13 @@ export class TransactionService {
         },
         orderBy: {
           createdAt: "desc",
+        },
+        include: {
+          forwarder: {
+            include: {
+              userInfo: true,
+            },
+          },
         },
       });
       return response;
@@ -172,13 +231,13 @@ export class TransactionService {
             t."createdAt",
             t."updatedAt",
             t."documentSubType",
-            t."originDepartment",
-            t."targetDepartment",
             t."dateForwarded",
             c."projectName",
             b."accountRole",
             t.status,
             t.priority,
+           CONCAT (d."firstName",' ',d."lastName") as "forwarderName",
+           CONCAT (e."firstName",' ',e."lastName") as "receiverName",
             COALESCE(
                 ROUND((SUM(CASE WHEN a."fileStatus" = 'FINAL_ATTACHMENT' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(a.id), 0)),
                 0
@@ -187,6 +246,8 @@ export class TransactionService {
         LEFT JOIN "Attachment" a ON t.id = a."transactionId"
         LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
         LEFT JOIN "CompanyProject" c on c.id = t."projectId"
+        LEFT JOIN "UserInfo" d on d."accountId" = t."forwarderId"
+        LEFT JOIN "UserInfo" e on e."accountId" = t."receiverId"
         where t.status <> 'ARCHIVED'
         GROUP BY
           t.id,
@@ -203,7 +264,11 @@ export class TransactionService {
           b."accountRole",
           t.status,
           t.priority,
-          c."projectName"
+          c."projectName",
+          d."firstName",
+          d."lastName",
+          e."firstName",
+         e."lastName"
           ORDER BY 
           t."createdAt" DESC`;
 
@@ -273,7 +338,7 @@ export class TransactionService {
   }
 
   public async forwardTransactionService(
-    data: z.infer<typeof transactionFormData>,
+    data: z.infer<typeof transactionMutationSchema>,
     tx: Prisma.TransactionClient
   ) {
     const {
@@ -345,15 +410,22 @@ export class TransactionService {
           project: true,
         },
       });
-      const result = {
+      const new_attachments = response.attachments.map((attachment) => {
+        return {
+          ...attachment,
+          createdAt: attachment.createdAt.toISOString(),
+        };
+      });
+      const modified_transaction = {
         ...response,
-        dueDate: new Date(response.dueDate).toISOString(),
-        dateForwarded: new Date(response.dateForwarded).toISOString(),
+        dueDate: response.dueDate.toISOString(),
+        dateForwarded: response.dateForwarded.toISOString(),
         dateReceived: response.dateReceived
-          ? new Date(response.dateReceived!).toISOString()
+          ? response.dateReceived.toISOString()
           : null,
-      } as z.infer<typeof transactionData>;
-      return result;
+        attachments: new_attachments,
+      };
+      return modified_transaction;
     } catch (error) {
       console.log(error);
       throw new Error("something went wrong while updating transaction ");
@@ -474,7 +546,6 @@ export class TransactionService {
   }
   public async getDepartmentEntities() {
     try {
-     
       const transactions = await db.$queryRaw`
       SELECT 
         t.id,
@@ -631,65 +702,148 @@ export class TransactionService {
       throw new Error("Failed to fetch transactions");
     }
   }
-  public async getTotalNumberOfProjects(){
+  public async getTotalNumberOfProjects() {
     try {
       const transactions = await db.transaction.count({
-        where:{
+        where: {
           status: {
-            not : "ARCHIVED"
-          }
-        }
-      })
-      return transactions
+            not: "ARCHIVED",
+          },
+        },
+      });
+      return transactions;
     } catch (error) {
       console.error("Error fetching transaction", error);
       throw new Error("Failed to fetch transactions");
     }
   }
-  public async getNumberPerApplication(){
+  public async getNumberPerApplication() {
     try {
       const transactions = await db.transaction.groupBy({
-        by:['documentSubType'],
-        _count:{
-          id:true
+        by: ["documentSubType"],
+        _count: {
+          id: true,
         },
-        where:{
-          status:{
-            not:"ARCHIVED"
-          }
-        }
-      })
+        where: {
+          status: {
+            not: "ARCHIVED",
+          },
+        },
+      });
       const countEachType = transactions.map((item) => ({
         categoryName: item.documentSubType,
         count: item._count.id,
       }));
-      return countEachType
+      return countEachType;
     } catch (error) {
       console.error("Error fetching transaction", error);
       throw new Error("Failed to fetch transactions");
     }
   }
-  public async getNumberPerSection(){
+  public async getNumberPerSection() {
     try {
       const transactions = await db.transaction.groupBy({
-        by:['team'],
-        _count:{
-          id:true
+        by: ["team"],
+        _count: {
+          id: true,
         },
-        where:{
-          status:{
-            not:"ARCHIVED"
-          }
-        }
-      })
-      const data =  transactions.map((item) => ({
+        where: {
+          status: {
+            not: "ARCHIVED",
+          },
+        },
+      });
+      const data = transactions.map((item) => ({
         categoryName: item.team,
         count: item._count.id,
-      }));  
+      }));
       return data;
     } catch (error) {
       console.error("Error fetching transaction", error);
       throw new Error("Failed to fetch transactions");
     }
+  }
+  public async searchTransaction(query: string) {
+    try {
+      const transactions = await db.transaction.findMany({
+        where: {
+          status: {
+            not: "ARCHIVED",
+          },
+          AND: [
+            {
+              OR: [
+                { team: { contains: query, mode: "insensitive" } },
+                { transactionId: { contains: query, mode: "insensitive" } },
+                { team: { contains: query, mode: "insensitive" } },
+                { documentSubType: { contains: query, mode: "insensitive" } },
+                { targetDepartment: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } }, // Filter by description
+                {
+                  company: {
+                    companyName: { contains: query, mode: "insensitive" },
+                    companyId: { contains: query, mode: "insensitive" },
+                  },
+                },
+
+                {
+                  project: {
+                    projectName: { contains: query, mode: "insensitive" },
+                    projectId: { contains: query, mode: "insensitive" },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        include: {
+          forwarder: {
+            include: {
+              userInfo: true,
+            },
+          },
+          receiver: {
+            include: {
+              userInfo: true,
+            },
+          },
+          project: true,
+          attachments: {
+            omit: {
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      // Post-process to calculate percentage and combine names
+      const processedTransactions = transactions.map((t) => {
+        const finalAttachmentCount = t.attachments.filter(
+          (a) => a.fileStatus === "FINAL_ATTACHMENT"
+        ).length;
+        const totalAttachmentCount = t.attachments.length;
+
+        const percentage = totalAttachmentCount
+          ? (finalAttachmentCount * 100) / totalAttachmentCount
+          : 0;
+
+        return {
+          ...t,
+          dueDate: t.dueDate.toISOString(),
+          dateForwarded: t.dateForwarded.toISOString(),
+          dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null,
+          forwarderName: `${t.forwarder?.userInfo?.firstName} ${t.forwarder?.userInfo?.lastName}`,
+          receiverName: `${t.receiver!.userInfo?.firstName} ${
+            t.receiver!.userInfo?.lastName
+          }`, // Assuming you include receiver info in a similar way
+          percentage: Math.round(percentage).toString(),
+        };
+      });
+
+      return processedTransactions;
+    } catch (error) {}
   }
 }

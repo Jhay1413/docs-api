@@ -27,6 +27,7 @@ const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage()
 const transactionController = new transaction_controller_v2_1.TransactionController();
 //transactions v2
 router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
+router.get("/v2/dashboardData", transactionController.getDashboardData.bind(transactionController));
 // Fetch archived transactions
 router.get("/v2/archived", transactionController.fetchArchivedTransactionHandler.bind(transactionController));
 // Fetch department entities
@@ -49,6 +50,7 @@ router.get("/v2/:id/transactions", transactionController.fetchTransactionsByPara
 router.get("/v2/:id/notifications", transactionController.fetchNotificationsHandler.bind(transactionController));
 //read all notification
 router.put("/v2/:id/readNotification", transactionController.readAllNotificationHandler.bind(transactionController));
+//get dashboard data
 //Aws endpoint
 //transaction v1
 router.get("/transactionGetUrl", aws_controller_1.transactionGetSignedUrl);

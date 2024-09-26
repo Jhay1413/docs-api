@@ -1,6 +1,6 @@
 import z from "zod";
-import { transactionData } from "./transaction.schema";
-const cleanedDataUtils = (data: z.infer<typeof transactionData>) => {
+import { transactionQueryData } from "shared-contract";
+const cleanedDataUtils = (data: z.infer<typeof transactionQueryData>) => {
   const cleanedData = {
     ...data,
     company: data.company?.companyName!,
@@ -10,9 +10,19 @@ const cleanedDataUtils = (data: z.infer<typeof transactionData>) => {
     receiver: `${data.receiver?.email} - ${data.receiver?.accountRole}` || null,
     transactionId: data.id!,
   };
-  const { receivedById, id, ...payload } = cleanedData;
+  const { id,companyId,projectId, forwarderId,receiverId,...payload } = cleanedData;
 
-  return payload;
+
+  const createData: any = {
+    ...payload,
+    transactionId: payload.transactionId,
+    dueDate: payload.dueDate!,
+    dateForwarded: payload.dateForwarded!,
+    attachments: payload.attachments,
+  };
+
+
+  return createData;
 };
 
 

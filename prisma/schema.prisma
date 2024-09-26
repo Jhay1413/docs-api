@@ -116,13 +116,13 @@ model Transaction {
   targetDepartment  String
   receiverId        String?
   forwarderId       String
-  receiver          UserAccounts?        @relation("ReceivingTransactions", fields: [receiverId], references: [id])
   attachments       Attachment[]
   completeStaffWork CompleteStaffWork[]
   notifications     Notification[]
   company           Company             @relation(fields: [companyId], references: [id])
   forwarder         UserAccounts        @relation("ForwardedTransactions", fields: [forwarderId], references: [id])
   project           CompanyProject      @relation(fields: [projectId], references: [id])
+  receiver          UserAccounts?       @relation("ReceivingTransactions", fields: [receiverId], references: [id])
   transactionLogs   TransactionLogs[]
 }
 
@@ -143,12 +143,12 @@ model TransactionLogs {
   receiver         String?
   receiverId       String?
   remarks          String
+  forwarder        String
   originDepartment String
   targetDepartment String
   dateForwarded    DateTime
   dateReceived     DateTime?
   attachments      String      @default("")
-  forwarder        String
   transaction      Transaction @relation(fields: [transactionId], references: [id])
 
   @@unique([transactionId, receiverId, dateForwarded], name: "refId")
@@ -158,10 +158,10 @@ model CompleteStaffWork {
   id            String       @id @default(uuid())
   date          DateTime
   remarks       String
+  attachmentUrl String
+  transactionId String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  transactionId String?
-  attachmentUrl String
   transaction   Transaction? @relation(fields: [transactionId], references: [id])
 }
 
@@ -171,8 +171,8 @@ model Notification {
   createdAt     DateTime     @default(now())
   receiverId    String
   forwarderId   String
-  isRead        Boolean
   transactionId String
+  isRead        Boolean
   forwarder     UserAccounts @relation("ForwardedNotification", fields: [forwarderId], references: [id])
   receiver      UserAccounts @relation("ReceivingNotification", fields: [receiverId], references: [id])
   transaction   Transaction  @relation(fields: [transactionId], references: [id])
@@ -198,6 +198,4 @@ enum Status {
 enum FileType {
   INITIAL_DOC
   FOLLOWED_UP
-  FOR_ARCHIEVE
-  FOR_REVIEW
 }
