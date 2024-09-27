@@ -89,19 +89,28 @@ export class TransactionController {
       await db.$disconnect();
     }
   }
-  public async fetchAllTransactions(req: Request, res: Response) {
+  // public async fetchAllTransactions(req: Request, res: Response) {
+  //   try {
+  //     const transactions = await this.transactionService.getTransactionsService();
+  //     return res.status(StatusCodes.OK).json(transactions);
+  //   } catch (error) {
+  //     console.log(error);
+  //     return res
+  //       .status(StatusCodes.BAD_GATEWAY)
+  //       .json("Something went wrong ! ");
+  //   }
+  // }
+  public async fetchAllTransactions(status:string,page:number,pageSize:number) {
     try {
-      const transactions = await this.transactionService.getTransactionsService();
-      return res.status(StatusCodes.OK).json(transactions);
+      const transactions = await this.transactionService.getTransactionsService(status,page,pageSize);
+      return transactions
     } catch (error) {
-      console.log(error);
-      return res
-        .status(StatusCodes.BAD_GATEWAY)
-        .json("Something went wrong ! ");
+      throw new Error("something went wrong fetching transactions")
     }
   }
   public async fetchTransactionByIdHandler(id: string) {
     try {
+    
       const transaction =
         await this.transactionService.getTransactionByIdService(id);
 
@@ -159,7 +168,7 @@ export class TransactionController {
         );
        
 
-      
+        
         const payload = cleanedDataUtils(result);
         await this.transactionService.logPostTransaction(payload, tx);
 
@@ -339,10 +348,11 @@ export class TransactionController {
       res.status(StatusCodes.BAD_GATEWAY).json(error);
     }
   }
-  public async getSearchedTransation (query:string){
+  public async getSearchedTransation (query:string,page:number,pageSize:number,status?:string){
     try {
-      const transactions = await this.transactionService.searchTransaction(query);
-      if(!transactions) throw new Error("undefined")
+
+      const transactions = await this.transactionService.searchTransaction(query,page,pageSize,status);
+      if(!transactions) return null
       return transactions
     } catch (error) {
       throw new Error("Something went wrong searching transactions")

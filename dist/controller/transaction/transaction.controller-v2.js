@@ -23,7 +23,6 @@ class TransactionController {
     }
     insertTransactionHandler(data) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             try {
                 const lastId = yield this.transactionService.getLastId();
                 const generatedId = (0, generate_id_1.GenerateId)(lastId);
@@ -44,21 +43,20 @@ class TransactionController {
                     yield this.transactionService.addNotificationService(notificationPayload, tx);
                     return transaction;
                 }));
-                const returnedValidateData = shared_contract_1.transactionQueryData.safeParse(response);
-                if (((_a = returnedValidateData.data) === null || _a === void 0 ? void 0 : _a.status) === "ARCHIVED")
+                if (!response)
+                    throw new Error("Something went wrong inserting data !");
+                if (response.status === "ARCHIVED")
                     return response;
-                if (returnedValidateData.success) {
-                    const notifications = yield this.transactionService.fetchAllNotificationById(returnedValidateData.data.receiverId);
-                    const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(returnedValidateData.data.receiverId);
-                    const message = "You have new notification";
-                    const receiverSocketId = __1.userSockets.get(returnedValidateData.data.receiverId);
-                    const quantityTracker = {
-                        incoming: incomingCount,
-                        inbox: outgoingCount,
-                    };
-                    if (receiverSocketId) {
-                        __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
-                    }
+                const notifications = yield this.transactionService.fetchAllNotificationById(response.receiverId);
+                const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(response.receiverId);
+                const message = "You have new notification";
+                const receiverSocketId = __1.userSockets.get(response.receiverId);
+                const quantityTracker = {
+                    incoming: incomingCount,
+                    inbox: outgoingCount,
+                };
+                if (receiverSocketId) {
+                    __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
                 }
                 return response;
             }
@@ -71,31 +69,42 @@ class TransactionController {
             }
         });
     }
-    fetchAllTransactions(req, res) {
+    // public async fetchAllTransactions(req: Request, res: Response) {
+    //   try {
+    //     const transactions = await this.transactionService.getTransactionsService();
+    //     return res.status(StatusCodes.OK).json(transactions);
+    //   } catch (error) {
+    //     console.log(error);
+    //     return res
+    //       .status(StatusCodes.BAD_GATEWAY)
+    //       .json("Something went wrong ! ");
+    //   }
+    // }
+    fetchAllTransactions() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const transactions = yield this.transactionService.getTransactionsService();
-                return res.status(http_status_codes_1.StatusCodes.OK).json(transactions);
+                return transactions;
             }
             catch (error) {
-                console.log(error);
-                return res
-                    .status(http_status_codes_1.StatusCodes.BAD_GATEWAY)
-                    .json("Something went wrong ! ");
+                throw new Error("something went wrong fetching transactions");
             }
         });
     }
-    fetchTransactionByIdHandler(req, res) {
+    fetchTransactionByIdHandler(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { id } = req.params;
             try {
                 const transaction = yield this.transactionService.getTransactionByIdService(id);
-                return res.status(http_status_codes_1.StatusCodes.OK).json(transaction);
+                const validateData = shared_contract_1.transactionQueryData.safeParse(transaction);
+                if (validateData.error) {
+                    console.log(validateData.error.errors);
+                    throw new Error("Something went wrong ! ");
+                }
+                return validateData.data;
             }
             catch (error) {
-                return res
-                    .status(http_status_codes_1.StatusCodes.BAD_GATEWAY)
-                    .json("Something went wrong ! ");
+                console.log(error);
+                throw new Error("Something went wrong ! ");
             }
         });
     }
@@ -133,31 +142,27 @@ class TransactionController {
             }
         });
     }
-    forwardTransactionHandler(req, res) {
+    forwardTransactionHandler(data) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 // Start the transaction
                 const response = yield prisma_1.db.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    var _a, _b, _c;
-                    const result = yield this.transactionService.forwardTransactionService(req.body, tx);
-                    const validatedData = shared_contract_1.transactionQueryData.safeParse(result);
-                    if (!validatedData.success) {
-                        throw new Error("Something went wrong while validating data after forwarding!");
-                    }
-                    const payload = (0, transaction_utils_1.cleanedDataUtils)(validatedData.data);
+                    var _a, _b;
+                    const result = yield this.transactionService.forwardTransactionService(data, tx);
+                    const payload = (0, transaction_utils_1.cleanedDataUtils)(result);
                     yield this.transactionService.logPostTransaction(payload, tx);
                     if (result.status === "ARCHIVED" || !result.receiverId) {
                         return result; // Early return if not needing further actions
                     }
                     const notificationPayload = {
                         transactionId: result.id,
-                        message: `New Transaction Forwarded by ${(_b = (_a = validatedData.data) === null || _a === void 0 ? void 0 : _a.forwarder) === null || _b === void 0 ? void 0 : _b.accountRole}`,
-                        receiverId: validatedData.data.receiverId,
-                        forwarderId: (_c = validatedData.data.forwarder) === null || _c === void 0 ? void 0 : _c.id,
+                        message: `New Transaction Forwarded by ${(_a = result.forwarder) === null || _a === void 0 ? void 0 : _a.accountRole}`,
+                        receiverId: result.receiverId,
+                        forwarderId: (_b = result.forwarder) === null || _b === void 0 ? void 0 : _b.id,
                         isRead: false,
                     };
                     yield this.transactionService.addNotificationService(notificationPayload);
-                    return validatedData.data;
+                    return result;
                 }));
                 // After the transaction has completed
                 if (response.status === "ARCHIVED" || !response.receiverId) {
@@ -301,6 +306,20 @@ class TransactionController {
             catch (error) {
                 console.log(error);
                 res.status(http_status_codes_1.StatusCodes.BAD_GATEWAY).json(error);
+            }
+        });
+    }
+    getSearchedTransation(query) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                console.log("call search");
+                const transactions = yield this.transactionService.searchTransaction(query);
+                if (!transactions)
+                    return null;
+                return transactions;
+            }
+            catch (error) {
+                throw new Error("Something went wrong searching transactions");
             }
         });
     }

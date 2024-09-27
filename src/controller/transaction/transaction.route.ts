@@ -32,7 +32,7 @@ const transactionController = new TransactionController();
 
 
 //transactions v2
-router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
+// router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
 
 router.get("/v2/dashboardData",transactionController.getDashboardData.bind(transactionController));
 // Fetch archived transactions

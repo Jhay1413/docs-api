@@ -17,10 +17,72 @@ const __1 = require("../..");
 const transaction_controller_v2_1 = require("./transaction.controller-v2");
 const transactionService = new transaction_service_v2_1.TransactionService();
 const transactionController = new transaction_controller_v2_1.TransactionController();
-const transactionRouter = __1.s.router(shared_contract_1.transactionContract, {
-    fetchTransactions: () => __awaiter(void 0, void 0, void 0, function* () {
+const transactionRouter = __1.s.router(shared_contract_1.contracts.transaction, {
+    searchTransactions: (_a) => __awaiter(void 0, [_a], void 0, function* ({ params }) {
         try {
-            const result = yield transactionService.getTransactionsService();
+            console.log(params.query, "adasdsads");
+            if (params.query) {
+                const result = yield transactionController.getSearchedTransation(params.query);
+                return {
+                    status: 201,
+                    body: result || null,
+                };
+            }
+            else {
+                const result = yield transactionController.fetchAllTransactions();
+                return {
+                    status: 201,
+                    body: result || null,
+                };
+            }
+        }
+        catch (error) {
+            return {
+                status: 500,
+                body: {
+                    error: "something went wrong",
+                },
+            };
+        }
+    }),
+    // fetchTransactions: async () => {
+    //   try {
+    //     const result = await transactionController.fetchAllTransactions();
+    //     return {
+    //       status: 200,
+    //       body: result,
+    //     };
+    //   } catch (error) {
+    //     return {
+    //       status: 500,
+    //       body: {
+    //         error: "something went wrong ",
+    //       },
+    //     };
+    //   }
+    // },
+    insertTransacitons: (_b) => __awaiter(void 0, [_b], void 0, function* ({ body }) {
+        try {
+            console.log(body);
+            const result = yield transactionController.insertTransactionHandler(body);
+            console.log(result);
+            return {
+                status: 200,
+                body: result,
+            };
+        }
+        catch (error) {
+            return {
+                status: 501,
+                body: {
+                    error: error,
+                },
+            };
+        }
+    }),
+    fetchTransactionById: (_c) => __awaiter(void 0, [_c], void 0, function* ({ params }) {
+        try {
+            const result = yield transactionController.fetchTransactionByIdHandler(params.id);
             return {
                 status: 200,
                 body: result,
@@ -30,30 +92,30 @@ const transactionRouter = __1.s.router(shared_contract_1.transactionContract, {
             return {
                 status: 500,
                 body: {
-                    error: "something went wrong ",
+                    error: "something went wrong",
                 },
             };
         }
     }),
-    insertTransacitons: (_a) => __awaiter(void 0, [_a], void 0, function* ({ body }) {
+    updateTransaction: (_d) => __awaiter(void 0, [_d], void 0, function* ({ body }) {
         try {
-            const result = yield transactionController.insertTransactionHandler(body);
+            const result = yield transactionController.forwardTransactionHandler(body);
             return {
                 status: 200,
-                body: result
+                body: result,
             };
         }
         catch (error) {
             return {
-                status: 501,
+                status: 500,
                 body: {
-                    error: error
-                }
+                    error: "something went wrong",
+                },
             };
         }
-    })
+    }),
 });
 const registerTransactionRoutes = (app) => {
-    (0, express_1.createExpressEndpoints)(shared_contract_1.transactionContract, transactionRouter, app);
+    (0, express_1.createExpressEndpoints)(shared_contract_1.contracts.transaction, transactionRouter, app);
 };
 exports.registerTransactionRoutes = registerTransactionRoutes;

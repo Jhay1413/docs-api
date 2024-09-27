@@ -1,16 +1,13 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { db } from "../../prisma";
 import {
   completeStaffWork,
-  notification,
-  transactionData,
-  transactionFormData,
+  notification
 } from "./transaction.schema";
 import * as z from "zod";
 import {
   transactionLogsData,
-  transactionMutationSchema,
-  transactionQueryData,
+  transactionMutationSchema
 } from "shared-contract";
 
 export class TransactionService {
@@ -120,13 +117,23 @@ export class TransactionService {
             },
           },
           attachments: true,
-          completeStaffWork: true,
+          completeStaffWork: {
+            omit:{
+              updatedAt:true,
+              createdAt:true,
+            }
+          },
         },
       });
+
       if (!transaction) throw new Error("transaction not found");
+      
       const new_attachments = transaction.attachments.map((data) => {
         return { ...data, createdAt: data.createdAt.toISOString() };
       });
+      const new_csw = transaction.completeStaffWork.map((data)=>{
+        return {...data,date:data.date.toISOString()}
+      })
       const parseTransactionLogs = transaction?.transactionLogs.map((respo) => {
         return {
           ...respo,
@@ -135,6 +142,8 @@ export class TransactionService {
           updatedAt: respo.updatedAt.toISOString(),
           dateForwarded: respo.dateForwarded.toISOString(),
           dueDate: respo.dueDate.toISOString(),
+          dateReceived : respo.dateReceived ? respo.dateReceived.toISOString() : null,
+        
         };
       });
 
@@ -148,6 +157,7 @@ export class TransactionService {
           : null,
         transactionLogs: parseTransactionLogs,
         attachments: new_attachments,
+        completeStaffWork : new_csw
       };
 
       // const validateData = transactionQueryData.safeParse(parseResponse);
@@ -219,60 +229,70 @@ export class TransactionService {
     }
   }
 
-  public async getTransactionsService() {
+  public async getTransactionsService(
+    status: string,
+    page: number,
+    pageSize: number
+  ) {
+    const skip = (page - 1) * pageSize;
+    console.log(page,pageSize)
     try {
-      const transactions = await db.$queryRaw`
-        SELECT 
-            t.id,
-            t."transactionId",
-            t."documentType",
-            t.subject,
-            t."dueDate",
-            t."createdAt",
-            t."updatedAt",
-            t."documentSubType",
-            t."dateForwarded",
-            c."projectName",
-            b."accountRole",
-            t.status,
-            t.priority,
-           CONCAT (d."firstName",' ',d."lastName") as "forwarderName",
-           CONCAT (e."firstName",' ',e."lastName") as "receiverName",
-            COALESCE(
-                ROUND((SUM(CASE WHEN a."fileStatus" = 'FINAL_ATTACHMENT' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(a.id), 0)),
-                0
-            ) AS percentage
-        FROM "Transaction" t
-        LEFT JOIN "Attachment" a ON t.id = a."transactionId"
-        LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
-        LEFT JOIN "CompanyProject" c on c.id = t."projectId"
-        LEFT JOIN "UserInfo" d on d."accountId" = t."forwarderId"
-        LEFT JOIN "UserInfo" e on e."accountId" = t."receiverId"
-        where t.status <> 'ARCHIVED'
-        GROUP BY
-          t.id,
-          t."transactionId",
-          t."documentType",
-          t.subject,
-          t."dueDate",
-          t."createdAt",
-          t."updatedAt",
-          t."documentSubType",
-          t."originDepartment",
-          t."targetDepartment",
-          t."dateForwarded",
-          b."accountRole",
-          t.status,
-          t.priority,
-          c."projectName",
-          d."firstName",
-          d."lastName",
-          e."firstName",
-         e."lastName"
-          ORDER BY 
-          t."createdAt" DESC`;
+      const transactions = await db.transaction.findMany({
+        skip,
+        take: pageSize,
 
-      return transactions;
+        where: {
+          status: {
+            equals: status,
+          },
+        },
+        include: {
+          forwarder: {
+            include: {
+              userInfo: true,
+            },
+          },
+          receiver: {
+            include: {
+              userInfo: true,
+            },
+          },
+          project: true,
+          company:true,
+          attachments: {
+            omit: {
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      // Post-process to calculate percentage and combine names
+      if (!transactions) return null;
+      const processedTransactions = transactions.map((t) => {
+        const finalAttachmentCount = t.attachments.filter(
+          (a) => a.fileStatus === "FINAL_ATTACHMENT"
+        ).length;
+        const totalAttachmentCount = t.attachments.length;
+
+        const percentage = totalAttachmentCount
+          ? (finalAttachmentCount * 100) / totalAttachmentCount
+          : 0;
+
+        return {
+          ...t,
+          dueDate: t.dueDate.toISOString(),
+          dateForwarded: t.dateForwarded.toISOString(),
+          dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null,
+          forwarderName: `${t.forwarder?.userInfo?.firstName} ${t.forwarder?.userInfo?.lastName}`,
+          receiverName: `${t.receiver?.userInfo?.firstName} ${t.receiver?.userInfo?.lastName}`, // Assuming you include receiver info in a similar way
+          percentage: Math.round(percentage).toString(),
+        };
+      });
+      return processedTransactions;
     } catch (error) {
       console.error("Error fetching transaction", error);
       throw new Error("Failed to fetch transactions");
@@ -763,35 +783,45 @@ export class TransactionService {
       throw new Error("Failed to fetch transactions");
     }
   }
-  public async searchTransaction(query: string) {
+  public async searchTransaction(
+    query: string,
+    page: number,
+    pageSize: number,
+    status?: string
+  ) {
+    const skip = (page - 1) * pageSize;
     try {
       const transactions = await db.transaction.findMany({
+        skip,
+        take: pageSize,
         where: {
           status: {
-            not: "ARCHIVED",
+            equals: status,
           },
           AND: [
             {
               OR: [
-                { team: { contains: query, mode: "insensitive" } },
-                { transactionId: { contains: query, mode: "insensitive" } },
-                { team: { contains: query, mode: "insensitive" } },
-                { documentSubType: { contains: query, mode: "insensitive" } },
-                { targetDepartment: { contains: query, mode: "insensitive" } },
-                { status: { contains: query, mode: "insensitive" } }, // Filter by description
                 {
                   company: {
-                    companyName: { contains: query, mode: "insensitive" },
-                    companyId: { contains: query, mode: "insensitive" },
+                    OR: [
+                      { companyName: { contains: query, mode: "insensitive" } },
+                      { companyId: { contains: query, mode: "insensitive" } },
+                    ],
                   },
                 },
-
                 {
                   project: {
-                    projectName: { contains: query, mode: "insensitive" },
-                    projectId: { contains: query, mode: "insensitive" },
+                    OR: [
+                      { projectName: { contains: query, mode: "insensitive" } },
+                      { projectId: { contains: query, mode: "insensitive" } },
+                    ],
                   },
                 },
+                { team: { contains: query, mode: "insensitive" } },
+                { transactionId: { contains: query, mode: "insensitive" } },
+                { documentSubType: { contains: query, mode: "insensitive" } },
+                { targetDepartment: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } },
               ],
             },
           ],
@@ -808,6 +838,7 @@ export class TransactionService {
             },
           },
           project: true,
+          company:true,
           attachments: {
             omit: {
               createdAt: true,
@@ -820,6 +851,7 @@ export class TransactionService {
       });
 
       // Post-process to calculate percentage and combine names
+      if (!transactions) return null;
       const processedTransactions = transactions.map((t) => {
         const finalAttachmentCount = t.attachments.filter(
           (a) => a.fileStatus === "FINAL_ATTACHMENT"
@@ -836,14 +868,17 @@ export class TransactionService {
           dateForwarded: t.dateForwarded.toISOString(),
           dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null,
           forwarderName: `${t.forwarder?.userInfo?.firstName} ${t.forwarder?.userInfo?.lastName}`,
-          receiverName: `${t.receiver!.userInfo?.firstName} ${
-            t.receiver!.userInfo?.lastName
+          receiverName: `${t.receiver?.userInfo?.firstName} ${
+            t.receiver?.userInfo?.lastName
           }`, // Assuming you include receiver info in a similar way
           percentage: Math.round(percentage).toString(),
         };
       });
 
       return processedTransactions;
-    } catch (error) {}
+    } catch (error) {
+      console.log(error);
+      throw new Error("something went wrong while searching");
+    }
   }
 }

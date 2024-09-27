@@ -18,7 +18,7 @@ class TransactionService {
             try {
                 const createdTransaction = yield tx.transaction.create({
                     data: {
-                        transactionId,
+                        transactionId: data.transactionId,
                         documentType,
                         subject,
                         dueDate,
@@ -41,19 +41,20 @@ class TransactionService {
                         },
                     },
                     include: {
-                        attachments: {
-                            omit: {
-                                createdAt: true
-                            }
-                        },
+                        attachments: true,
                         forwarder: true,
                         receiver: true,
                         company: true,
                         project: true,
                     },
                 });
-                const result = Object.assign(Object.assign({}, createdTransaction), { dueDate: new Date(createdTransaction.dueDate).toISOString(), dateForwarded: new Date(createdTransaction.dateForwarded).toISOString(), dateReceived: null });
-                return result;
+                const new_attachments = createdTransaction.attachments.map((attachment) => {
+                    return Object.assign(Object.assign({}, attachment), { createdAt: attachment.createdAt.toISOString() });
+                });
+                const modified_transaction = Object.assign(Object.assign({}, createdTransaction), { dueDate: createdTransaction.dueDate.toISOString(), dateForwarded: createdTransaction.dateForwarded.toISOString(), dateReceived: createdTransaction.dateReceived
+                        ? createdTransaction.dateReceived.toISOString()
+                        : null, attachments: new_attachments });
+                return modified_transaction;
             }
             catch (error) {
                 console.log(error);
@@ -90,10 +91,24 @@ class TransactionService {
                         completeStaffWork: true,
                     },
                 });
-                const parseResponse = transaction === null || transaction === void 0 ? void 0 : transaction.transactionLogs.map((respo) => {
-                    return Object.assign(Object.assign({}, respo), { attachments: JSON.parse(respo.attachments) });
+                if (!transaction)
+                    throw new Error("transaction not found");
+                const new_attachments = transaction.attachments.map((data) => {
+                    return Object.assign(Object.assign({}, data), { createdAt: data.createdAt.toISOString() });
                 });
-                return Object.assign(Object.assign({}, transaction), { transactionLogs: parseResponse });
+                const parseTransactionLogs = transaction === null || transaction === void 0 ? void 0 : transaction.transactionLogs.map((respo) => {
+                    return Object.assign(Object.assign({}, respo), { attachments: JSON.parse(respo.attachments), createdAt: respo.createdAt.toISOString(), updatedAt: respo.updatedAt.toISOString(), dateForwarded: respo.dateForwarded.toISOString(), dueDate: respo.dueDate.toISOString() });
+                });
+                //  const {transactionLogs, ...transationData} = transaction
+                const parseData = Object.assign(Object.assign({}, transaction), { dueDate: transaction.dueDate.toISOString(), dateForwarded: transaction.dateForwarded.toISOString(), dateReceived: transaction.dateReceived
+                        ? transaction.dateReceived.toISOString()
+                        : null, transactionLogs: parseTransactionLogs, attachments: new_attachments });
+                // const validateData = transactionQueryData.safeParse(parseResponse);
+                // if(validateData.error){
+                //   console.log(validateData.error.errors)
+                //   throw new Error("data not validated")
+                // }
+                return parseData;
             }
             catch (error) {
                 console.error("Error fetching transaction", error);
@@ -117,6 +132,13 @@ class TransactionService {
                     orderBy: {
                         createdAt: "desc",
                     },
+                    include: {
+                        forwarder: {
+                            include: {
+                                userInfo: true,
+                            },
+                        },
+                    },
                 });
                 return response;
             }
@@ -139,6 +161,13 @@ class TransactionService {
                     orderBy: {
                         createdAt: "desc",
                     },
+                    include: {
+                        forwarder: {
+                            include: {
+                                userInfo: true,
+                            },
+                        },
+                    },
                 });
                 return response;
             }
@@ -151,57 +180,47 @@ class TransactionService {
     getTransactionsService() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const transactions = yield prisma_1.db.$queryRaw `
-        SELECT 
-            t.id,
-            t."transactionId",
-            t."documentType",
-            t.subject,
-            t."dueDate",
-            t."createdAt",
-            t."updatedAt",
-            t."documentSubType",
-            t."dateForwarded",
-            c."projectName",
-            b."accountRole",
-            t.status,
-            t.priority,
-           CONCAT (d."firstName",' ',d."lastName") as "forwarderName",
-           CONCAT (e."firstName",' ',e."lastName") as "receiverName",
-            COALESCE(
-                ROUND((SUM(CASE WHEN a."fileStatus" = 'FINAL_ATTACHMENT' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(a.id), 0)),
-                0
-            ) AS percentage
-        FROM "Transaction" t
-        LEFT JOIN "Attachment" a ON t.id = a."transactionId"
-        LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
-        LEFT JOIN "CompanyProject" c on c.id = t."projectId"
-        LEFT JOIN "UserInfo" d on d."accountId" = t."forwarderId"
-        LEFT JOIN "UserInfo" e on e."accountId" = t."receiverId"
-        where t.status <> 'ARCHIVED'
-        GROUP BY
-          t.id,
-          t."transactionId",
-          t."documentType",
-          t.subject,
-          t."dueDate",
-          t."createdAt",
-          t."updatedAt",
-          t."documentSubType",
-          t."originDepartment",
-          t."targetDepartment",
-          t."dateForwarded",
-          b."accountRole",
-          t.status,
-          t.priority,
-          c."projectName",
-          d."firstName",
-          d."lastName",
-          e."firstName",
-         e."lastName"
-          ORDER BY 
-          t."createdAt" DESC`;
-                return transactions;
+                const transactions = yield prisma_1.db.transaction.findMany({
+                    where: {
+                        status: {
+                            not: "ARCHIVED",
+                        },
+                    },
+                    include: {
+                        forwarder: {
+                            include: {
+                                userInfo: true,
+                            },
+                        },
+                        receiver: {
+                            include: {
+                                userInfo: true,
+                            },
+                        },
+                        project: true,
+                        attachments: {
+                            omit: {
+                                createdAt: true,
+                            },
+                        },
+                    },
+                    orderBy: {
+                        createdAt: "desc",
+                    },
+                });
+                // Post-process to calculate percentage and combine names
+                if (!transactions)
+                    return null;
+                const processedTransactions = transactions.map((t) => {
+                    var _a, _b, _c, _d, _e, _f;
+                    const finalAttachmentCount = t.attachments.filter((a) => a.fileStatus === "FINAL_ATTACHMENT").length;
+                    const totalAttachmentCount = t.attachments.length;
+                    const percentage = totalAttachmentCount
+                        ? (finalAttachmentCount * 100) / totalAttachmentCount
+                        : 0;
+                    return Object.assign(Object.assign({}, t), { dueDate: t.dueDate.toISOString(), dateForwarded: t.dateForwarded.toISOString(), dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null, forwarderName: `${(_b = (_a = t.forwarder) === null || _a === void 0 ? void 0 : _a.userInfo) === null || _b === void 0 ? void 0 : _b.firstName} ${(_d = (_c = t.forwarder) === null || _c === void 0 ? void 0 : _c.userInfo) === null || _d === void 0 ? void 0 : _d.lastName}`, receiverName: `${(_e = t.receiver.userInfo) === null || _e === void 0 ? void 0 : _e.firstName} ${(_f = t.receiver.userInfo) === null || _f === void 0 ? void 0 : _f.lastName}`, percentage: Math.round(percentage).toString() });
+                });
+                return processedTransactions;
             }
             catch (error) {
                 console.error("Error fetching transaction", error);
@@ -319,10 +338,13 @@ class TransactionService {
                         project: true,
                     },
                 });
-                const result = Object.assign(Object.assign({}, response), { dueDate: new Date(response.dueDate).toISOString(), dateForwarded: new Date(response.dateForwarded).toISOString(), dateReceived: response.dateReceived
-                        ? new Date(response.dateReceived).toISOString()
-                        : null });
-                return result;
+                const new_attachments = response.attachments.map((attachment) => {
+                    return Object.assign(Object.assign({}, attachment), { createdAt: attachment.createdAt.toISOString() });
+                });
+                const modified_transaction = Object.assign(Object.assign({}, response), { dueDate: response.dueDate.toISOString(), dateForwarded: response.dateForwarded.toISOString(), dateReceived: response.dateReceived
+                        ? response.dateReceived.toISOString()
+                        : null, attachments: new_attachments });
+                return modified_transaction;
             }
             catch (error) {
                 console.log(error);
@@ -614,9 +636,9 @@ class TransactionService {
                 const transactions = yield prisma_1.db.transaction.count({
                     where: {
                         status: {
-                            not: "ARCHIVED"
-                        }
-                    }
+                            not: "ARCHIVED",
+                        },
+                    },
                 });
                 return transactions;
             }
@@ -630,15 +652,15 @@ class TransactionService {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const transactions = yield prisma_1.db.transaction.groupBy({
-                    by: ['documentSubType'],
+                    by: ["documentSubType"],
                     _count: {
-                        id: true
+                        id: true,
                     },
                     where: {
                         status: {
-                            not: "ARCHIVED"
-                        }
-                    }
+                            not: "ARCHIVED",
+                        },
+                    },
                 });
                 const countEachType = transactions.map((item) => ({
                     categoryName: item.documentSubType,
@@ -656,15 +678,15 @@ class TransactionService {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const transactions = yield prisma_1.db.transaction.groupBy({
-                    by: ['team'],
+                    by: ["team"],
                     _count: {
-                        id: true
+                        id: true,
                     },
                     where: {
                         status: {
-                            not: "ARCHIVED"
-                        }
-                    }
+                            not: "ARCHIVED",
+                        },
+                    },
                 });
                 const data = transactions.map((item) => ({
                     categoryName: item.team,
@@ -675,6 +697,82 @@ class TransactionService {
             catch (error) {
                 console.error("Error fetching transaction", error);
                 throw new Error("Failed to fetch transactions");
+            }
+        });
+    }
+    searchTransaction(query) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log(query);
+            try {
+                const transactions = yield prisma_1.db.transaction.findMany({
+                    where: {
+                        status: {
+                            not: "ARCHIVED",
+                        },
+                        AND: [
+                            {
+                                OR: [
+                                    { team: { contains: query, mode: "insensitive" } },
+                                    { transactionId: { contains: query, mode: "insensitive" } },
+                                    { team: { contains: query, mode: "insensitive" } },
+                                    { documentSubType: { contains: query, mode: "insensitive" } },
+                                    { targetDepartment: { contains: query, mode: "insensitive" } },
+                                    { status: { contains: query, mode: "insensitive" } }, // Filter by description
+                                    {
+                                        company: {
+                                            companyName: { contains: query, mode: "insensitive" },
+                                            companyId: { contains: query, mode: "insensitive" },
+                                        },
+                                    },
+                                    {
+                                        project: {
+                                            projectName: { contains: query, mode: "insensitive" },
+                                            projectId: { contains: query, mode: "insensitive" },
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    include: {
+                        forwarder: {
+                            include: {
+                                userInfo: true,
+                            },
+                        },
+                        receiver: {
+                            include: {
+                                userInfo: true,
+                            },
+                        },
+                        project: true,
+                        attachments: {
+                            omit: {
+                                createdAt: true,
+                            },
+                        },
+                    },
+                    orderBy: {
+                        createdAt: "desc",
+                    },
+                });
+                // Post-process to calculate percentage and combine names
+                if (!transactions)
+                    return null;
+                const processedTransactions = transactions.map((t) => {
+                    var _a, _b, _c, _d, _e, _f;
+                    const finalAttachmentCount = t.attachments.filter((a) => a.fileStatus === "FINAL_ATTACHMENT").length;
+                    const totalAttachmentCount = t.attachments.length;
+                    const percentage = totalAttachmentCount
+                        ? (finalAttachmentCount * 100) / totalAttachmentCount
+                        : 0;
+                    return Object.assign(Object.assign({}, t), { dueDate: t.dueDate.toISOString(), dateForwarded: t.dateForwarded.toISOString(), dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null, forwarderName: `${(_b = (_a = t.forwarder) === null || _a === void 0 ? void 0 : _a.userInfo) === null || _b === void 0 ? void 0 : _b.firstName} ${(_d = (_c = t.forwarder) === null || _c === void 0 ? void 0 : _c.userInfo) === null || _d === void 0 ? void 0 : _d.lastName}`, receiverName: `${(_e = t.receiver.userInfo) === null || _e === void 0 ? void 0 : _e.firstName} ${(_f = t.receiver.userInfo) === null || _f === void 0 ? void 0 : _f.lastName}`, percentage: Math.round(percentage).toString() });
+                });
+                return processedTransactions;
+            }
+            catch (error) {
+                console.log(error);
+                throw new Error("something went wrong while searching");
             }
         });
     }

@@ -14,7 +14,7 @@ const express_1 = require("@ts-rest/express");
 const shared_contract_1 = require("shared-contract");
 const company_service_1 = require("./company.service");
 const __1 = require("../..");
-const companyRouters = __1.s.router(shared_contract_1.companyContract, {
+const companyRouters = __1.s.router(shared_contract_1.contracts.company, {
     insertCompany: (_a) => __awaiter(void 0, [_a], void 0, function* ({ body }) {
         try {
             const result = yield (0, company_service_1.insertCompany)(body);
