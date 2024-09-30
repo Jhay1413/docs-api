@@ -7,36 +7,33 @@ import { cleanedDataUtils } from "./transaction.utils";
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
-import {
-  transactionMutationSchema,
-  transactionQueryData,
-} from "shared-contract";
+import { transactionMutationSchema, transactionQueryData } from "shared-contract";
 export class TransactionController {
   private transactionService: TransactionService;
 
   constructor() {
     this.transactionService = new TransactionService();
   }
-  public async insertTransactionHandler(
-    data: z.infer<typeof transactionMutationSchema>
-  ) {
+  public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
     try {
       const lastId = await this.transactionService.getLastId();
       const generatedId = GenerateId(lastId);
       const data_payload = { ...data, transactionId: generatedId };
 
+      const attachment_log_payload = data.attachments.map((data) => {
+        return {
+          ...data,
+          createdAt: new Date().toISOString(),
+        };
+      });
       const response = await db.$transaction(async (tx) => {
-        const transaction = await this.transactionService.insertTransaction(
-          data_payload,
-          tx
-        );
+        const transaction = await this.transactionService.insertTransaction(data_payload, tx);
 
-        const payload = cleanedDataUtils(transaction);
+        const payload = cleanedDataUtils({ ...transaction, attachments: attachment_log_payload });
 
         await this.transactionService.logPostTransaction(payload, tx);
 
-        if (transaction.status === "ARCHIVED" || !transaction.receiverId)
-          return;
+        if (transaction.status === "ARCHIVED" || !transaction.receiverId) return;
 
         const notificationPayload = {
           transactionId: transaction.id,
@@ -46,10 +43,7 @@ export class TransactionController {
           isRead: false,
         } as z.infer<typeof notification>;
 
-        await this.transactionService.addNotificationService(
-          notificationPayload,
-          tx
-        );
+        await this.transactionService.addNotificationService(notificationPayload, tx);
 
         return transaction;
       });
@@ -57,14 +51,8 @@ export class TransactionController {
       if (!response) throw new Error("Something went wrong inserting data !");
       if (response.status === "ARCHIVED") return response;
 
-      const notifications =
-        await this.transactionService.fetchAllNotificationById(
-          response.receiverId!
-        );
-      const { incomingCount, outgoingCount } =
-        await this.transactionService.getIncomingTransaction(
-          response.receiverId!
-        );
+      const notifications = await this.transactionService.fetchAllNotificationById(response.receiverId!);
+      const { incomingCount, outgoingCount } = await this.transactionService.getIncomingTransaction(response.receiverId!);
       const message = "You have new notification";
       const receiverSocketId = userSockets.get(response.receiverId!);
 
@@ -73,12 +61,7 @@ export class TransactionController {
         inbox: outgoingCount,
       };
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit(
-          "notification",
-          message,
-          notifications,
-          quantityTracker
-        );
+        io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
       }
 
       return response;
@@ -100,75 +83,57 @@ export class TransactionController {
   //       .json("Something went wrong ! ");
   //   }
   // }
-  public async fetchAllTransactions(status:string,page:number,pageSize:number) {
+  public async fetchAllTransactions(status: string, page: number, pageSize: number) {
     try {
-      const transactions = await this.transactionService.getTransactionsService(status,page,pageSize);
-      return transactions
+      const transactions = await this.transactionService.getTransactionsService(status, page, pageSize);
+      return transactions;
     } catch (error) {
-      throw new Error("something went wrong fetching transactions")
+      throw new Error("something went wrong fetching transactions");
     }
   }
   public async fetchTransactionByIdHandler(id: string) {
     try {
-    
-      const transaction =
-        await this.transactionService.getTransactionByIdService(id);
+      const transaction = await this.transactionService.getTransactionByIdService(id);
 
       const validateData = transactionQueryData.safeParse(transaction);
 
       if (validateData.error) {
-        console.log(validateData.error.errors)
+        console.log(validateData.error.errors);
         throw new Error("Something went wrong ! ");
       }
 
       return validateData.data;
     } catch (error) {
       console.log(error);
-       throw new Error("Something went wrong ! ");
+      throw new Error("Something went wrong ! ");
     }
   }
   public async fetchArchivedTransactionHandler(req: Request, res: Response) {
     try {
-      const transactions =
-        await this.transactionService.getArchivedTransaction();
+      const transactions = await this.transactionService.getArchivedTransaction();
       res.status(StatusCodes.OK).json(transactions);
     } catch (error) {
-      return res
-        .status(StatusCodes.BAD_GATEWAY)
-        .json("Something went wrong ! ");
+      return res.status(StatusCodes.BAD_GATEWAY).json("Something went wrong ! ");
     }
   }
-  public async fetchTransactionsByParamsHandler(req: Request, res: Response) {
-    const { option } = req.query;
-    const { id } = req.params;
-
+  public async fetchTransactionsByParamsHandler(status: string, accountId: string) {
     try {
-      if (option == "INCOMING") {
-        const response =
-          await this.transactionService.getIncomingTransactionService(id);
-        return res.status(StatusCodes.OK).json(response);
-      } else if (option == "INBOX") {
-        const response =
-          await this.transactionService.getReceivedTransactionService(id);
-        return res.status(StatusCodes.OK).json(response);
+      if (status == "INCOMING") {
+        const response = await this.transactionService.getIncomingTransactionService(accountId);
+        return response;
       }
+
+      const response = await this.transactionService.getReceivedTransactionService(accountId);
+      return response;
     } catch (error) {
-      return res
-        .status(StatusCodes.BAD_GATEWAY)
-        .json("Something went wrong ! ");
+      throw new Error("something went wrong fetching transactions by params");
     }
   }
-  public async forwardTransactionHandler(data:z.infer<typeof transactionMutationSchema>) {
+  public async forwardTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
     try {
       // Start the transaction
       const response = await db.$transaction(async (tx) => {
-        const result = await this.transactionService.forwardTransactionService(
-          data,
-          tx
-        );
-       
-
-        
+        const result = await this.transactionService.forwardTransactionService(data, tx);
         const payload = cleanedDataUtils(result);
         await this.transactionService.logPostTransaction(payload, tx);
 
@@ -184,11 +149,9 @@ export class TransactionController {
           isRead: false,
         } as z.infer<typeof notification>;
 
-        await this.transactionService.addNotificationService(
-          notificationPayload
-        );
+        await this.transactionService.addNotificationService(notificationPayload);
 
-        return result ;
+        return result;
       });
 
       // After the transaction has completed
@@ -196,14 +159,8 @@ export class TransactionController {
         return response;
       }
 
-      const notifications =
-        await this.transactionService.fetchAllNotificationById(
-          response.receiverId!
-        );
-      const { incomingCount, outgoingCount } =
-        await this.transactionService.getIncomingTransaction(
-          response.receiverId!
-        );
+      const notifications = await this.transactionService.fetchAllNotificationById(response.receiverId!);
+      const { incomingCount, outgoingCount } = await this.transactionService.getIncomingTransaction(response.receiverId!);
 
       const message = "You have a new notification";
       const receiverSocketId = userSockets.get(response.receiverId);
@@ -214,12 +171,7 @@ export class TransactionController {
       };
 
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit(
-          "notification",
-          message,
-          notifications,
-          quantityTracker
-        );
+        io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
       }
 
       return response;
@@ -231,62 +183,43 @@ export class TransactionController {
     }
   }
 
-  public async receivedTransactionHandler(req: Request, res: Response) {
-    const { id } = req.params;
-    const { dateReceived } = req.body;
+  public async receivedTransactionHandler(id: string, dateReceived: string) {
     try {
-      const result = await this.transactionService.receiveTransactionService(
-        id,
-        dateReceived
-      );
-      await this.transactionService.receivedLogsService(
-        result.id,
-        result.dateForwarded,
-        result.dateReceived || new Date(),
-        result.receiver!.id
-      );
-      res.status(StatusCodes.OK).json(result.id);
+      const result = await this.transactionService.receiveTransactionService(id, dateReceived);
+      console.log(result);
+      await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
+      return result;
     } catch (error) {
-      return res
-        .status(StatusCodes.BAD_GATEWAY)
-        .json("Something went wrong ! ");
+      console.log(error);
+      throw new Error("Something went wrong while receiving transactions");
     }
   }
   public async fetchNotificationsHandler(req: Request, res: Response) {
     const { id } = req.params;
     try {
-      const notifications =
-        await this.transactionService.fetchAllNotificationById(id);
+      const notifications = await this.transactionService.fetchAllNotificationById(id);
       res.status(StatusCodes.OK).json(notifications);
     } catch (error) {
-      return res
-        .status(StatusCodes.BAD_GATEWAY)
-        .json("Something went wrong ! ");
+      return res.status(StatusCodes.BAD_GATEWAY).json("Something went wrong ! ");
     }
   }
   public async readAllNotificationHandler(req: Request, res: Response) {
     const { id } = req.params;
     try {
       await this.transactionService.readAllNotificationService(id);
-      const notifications =
-        await this.transactionService.fetchAllNotificationById(id);
+      const notifications = await this.transactionService.fetchAllNotificationById(id);
       res.status(StatusCodes.OK).json(notifications);
     } catch (error) {
       console.log(error);
-      return res
-        .status(StatusCodes.BAD_GATEWAY)
-        .json("Something went wrong ! ");
+      return res.status(StatusCodes.BAD_GATEWAY).json("Something went wrong ! ");
     }
   }
   public async countIncomingAndInboxTransactions(req: Request, res: Response) {
     const { id } = req.params;
     try {
-      const { incomingCount, outgoingCount } =
-        await this.transactionService.getIncomingTransaction(id);
+      const { incomingCount, outgoingCount } = await this.transactionService.getIncomingTransaction(id);
 
-      res
-        .status(StatusCodes.OK)
-        .json({ incoming: incomingCount, inbox: outgoingCount });
+      res.status(StatusCodes.OK).json({ incoming: incomingCount, inbox: outgoingCount });
     } catch (error) {
       console.log(error);
       res.status(StatusCodes.BAD_GATEWAY).json(error);
@@ -295,10 +228,7 @@ export class TransactionController {
   public async updateCswById(req: Request, res: Response) {
     const { id } = req.params;
     try {
-      const result = await this.transactionService.updateTransactionCswById(
-        id,
-        req.body
-      );
+      const result = await this.transactionService.updateTransactionCswById(id, req.body);
       res.status(StatusCodes.CREATED).json(result);
     } catch (error) {
       res.status(StatusCodes.BAD_GATEWAY).json(error);
@@ -318,8 +248,7 @@ export class TransactionController {
     try {
       console.log("asdasdsas");
       const priority = await this.transactionService.getDashboardPriority();
-      const perApplication =
-        await this.transactionService.getNumberPerApplication();
+      const perApplication = await this.transactionService.getNumberPerApplication();
       const perSection = await this.transactionService.getNumberPerSection();
       const total = await this.transactionService.getTotalNumberOfProjects();
 
@@ -348,14 +277,13 @@ export class TransactionController {
       res.status(StatusCodes.BAD_GATEWAY).json(error);
     }
   }
-  public async getSearchedTransation (query:string,page:number,pageSize:number,status?:string){
+  public async getSearchedTransation(query: string, page: number, pageSize: number, status?: string) {
     try {
-
-      const transactions = await this.transactionService.searchTransaction(query,page,pageSize,status);
-      if(!transactions) return null
-      return transactions
+      const transactions = await this.transactionService.searchTransaction(query, page, pageSize, status);
+      if (!transactions) return null;
+      return transactions;
     } catch (error) {
-      throw new Error("Something went wrong searching transactions")
+      throw new Error("Something went wrong searching transactions");
     }
   }
 }

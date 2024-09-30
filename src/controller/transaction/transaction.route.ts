@@ -26,15 +26,12 @@ const router = express.Router();
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-
 const transactionController = new TransactionController();
-
-
 
 //transactions v2
 // router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
 
-router.get("/v2/dashboardData",transactionController.getDashboardData.bind(transactionController));
+router.get("/v2/dashboardData", transactionController.getDashboardData.bind(transactionController));
 // Fetch archived transactions
 router.get("/v2/archived", transactionController.fetchArchivedTransactionHandler.bind(transactionController));
 
@@ -51,7 +48,7 @@ router.put("/v2/:id", transactionController.forwardTransactionHandler.bind(trans
 router.put("/v2/:id/csw", transactionController.updateCswById.bind(transactionController));
 
 // Mark incoming transaction as received
-router.put("/v2/incoming/:id/received", transactionController.receivedTransactionHandler.bind(transactionController));
+// router.put("/v2/incoming/:id/received", transactionController.receivedTransactionHandler.bind(transactionController));
 
 // Insert a new transaction
 router.post("/v2/", transactionController.insertTransactionHandler.bind(transactionController));
@@ -60,24 +57,22 @@ router.post("/v2/", transactionController.insertTransactionHandler.bind(transact
 router.get("/v2/:id/notification", transactionController.countIncomingAndInboxTransactions.bind(transactionController));
 
 // Fetch transactions by specific parameters for a particular ID
-router.get("/v2/:id/transactions", transactionController.fetchTransactionsByParamsHandler.bind(transactionController));
+// router.get("/v2/:id/transactions", transactionController.fetchTransactionsByParamsHandler.bind(transactionController));
 
 // Fetch notifications related to a specific transaction ID
 router.get("/v2/:id/notifications", transactionController.fetchNotificationsHandler.bind(transactionController));
 
 //read all notification
-router.put("/v2/:id/readNotification",transactionController.readAllNotificationHandler.bind(transactionController));
+router.put("/v2/:id/readNotification", transactionController.readAllNotificationHandler.bind(transactionController));
 
 //get dashboard data
 
 //Aws endpoint
 
-
-
 //transaction v1
- router.get("/transactionGetUrl",transactionGetSignedUrl)
+router.get("/transactionGetUrl", transactionGetSignedUrl);
 
- router.post("/transactionSignedUrl" ,transactionSignedUrl )
+router.post("/transactionSignedUrl", transactionSignedUrl);
 // router.post("/upload", upload.array("files"), transactionFilesHandler);
 
 // router.post("/", validateData(transactionData), transactionHandler);
@@ -92,10 +87,8 @@ router.put("/v2/:id/readNotification",transactionController.readAllNotificationH
 
 // router.get("/inbox/:id",getTransactionByParamsHandler)
 
-
 // router.get("/temp/:id",getTransactionByParams);
 // router.put("/:id",forwardTransactionHandler)
-
 
 // //CSW ROUTES
 // router.get('/csw/:id',getCswHandler);

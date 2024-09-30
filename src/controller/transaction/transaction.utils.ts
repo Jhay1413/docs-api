@@ -10,8 +10,7 @@ const cleanedDataUtils = (data: z.infer<typeof transactionQueryData>) => {
     receiver: `${data.receiver?.email} - ${data.receiver?.accountRole}` || null,
     transactionId: data.id!,
   };
-  const { id,companyId,projectId, forwarderId,receiverId,...payload } = cleanedData;
-
+  const { id, companyId, projectId, forwarderId, ...payload } = cleanedData;
 
   const createData: any = {
     ...payload,
@@ -21,12 +20,7 @@ const cleanedDataUtils = (data: z.infer<typeof transactionQueryData>) => {
     attachments: payload.attachments,
   };
 
-
   return createData;
 };
 
-
-
 export { cleanedDataUtils };
-
-
