@@ -31,9 +31,7 @@ const transactionSignedUrl = (req, res) => __awaiter(void 0, void 0, void 0, fun
         const validateData = transaction_schema_1.paramsRequestData.safeParse(data);
         if (!validateData.success) {
             console.log(validateData.error);
-            return res
-                .status(http_status_codes_1.StatusCodes.BAD_REQUEST)
-                .json("Invalid Data on request");
+            return res.status(http_status_codes_1.StatusCodes.BAD_REQUEST).json("Invalid Data on request");
         }
         const signedUrls = yield Promise.all(validateData.data.map((data) => __awaiter(void 0, void 0, void 0, function* () {
             try {

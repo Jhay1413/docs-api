@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
 import express from "express";
+import s from "../src/utils/ts-rest-server";
 import authRouter from "./controller/auth/auth.route";
 import userRouter from "./controller/user/user.routes";
 import transactionRouter from "./controller/transaction/transaction.route";
@@ -9,8 +9,14 @@ import cookieParser from "cookie-parser";
 import http from "http";
 import { Server } from "socket.io";
 import { TransactionService } from "./controller/transaction/transaction.service-v2";
-const app = express();
+import z from "zod";
+import { registerTransactionRoutes } from "./controller/transaction/transaction.routes";
 
+import { registerCompanyRoutes } from "./controller/company/company.routes";
+import { getUserInfoByAccountId } from "./controller/user/user.service";
+import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-schema";
+
+const app = express();
 const corsOptions = {
   origin: [
     "https://dts-client.netlify.app",
@@ -26,6 +32,8 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
+registerCompanyRoutes(app);
+registerTransactionRoutes(app);
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
@@ -34,6 +42,7 @@ app.use("/api/companies", companyRouter);
 const userSockets = new Map<string, string>();
 
 const server = http.createServer(app);
+
 const userService = new TransactionService();
 //SOCKET SETUP
 const io = new Server(server, {
@@ -52,13 +61,15 @@ io.on("connection", (socket) => {
 
     try {
       const notifications = await userService.fetchAllNotificationById(userId);
-      const { incomingCount, outgoingCount } =
-        await userService.getIncomingTransaction(userId);
+
+      const modified_message = notifications.map((data) => {
+        const userInfo = data.forwarder as z.infer<typeof AccountQuerySchema>;
+        return { ...data, message: ` ${userInfo.userInfo?.firstName} ${userInfo.userInfo?.lastName} ${data.message}` };
+      });
+      const tracker = await userService.getIncomingTransaction(userId);
       let message = null;
-      const countUnreadNotif = notifications.filter(
-        (data) => data.isRead === false
-      ).length;
-      const quantityTracker = { incoming: incomingCount, inbox: outgoingCount };
+      const countUnreadNotif = notifications.filter((data) => data.isRead === false).length;
+      const quantityTracker = { incoming: tracker.incoming, inbox: tracker.outgoing };
 
       if (countUnreadNotif !== 0) {
         message = `You have ${countUnreadNotif} unread notifications `;
@@ -66,22 +77,12 @@ io.on("connection", (socket) => {
         message = null;
       }
 
-      io.to(receiverSocketId!).emit(
-        "notification",
-        message,
-        notifications,
-        quantityTracker
-      );
+      io.to(receiverSocketId!).emit("notification", message, modified_message, quantityTracker);
     } catch (error) {
       const message = "Something went wrong !";
       const notifications = null,
         quantityTracker = null;
-      io.to(receiverSocketId!).emit(
-        "notification",
-        message,
-        notifications,
-        quantityTracker
-      );
+      io.to(receiverSocketId!).emit("notification", message, notifications, quantityTracker);
     }
   });
   socket.on("disconnect", () => {
@@ -106,6 +107,6 @@ io.on("connection", (socket) => {
 server.listen(3001 || process.env.PORT, () => {
   console.log("Server is running on port 3001");
 });
-export { io, userSockets };
+export { io, userSockets, s };
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 65000;
