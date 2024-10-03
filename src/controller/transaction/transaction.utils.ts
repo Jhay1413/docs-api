@@ -3,7 +3,7 @@ import { transactionQueryData, userInfoQuerySchema } from "shared-contract";
 const cleanedDataUtils = (
   data: z.infer<typeof transactionQueryData>,
   forwaderData?: z.infer<typeof userInfoQuerySchema>,
-  receiver?: z.infer<typeof userInfoQuerySchema>,
+  receiver?: z.infer<typeof userInfoQuerySchema> | null,
 ) => {
   const forwarder = forwaderData ? forwaderData : data.forwarder?.userInfo;
   const cleanedData = {
