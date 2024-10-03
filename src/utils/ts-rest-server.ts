@@ -1,5 +1,4 @@
-import { initServer } from '@ts-rest/express';
-import { transactionContract } from 'shared-contract';
+import { initServer } from "@ts-rest/express";
 
 const s = initServer();
 

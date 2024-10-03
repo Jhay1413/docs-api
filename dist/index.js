@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.s = exports.userSockets = exports.io = void 0;
 const express_1 = __importDefault(require("express"));
-const ts_rest_server_1 = __importDefault(require("../src/utils/ts-rest-server"));
+const ts_rest_server_1 = __importDefault(require("./utils/ts-rest-server"));
 exports.s = ts_rest_server_1.default;
 const auth_route_1 = __importDefault(require("./controller/auth/auth.route"));
 const user_routes_1 = __importDefault(require("./controller/user/user.routes"));
