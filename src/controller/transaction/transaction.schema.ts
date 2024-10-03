@@ -2,6 +2,10 @@ import { z, ZodObject } from "zod";
 import { AccountSchema, accountSchema } from "../user/user.schema";
 import { companyFormData, projects } from "../company/company.schema";
 const FileTypeEnum = z.enum(["INITIAL_DOC", "FOLLOWED_UP"]);
+
+
+
+
 export const filesSchema = z.object({
   id: z.string().optional(),
   remarks: z.string().optional(),
@@ -25,7 +29,7 @@ export const transactionFormData = z.object({
   priority: z.string(),
   companyId: z.string(),
   projectId: z.string(),
-  receiverId: z.string(),
+  receiverId: z.nullable(z.string()).optional(),
   remarks: z.string(),
   receivedById: z.nullable(z.string()).optional(),
   forwarderId: z.string(),

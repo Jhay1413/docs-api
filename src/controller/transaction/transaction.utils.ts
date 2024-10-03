@@ -1,22 +1,31 @@
 import z from "zod";
-import { transactionData } from "./transaction.schema";
-const cleanedDataUtils = (data: z.infer<typeof transactionData>) => {
+import { transactionQueryData, userInfoQuerySchema } from "shared-contract";
+const cleanedDataUtils = (
+  data: z.infer<typeof transactionQueryData>,
+  forwaderData?: z.infer<typeof userInfoQuerySchema>,
+  receiver?: z.infer<typeof userInfoQuerySchema>,
+) => {
+  const forwarder = forwaderData ? forwaderData : data.forwarder?.userInfo;
   const cleanedData = {
     ...data,
     company: data.company?.companyName!,
     project: data.project?.projectName!,
-    forwarder: `${data.forwarder?.email} - ${data.forwarder?.accountRole}`,
+    forwarder: `${forwarder?.firstName} - ${forwarder?.lastName}`,
     attachments: data.attachments!,
-    receiver: `${data.receiver?.email} - ${data.receiver?.accountRole}` || null,
+    receiver: receiver ? `${receiver?.firstName} - ${receiver?.lastName}` : null,
     transactionId: data.id!,
   };
-  const { receivedById, id, ...payload } = cleanedData;
+  const { id, companyId, projectId, forwarderId, ...payload } = cleanedData;
 
-  return payload;
+  const createData: any = {
+    ...payload,
+    transactionId: payload.transactionId,
+    dueDate: payload.dueDate!,
+    dateForwarded: payload.dateForwarded!,
+    attachments: payload.attachments,
+  };
+
+  return createData;
 };
 
-
-
 export { cleanedDataUtils };
-
-
