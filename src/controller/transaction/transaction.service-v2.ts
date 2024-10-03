@@ -32,7 +32,8 @@ export class TransactionService {
         data: {
           ...data,
           transactionId: data.transactionId!,
-
+          receiverId: status == "ARCHIVED" ? null : receiverId,
+          dateReceived: null,
           attachments: {
             createMany: {
               data: attachments,
