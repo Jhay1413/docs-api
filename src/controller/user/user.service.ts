@@ -144,6 +144,7 @@ export const getUserInfoByAccountId = async (id: string) => {
     });
     return result;
   } catch (error) {
+    console.log(error);
     throw new Error("something went wrong fetching user");
   }
 };

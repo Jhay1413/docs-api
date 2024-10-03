@@ -7,7 +7,7 @@ import { cleanedDataUtils } from "./transaction.utils";
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
-import { transactionMutationSchema, transactionQueryData } from "shared-contract";
+import { transactionMutationSchema, transactionQueryData, userInfoQuerySchema } from "shared-contract";
 import { completeStaffWorkMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
 import { getAccountById, getUserInfoByAccountId } from "../user/user.service";
 import { getCompanyById, getProjectById } from "../company/company.service";
@@ -19,17 +19,19 @@ export class TransactionController {
   }
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
     try {
+      let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
       const lastId = await this.transactionService.getLastId();
       const generatedId = GenerateId(lastId);
       const data_payload = { ...data, transactionId: generatedId };
-
-      const receiverInfo = await getUserInfoByAccountId(data.receiverId!);
+      if (data.status != "ARCHIVED" && data.receiverId) {
+        receiverInfo = await getUserInfoByAccountId(data.receiverId);
+      }
       const forwarder = await getUserInfoByAccountId(data.forwarderId);
 
       const response = await db.$transaction(async (tx) => {
         const transaction = await this.transactionService.insertTransaction(data_payload, tx);
 
-        const payload = cleanedDataUtils(transaction, forwarder!, receiverInfo!);
+        const payload = cleanedDataUtils(transaction, forwarder!, receiverInfo);
 
         await this.transactionService.logPostTransaction(payload, tx);
 
