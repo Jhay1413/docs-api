@@ -5,9 +5,63 @@ import z from "zod";
 import { TransactionService } from "./transaction.service-v2";
 import { s } from "../..";
 import { TransactionController } from "./transaction.controller-v2";
+import { completeStaffWork } from "./transaction.schema";
 
 const transactionController = new TransactionController();
 const transactionRouter = s.router(contracts.transaction, {
+  archivedTransation: async ({ params, body }) => {
+    try {
+      await transactionController.archivedTransactionHandler(params.id, body.userId);
+
+      return {
+        status: 200,
+        body: {
+          message: "Data has been archived successully ! ",
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong ",
+        },
+      };
+    }
+  },
+  addCompleteStaffWork: async ({ params, body }) => {
+    try {
+      const result = await transactionController.updateCswById(params.id, body);
+      const new_csw = result.completeStaffWork.map((data) => {
+        return {
+          ...data,
+          date: data.date.toISOString(),
+          transactionId: data.transactionId!,
+          createdAt: data.createdAt.toISOString(),
+          updatedAt: data.updatedAt.toISOString(),
+        };
+      });
+      const data = {
+        ...result,
+        dueDate: new Date(result.dueDate).toISOString(),
+        dateForwarded: new Date(result.dateForwarded).toISOString(),
+        transactionId: result.transactionId!,
+        dateReceived: result.dateReceived ? new Date(result.dateReceived).toISOString() : null,
+        completeStaffWork: new_csw,
+      };
+      return {
+        status: 201,
+        body: data,
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "something went wrongssss",
+        },
+      };
+    }
+  },
   getTransactionByParams: async ({ query }) => {
     try {
       const result = await transactionController.fetchTransactionsByParamsHandler(query.status, query.accountId);
@@ -73,6 +127,12 @@ const transactionRouter = s.router(contracts.transaction, {
     try {
       const result = await transactionController.fetchTransactionByIdHandler(params.id);
 
+      // const new_csw = result.completeStaffWork.sort((a, b) => {
+      //   const dateA = new Date(a.date);
+      //   const dateB = new Date(b.date);
+      //   return dateA.getTime() - dateB.getTime();
+      // });
+
       return {
         status: 200,
         body: result,
@@ -107,7 +167,6 @@ const transactionRouter = s.router(contracts.transaction, {
     try {
       console.log(body);
       const result = await transactionController.insertTransactionHandler(body);
-      console.log(result);
       return {
         status: 200,
         body: result,
@@ -124,10 +183,13 @@ const transactionRouter = s.router(contracts.transaction, {
 
   updateTransaction: async ({ body }) => {
     try {
-      const result = await transactionController.forwardTransactionHandler(body);
+      await transactionController.forwardTransactionHandler(body);
+
       return {
         status: 200,
-        body: result,
+        body: {
+          success: "data updated Successfully",
+        },
       };
     } catch (error) {
       return {

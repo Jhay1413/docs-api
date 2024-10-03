@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCompanyRelationsById = exports.getCompaniesRelations = exports.getCompanyById = exports.getCompanies = exports.insertCompany = exports.deleteCompany = exports.updateCompany = void 0;
+exports.getProjectById = exports.getCompanyRelationsById = exports.getCompaniesRelations = exports.getCompanyById = exports.getCompanies = exports.insertCompany = exports.deleteCompany = exports.updateCompany = void 0;
 const prisma_1 = require("../../prisma");
 const updateCompany = (id, data) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -62,8 +62,8 @@ const updateCompany = (id, data) => __awaiter(void 0, void 0, void 0, function* 
                                         contactNumber: data.contactPersons.contactNumber,
                                     },
                                 },
-                            }
-                        }
+                            },
+                        },
                     })),
                 },
                 contactPersons: {
@@ -214,3 +214,17 @@ const getCompanyRelationsById = (id) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.getCompanyRelationsById = getCompanyRelationsById;
+const getProjectById = (id) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const response = yield prisma_1.db.companyProject.findUnique({
+            where: {
+                id: id,
+            },
+        });
+        return response;
+    }
+    catch (error) {
+        throw new Error("Error while getting company project");
+    }
+});
+exports.getProjectById = getProjectById;

@@ -67,17 +67,22 @@ io.on("connection", (socket) => {
         const receiverSocketId = userSockets.get(userId);
         try {
             const notifications = yield userService.fetchAllNotificationById(userId);
-            const { incomingCount, outgoingCount } = yield userService.getIncomingTransaction(userId);
+            const modified_message = notifications.map((data) => {
+                var _a, _b;
+                const userInfo = data.forwarder;
+                return Object.assign(Object.assign({}, data), { message: ` ${(_a = userInfo.userInfo) === null || _a === void 0 ? void 0 : _a.firstName} ${(_b = userInfo.userInfo) === null || _b === void 0 ? void 0 : _b.lastName} ${data.message}` });
+            });
+            const tracker = yield userService.getIncomingTransaction(userId);
             let message = null;
             const countUnreadNotif = notifications.filter((data) => data.isRead === false).length;
-            const quantityTracker = { incoming: incomingCount, inbox: outgoingCount };
+            const quantityTracker = { incoming: tracker.incoming, inbox: tracker.outgoing };
             if (countUnreadNotif !== 0) {
                 message = `You have ${countUnreadNotif} unread notifications `;
             }
             else {
                 message = null;
             }
-            io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
+            io.to(receiverSocketId).emit("notification", message, modified_message, quantityTracker);
         }
         catch (error) {
             const message = "Something went wrong !";

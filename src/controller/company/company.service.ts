@@ -32,14 +32,14 @@ export const updateCompany = async (id: string, data: TcompanyFormData) => {
                 },
               },
             },
-            update:{
+            update: {
               projectId: project.projectId,
               projectName: project.projectName,
               projectAddress: project.projectAddress,
               email: project.email,
               retainer: project.retainer,
               date_expiry: project.date_expiry || null,
-              contactPersons:{
+              contactPersons: {
                 upsert: {
                   where: {
                     id: data.contactPersons!.id,
@@ -53,8 +53,8 @@ export const updateCompany = async (id: string, data: TcompanyFormData) => {
                     contactNumber: data.contactPersons!.contactNumber,
                   },
                 },
-              }
-            }
+              },
+            },
           })),
         },
         contactPersons: {
@@ -195,5 +195,17 @@ export const getCompanyRelationsById = async (id: string) => {
     return response;
   } catch (error) {
     throw new Error("Error while getting company relations");
+  }
+};
+export const getProjectById = async (id: string) => {
+  try {
+    const response = await db.companyProject.findUnique({
+      where: {
+        id: id,
+      },
+    });
+    return response;
+  } catch (error) {
+    throw new Error("Error while getting company project");
   }
 };

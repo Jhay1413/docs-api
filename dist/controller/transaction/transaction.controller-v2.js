@@ -16,7 +16,7 @@ const generate_id_1 = require("../../utils/generate-id");
 const transaction_utils_1 = require("./transaction.utils");
 const prisma_1 = require("../../prisma");
 const __1 = require("../..");
-const shared_contract_1 = require("shared-contract");
+const user_service_1 = require("../user/user.service");
 class TransactionController {
     constructor() {
         this.transactionService = new transaction_service_v2_1.TransactionService();
@@ -27,20 +27,12 @@ class TransactionController {
                 const lastId = yield this.transactionService.getLastId();
                 const generatedId = (0, generate_id_1.GenerateId)(lastId);
                 const data_payload = Object.assign(Object.assign({}, data), { transactionId: generatedId });
+                const receiverInfo = yield (0, user_service_1.getUserInfoByAccountId)(data.receiverId);
+                const forwarder = yield (0, user_service_1.getUserInfoByAccountId)(data.forwarderId);
                 const response = yield prisma_1.db.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                     const transaction = yield this.transactionService.insertTransaction(data_payload, tx);
-                    const payload = (0, transaction_utils_1.cleanedDataUtils)(transaction);
+                    const payload = (0, transaction_utils_1.cleanedDataUtils)(transaction, forwarder, receiverInfo);
                     yield this.transactionService.logPostTransaction(payload, tx);
-                    if (transaction.status === "ARCHIVED" || !transaction.receiverId)
-                        return;
-                    const notificationPayload = {
-                        transactionId: transaction.id,
-                        message: `New Transaction Forwarded by ${transaction.forwarder.accountRole}`,
-                        receiverId: transaction.receiverId,
-                        forwarderId: transaction.forwarderId,
-                        isRead: false,
-                    };
-                    yield this.transactionService.addNotificationService(notificationPayload, tx);
                     return transaction;
                 }));
                 if (!response)
@@ -48,15 +40,18 @@ class TransactionController {
                 if (response.status === "ARCHIVED")
                     return response;
                 const notifications = yield this.transactionService.fetchAllNotificationById(response.receiverId);
-                const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(response.receiverId);
+                const tracker = yield this.transactionService.getIncomingTransaction(response.receiverId);
                 const message = "You have new notification";
                 const receiverSocketId = __1.userSockets.get(response.receiverId);
                 const quantityTracker = {
-                    incoming: incomingCount,
-                    inbox: outgoingCount,
+                    incoming: tracker.incoming,
+                    inbox: tracker.outgoing,
                 };
+                const modified_message = notifications.map((data) => {
+                    return Object.assign(Object.assign({}, data), { message: `${forwarder === null || forwarder === void 0 ? void 0 : forwarder.firstName} ${forwarder === null || forwarder === void 0 ? void 0 : forwarder.lastName} ${data.message}` });
+                });
                 if (receiverSocketId) {
-                    __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
+                    __1.io.to(receiverSocketId).emit("notification", message, modified_message, quantityTracker);
                 }
                 return response;
             }
@@ -80,10 +75,10 @@ class TransactionController {
     //       .json("Something went wrong ! ");
     //   }
     // }
-    fetchAllTransactions() {
+    fetchAllTransactions(status, page, pageSize) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const transactions = yield this.transactionService.getTransactionsService();
+                const transactions = yield this.transactionService.getTransactionsService(status, page, pageSize);
                 return transactions;
             }
             catch (error) {
@@ -95,12 +90,7 @@ class TransactionController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const transaction = yield this.transactionService.getTransactionByIdService(id);
-                const validateData = shared_contract_1.transactionQueryData.safeParse(transaction);
-                if (validateData.error) {
-                    console.log(validateData.error.errors);
-                    throw new Error("Something went wrong ! ");
-                }
-                return validateData.data;
+                return transaction;
             }
             catch (error) {
                 console.log(error);
@@ -115,66 +105,64 @@ class TransactionController {
                 res.status(http_status_codes_1.StatusCodes.OK).json(transactions);
             }
             catch (error) {
-                return res
-                    .status(http_status_codes_1.StatusCodes.BAD_GATEWAY)
-                    .json("Something went wrong ! ");
+                return res.status(http_status_codes_1.StatusCodes.BAD_GATEWAY).json("Something went wrong ! ");
             }
         });
     }
-    fetchTransactionsByParamsHandler(req, res) {
+    fetchTransactionsByParamsHandler(status, accountId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { option } = req.query;
-            const { id } = req.params;
             try {
-                if (option == "INCOMING") {
-                    const response = yield this.transactionService.getIncomingTransactionService(id);
-                    return res.status(http_status_codes_1.StatusCodes.OK).json(response);
+                if (status == "INCOMING") {
+                    const response = yield this.transactionService.getIncomingTransactionService(accountId);
+                    return response;
                 }
-                else if (option == "INBOX") {
-                    const response = yield this.transactionService.getReceivedTransactionService(id);
-                    return res.status(http_status_codes_1.StatusCodes.OK).json(response);
-                }
+                const response = yield this.transactionService.getReceivedTransactionService(accountId);
+                return response;
             }
             catch (error) {
-                return res
-                    .status(http_status_codes_1.StatusCodes.BAD_GATEWAY)
-                    .json("Something went wrong ! ");
+                throw new Error("something went wrong fetching transactions by params");
+            }
+        });
+    }
+    archivedTransactionHandler(id, userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const response = yield prisma_1.db.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    const result = yield this.transactionService.archivedTransactionService(id, userId);
+                    const payload = (0, transaction_utils_1.cleanedDataUtils)(result);
+                    yield this.transactionService.logPostTransaction(payload, tx);
+                    return result;
+                }));
+                return response;
+            }
+            catch (error) {
+                console.log(error);
+                throw new Error("something went wrong fetching transactions by params");
             }
         });
     }
     forwardTransactionHandler(data) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                // Start the transaction
+                if (!data.receiverId || data.receiverId == data.forwarderId)
+                    throw new Error("Please forward the transaction ");
+                const receiverInfo = yield (0, user_service_1.getUserInfoByAccountId)(data.receiverId);
+                const forwarder = yield (0, user_service_1.getUserInfoByAccountId)(data.forwarderId);
+                const createAttachment = data.attachments.filter((attachment) => !attachment.id);
+                const updateAttachment = data.attachments.filter((attachment) => attachment.id);
                 const response = yield prisma_1.db.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    var _a, _b;
-                    const result = yield this.transactionService.forwardTransactionService(data, tx);
-                    const payload = (0, transaction_utils_1.cleanedDataUtils)(result);
+                    const result = yield this.transactionService.forwardTransactionService(data, createAttachment, updateAttachment, tx);
+                    const payload = (0, transaction_utils_1.cleanedDataUtils)(result, forwarder, receiverInfo);
                     yield this.transactionService.logPostTransaction(payload, tx);
-                    if (result.status === "ARCHIVED" || !result.receiverId) {
-                        return result; // Early return if not needing further actions
-                    }
-                    const notificationPayload = {
-                        transactionId: result.id,
-                        message: `New Transaction Forwarded by ${(_a = result.forwarder) === null || _a === void 0 ? void 0 : _a.accountRole}`,
-                        receiverId: result.receiverId,
-                        forwarderId: (_b = result.forwarder) === null || _b === void 0 ? void 0 : _b.id,
-                        isRead: false,
-                    };
-                    yield this.transactionService.addNotificationService(notificationPayload);
                     return result;
                 }));
-                // After the transaction has completed
-                if (response.status === "ARCHIVED" || !response.receiverId) {
-                    return response;
-                }
                 const notifications = yield this.transactionService.fetchAllNotificationById(response.receiverId);
-                const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(response.receiverId);
+                const tracker = yield this.transactionService.getIncomingTransaction(response.receiverId);
                 const message = "You have a new notification";
                 const receiverSocketId = __1.userSockets.get(response.receiverId);
                 const quantityTracker = {
-                    incoming: incomingCount,
-                    inbox: outgoingCount,
+                    incoming: tracker.incoming,
+                    inbox: tracker.outgoing,
                 };
                 if (receiverSocketId) {
                     __1.io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
@@ -190,19 +178,17 @@ class TransactionController {
             }
         });
     }
-    receivedTransactionHandler(req, res) {
+    receivedTransactionHandler(id, dateReceived) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { id } = req.params;
-            const { dateReceived } = req.body;
             try {
                 const result = yield this.transactionService.receiveTransactionService(id, dateReceived);
-                yield this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiver.id);
-                res.status(http_status_codes_1.StatusCodes.OK).json(result.id);
+                console.log(result);
+                yield this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId);
+                return result;
             }
             catch (error) {
-                return res
-                    .status(http_status_codes_1.StatusCodes.BAD_GATEWAY)
-                    .json("Something went wrong ! ");
+                console.log(error);
+                throw new Error("Something went wrong while receiving transactions");
             }
         });
     }
@@ -214,9 +200,7 @@ class TransactionController {
                 res.status(http_status_codes_1.StatusCodes.OK).json(notifications);
             }
             catch (error) {
-                return res
-                    .status(http_status_codes_1.StatusCodes.BAD_GATEWAY)
-                    .json("Something went wrong ! ");
+                return res.status(http_status_codes_1.StatusCodes.BAD_GATEWAY).json("Something went wrong ! ");
             }
         });
     }
@@ -230,9 +214,7 @@ class TransactionController {
             }
             catch (error) {
                 console.log(error);
-                return res
-                    .status(http_status_codes_1.StatusCodes.BAD_GATEWAY)
-                    .json("Something went wrong ! ");
+                return res.status(http_status_codes_1.StatusCodes.BAD_GATEWAY).json("Something went wrong ! ");
             }
         });
     }
@@ -240,10 +222,8 @@ class TransactionController {
         return __awaiter(this, void 0, void 0, function* () {
             const { id } = req.params;
             try {
-                const { incomingCount, outgoingCount } = yield this.transactionService.getIncomingTransaction(id);
-                res
-                    .status(http_status_codes_1.StatusCodes.OK)
-                    .json({ incoming: incomingCount, inbox: outgoingCount });
+                const tracker = yield this.transactionService.getIncomingTransaction(id);
+                res.status(http_status_codes_1.StatusCodes.OK).json({ incoming: tracker.incoming, inbox: tracker.outgoing });
             }
             catch (error) {
                 console.log(error);
@@ -251,15 +231,15 @@ class TransactionController {
             }
         });
     }
-    updateCswById(req, res) {
+    updateCswById(id, data) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { id } = req.params;
             try {
-                const result = yield this.transactionService.updateTransactionCswById(id, req.body);
-                res.status(http_status_codes_1.StatusCodes.CREATED).json(result);
+                const result = yield this.transactionService.updateTransactionCswById(id, data);
+                return result;
             }
             catch (error) {
-                res.status(http_status_codes_1.StatusCodes.BAD_GATEWAY).json(error);
+                console.log(error);
+                throw new Error("something went wrong calling the services");
             }
         });
     }
@@ -309,11 +289,10 @@ class TransactionController {
             }
         });
     }
-    getSearchedTransation(query) {
+    getSearchedTransation(query, page, pageSize, status) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                console.log("call search");
-                const transactions = yield this.transactionService.searchTransaction(query);
+                const transactions = yield this.transactionService.searchTransaction(query, page, pageSize, status);
                 if (!transactions)
                     return null;
                 return transactions;

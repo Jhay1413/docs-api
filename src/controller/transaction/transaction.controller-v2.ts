@@ -8,6 +8,9 @@ import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
 import { transactionMutationSchema, transactionQueryData } from "shared-contract";
+import { completeStaffWorkMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
+import { getAccountById, getUserInfoByAccountId } from "../user/user.service";
+import { getCompanyById, getProjectById } from "../company/company.service";
 export class TransactionController {
   private transactionService: TransactionService;
 
@@ -20,30 +23,15 @@ export class TransactionController {
       const generatedId = GenerateId(lastId);
       const data_payload = { ...data, transactionId: generatedId };
 
-      const attachment_log_payload = data.attachments.map((data) => {
-        return {
-          ...data,
-          createdAt: new Date().toISOString(),
-        };
-      });
+      const receiverInfo = await getUserInfoByAccountId(data.receiverId!);
+      const forwarder = await getUserInfoByAccountId(data.forwarderId);
+
       const response = await db.$transaction(async (tx) => {
         const transaction = await this.transactionService.insertTransaction(data_payload, tx);
 
-        const payload = cleanedDataUtils({ ...transaction, attachments: attachment_log_payload });
+        const payload = cleanedDataUtils(transaction, forwarder!, receiverInfo!);
 
         await this.transactionService.logPostTransaction(payload, tx);
-
-        if (transaction.status === "ARCHIVED" || !transaction.receiverId) return;
-
-        const notificationPayload = {
-          transactionId: transaction.id,
-          message: `New Transaction Forwarded by ${transaction.forwarder.accountRole}`,
-          receiverId: transaction.receiverId,
-          forwarderId: transaction.forwarderId,
-          isRead: false,
-        } as z.infer<typeof notification>;
-
-        await this.transactionService.addNotificationService(notificationPayload, tx);
 
         return transaction;
       });
@@ -52,16 +40,20 @@ export class TransactionController {
       if (response.status === "ARCHIVED") return response;
 
       const notifications = await this.transactionService.fetchAllNotificationById(response.receiverId!);
-      const { incomingCount, outgoingCount } = await this.transactionService.getIncomingTransaction(response.receiverId!);
+      const tracker = await this.transactionService.getIncomingTransaction(response.receiverId!);
       const message = "You have new notification";
       const receiverSocketId = userSockets.get(response.receiverId!);
 
       const quantityTracker = {
-        incoming: incomingCount,
-        inbox: outgoingCount,
+        incoming: tracker.incoming,
+        inbox: tracker.outgoing,
       };
+
+      const modified_message = notifications.map((data) => {
+        return { ...data, message: `${forwarder?.firstName} ${forwarder?.lastName} ${data.message}` };
+      });
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
+        io.to(receiverSocketId).emit("notification", message, modified_message, quantityTracker);
       }
 
       return response;
@@ -95,14 +87,7 @@ export class TransactionController {
     try {
       const transaction = await this.transactionService.getTransactionByIdService(id);
 
-      const validateData = transactionQueryData.safeParse(transaction);
-
-      if (validateData.error) {
-        console.log(validateData.error.errors);
-        throw new Error("Something went wrong ! ");
-      }
-
-      return validateData.data;
+      return transaction;
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong ! ");
@@ -129,45 +114,46 @@ export class TransactionController {
       throw new Error("something went wrong fetching transactions by params");
     }
   }
-  public async forwardTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
+  public async archivedTransactionHandler(id: string, userId: string) {
     try {
-      // Start the transaction
       const response = await db.$transaction(async (tx) => {
-        const result = await this.transactionService.forwardTransactionService(data, tx);
+        const result = await this.transactionService.archivedTransactionService(id, userId);
         const payload = cleanedDataUtils(result);
         await this.transactionService.logPostTransaction(payload, tx);
 
-        if (result.status === "ARCHIVED" || !result.receiverId) {
-          return result; // Early return if not needing further actions
-        }
+        return result;
+      });
+      return response;
+    } catch (error) {
+      console.log(error);
+      throw new Error("something went wrong fetching transactions by params");
+    }
+  }
+  public async forwardTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
+    try {
+      if (!data.receiverId || data.receiverId == data.forwarderId) throw new Error("Please forward the transaction ");
 
-        const notificationPayload = {
-          transactionId: result.id,
-          message: `New Transaction Forwarded by ${result.forwarder?.accountRole}`,
-          receiverId: result.receiverId,
-          forwarderId: result.forwarder?.id,
-          isRead: false,
-        } as z.infer<typeof notification>;
+      const receiverInfo = await getUserInfoByAccountId(data.receiverId!);
+      const forwarder = await getUserInfoByAccountId(data.forwarderId);
+      const createAttachment = data.attachments.filter((attachment) => !attachment.id);
+      const updateAttachment = data.attachments.filter((attachment) => attachment.id);
 
-        await this.transactionService.addNotificationService(notificationPayload);
-
+      const response = await db.$transaction(async (tx) => {
+        const result = await this.transactionService.forwardTransactionService(data, createAttachment, updateAttachment, tx);
+        const payload = cleanedDataUtils(result, forwarder!, receiverInfo!);
+        await this.transactionService.logPostTransaction(payload, tx);
         return result;
       });
 
-      // After the transaction has completed
-      if (response.status === "ARCHIVED" || !response.receiverId) {
-        return response;
-      }
-
       const notifications = await this.transactionService.fetchAllNotificationById(response.receiverId!);
-      const { incomingCount, outgoingCount } = await this.transactionService.getIncomingTransaction(response.receiverId!);
+      const tracker = await this.transactionService.getIncomingTransaction(response.receiverId!);
 
       const message = "You have a new notification";
-      const receiverSocketId = userSockets.get(response.receiverId);
+      const receiverSocketId = userSockets.get(response.receiverId!);
 
       const quantityTracker = {
-        incoming: incomingCount,
-        inbox: outgoingCount,
+        incoming: tracker.incoming,
+        inbox: tracker.outgoing,
       };
 
       if (receiverSocketId) {
@@ -217,21 +203,22 @@ export class TransactionController {
   public async countIncomingAndInboxTransactions(req: Request, res: Response) {
     const { id } = req.params;
     try {
-      const { incomingCount, outgoingCount } = await this.transactionService.getIncomingTransaction(id);
+      const tracker = await this.transactionService.getIncomingTransaction(id);
 
-      res.status(StatusCodes.OK).json({ incoming: incomingCount, inbox: outgoingCount });
+      res.status(StatusCodes.OK).json({ incoming: tracker.incoming, inbox: tracker.outgoing });
     } catch (error) {
       console.log(error);
       res.status(StatusCodes.BAD_GATEWAY).json(error);
     }
   }
-  public async updateCswById(req: Request, res: Response) {
-    const { id } = req.params;
+  public async updateCswById(id: string, data: z.infer<typeof completeStaffWorkMutationSchema>) {
     try {
-      const result = await this.transactionService.updateTransactionCswById(id, req.body);
-      res.status(StatusCodes.CREATED).json(result);
+      const result = await this.transactionService.updateTransactionCswById(id, data);
+
+      return result;
     } catch (error) {
-      res.status(StatusCodes.BAD_GATEWAY).json(error);
+      console.log(error);
+      throw new Error("something went wrong calling the services");
     }
   }
   public async transactionEntities(req: Request, res: Response) {

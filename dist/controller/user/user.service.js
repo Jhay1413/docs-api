@@ -9,11 +9,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkUserIdExists = exports.insertUpdatedImageUrl = exports.insertUpdatedUserInfo = exports.insertUserInfo = void 0;
+exports.getUserInfoByAccountId = exports.getAccountById = exports.checkUserIdExists = exports.insertUpdatedImageUrl = exports.insertUpdatedUserInfo = exports.insertUserInfo = void 0;
 const prisma_1 = require("../../prisma");
 const insertUserInfo = (data) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { email, firstName, lastName, assignedDivision, assignedPosition, assignedSection, dateStarted, jobStatus, password, accountRole, contactNumber, imageUrl, birthDate, middleName, employeeId } = data;
+        const { email, firstName, lastName, assignedDivision, assignedPosition, assignedSection, dateStarted, jobStatus, password, accountRole, contactNumber, imageUrl, birthDate, middleName, employeeId, } = data;
         yield prisma_1.db.userInfo.create({
             data: {
                 employeeId,
@@ -49,7 +49,7 @@ const insertUpdatedUserInfo = (data) => __awaiter(void 0, void 0, void 0, functi
     try {
         yield prisma_1.db.userInfo.update({
             where: {
-                id: data.id
+                id: data.id,
             },
             data: {
                 email: data.email,
@@ -61,7 +61,7 @@ const insertUpdatedUserInfo = (data) => __awaiter(void 0, void 0, void 0, functi
                 dateStarted: data.dateStarted,
                 jobStatus: data.jobStatus,
                 contactNumber: data.contactNumber,
-            }
+            },
         });
         return "User updated successfully";
     }
@@ -75,10 +75,10 @@ const insertUpdatedImageUrl = (id, url) => __awaiter(void 0, void 0, void 0, fun
     try {
         const user = yield prisma_1.db.userInfo.update({
             where: {
-                id: id
+                id: id,
             },
             data: {
-                imageUrl: url
+                imageUrl: url,
             },
             omit: {
                 createdAt: true,
@@ -118,3 +118,34 @@ const checkUserIdExists = (id) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.checkUserIdExists = checkUserIdExists;
+const getAccountById = (id) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const result = yield prisma_1.db.userAccounts.findUnique({
+            where: {
+                id: id,
+            },
+            include: {
+                userInfo: true,
+            },
+        });
+        return result;
+    }
+    catch (error) {
+        throw new Error("something went wrong fetching user");
+    }
+});
+exports.getAccountById = getAccountById;
+const getUserInfoByAccountId = (id) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const result = yield prisma_1.db.userInfo.findUnique({
+            where: {
+                accountId: id,
+            },
+        });
+        return result;
+    }
+    catch (error) {
+        throw new Error("something went wrong fetching user");
+    }
+});
+exports.getUserInfoByAccountId = getUserInfoByAccountId;

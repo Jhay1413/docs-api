@@ -45,7 +45,7 @@ router.get("/v2/:id", transactionController.fetchTransactionByIdHandler.bind(tra
 router.put("/v2/:id", transactionController.forwardTransactionHandler.bind(transactionController));
 
 // Update CSW by ID
-router.put("/v2/:id/csw", transactionController.updateCswById.bind(transactionController));
+// router.put("/v2/:id/csw", transactionController.updateCswById.bind(transactionController));
 
 // Mark incoming transaction as received
 // router.put("/v2/incoming/:id/received", transactionController.receivedTransactionHandler.bind(transactionController));

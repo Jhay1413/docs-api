@@ -3,6 +3,7 @@ import { db } from "../../prisma";
 import { completeStaffWork, notification } from "./transaction.schema";
 import * as z from "zod";
 import { transactionLogsData, transactionMutationSchema } from "shared-contract";
+import { completeStaffWorkMutationSchema, filesMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
 
 export class TransactionService {
   public async insertTransaction(data: z.infer<typeof transactionMutationSchema>, tx: Prisma.TransactionClient) {
@@ -29,22 +30,9 @@ export class TransactionService {
     try {
       const createdTransaction = await tx.transaction.create({
         data: {
+          ...data,
           transactionId: data.transactionId!,
-          documentType,
-          subject,
-          dueDate,
-          team,
-          status,
-          priority,
-          projectId,
-          companyId,
-          documentSubType,
-          receiverId,
-          remarks,
-          dateForwarded,
-          forwarderId,
-          targetDepartment,
-          originDepartment,
+
           attachments: {
             createMany: {
               data: attachments,
@@ -52,8 +40,7 @@ export class TransactionService {
           },
         },
         include: {
-          forwarder: true,
-          receiver: true,
+          attachments: true,
           company: true,
           project: true,
         },
@@ -63,6 +50,9 @@ export class TransactionService {
         ...createdTransaction,
         dueDate: createdTransaction.dueDate.toISOString(),
         dateForwarded: createdTransaction.dateForwarded.toISOString(),
+        attachments: createdTransaction.attachments.map((data) => {
+          return { ...data, createdAt: data.createdAt.toISOString() };
+        }),
         dateReceived: null,
       };
       return modified_transaction;
@@ -92,7 +82,7 @@ export class TransactionService {
           forwarder: true,
           transactionLogs: {
             orderBy: {
-              createdAt: "asc",
+              dateForwarded: "asc",
             },
           },
           attachments: true,
@@ -104,14 +94,16 @@ export class TransactionService {
           },
         },
       });
-
+      console.log(transaction);
       if (!transaction) throw new Error("transaction not found");
-
       const new_attachments = transaction.attachments.map((data) => {
-        return { ...data, createdAt: data.createdAt.toISOString() };
+        return {
+          ...data,
+          createdAt: data.createdAt.toISOString(),
+        };
       });
       const new_csw = transaction.completeStaffWork.map((data) => {
-        return { ...data, date: data.date.toISOString() };
+        return { ...data, date: data.date.toISOString(), transactionId: data.transactionId! };
       });
       const parseTransactionLogs = transaction?.transactionLogs.map((respo) => {
         return {
@@ -132,8 +124,8 @@ export class TransactionService {
         dateForwarded: transaction.dateForwarded.toISOString(),
         dateReceived: transaction.dateReceived ? transaction.dateReceived.toISOString() : null,
         transactionLogs: parseTransactionLogs,
-        attachments: new_attachments,
         completeStaffWork: new_csw,
+        attachments: new_attachments,
       };
 
       // const validateData = transactionQueryData.safeParse(parseResponse);
@@ -307,8 +299,8 @@ export class TransactionService {
   }
   public async getIncomingTransaction(accountId?: string) {
     try {
-      const [incomingCount, outgoingCount] = await Promise.all([
-        db.transaction.count({
+      const response = await db.$transaction(async (tx) => {
+        const incoming = await tx.transaction.count({
           where: {
             receiverId: accountId,
             dateReceived: {
@@ -318,8 +310,8 @@ export class TransactionService {
               not: "ARCHIEVED",
             },
           },
-        }),
-        db.transaction.count({
+        });
+        const outgoing = await tx.transaction.count({
           where: {
             receiverId: accountId,
             dateReceived: {
@@ -329,65 +321,69 @@ export class TransactionService {
               not: "ARCHIEVED",
             },
           },
-        }),
-      ]);
+        });
 
-      return {
-        incomingCount,
-        outgoingCount,
-      };
+        return { incoming, outgoing };
+      });
+      return response;
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong !");
     }
   }
-
-  public async forwardTransactionService(data: z.infer<typeof transactionMutationSchema>, tx: Prisma.TransactionClient) {
-    const {
-      documentType,
-      subject,
-      receiverId,
-      remarks,
-      companyId,
-      projectId,
-      dueDate,
-      forwarderId,
-      originDepartment,
-      targetDepartment,
-      dateForwarded,
-      documentSubType,
-      team,
-      transactionId,
-      id,
-      status,
-      priority,
-      attachments,
-    } = data;
-
+  public async archivedTransactionService(id: string, userId: string) {
     try {
-      const createAttachment = attachments.filter((attachment) => !attachment.id);
-      const updateAttachment = attachments.filter((attachment) => attachment.id);
-      const response = await tx.transaction.update({
+      const result = await db.transaction.update({
         where: {
-          transactionId: transactionId,
+          id: id,
         },
         data: {
-          documentType: documentType,
-          documentSubType: documentSubType,
-          subject: subject,
-          dueDate: dueDate,
-          team: team,
-          companyId: companyId,
-          projectId: projectId,
-          status: status,
-          priority: priority,
-          forwarderId,
-          remarks: remarks,
-          receiverId,
-          dateForwarded: dateForwarded,
+          forwarderId: userId,
+          receiverId: null,
           dateReceived: null,
-          originDepartment: originDepartment,
-          targetDepartment: targetDepartment,
+          status: "ARCHIVED",
+        },
+        include: {
+          attachments: true,
+          company: true,
+          project: true,
+          forwarder: {
+            include: {
+              userInfo: true,
+            },
+          },
+          receiver: true,
+        },
+      });
+      const modified_data = {
+        ...result,
+        dueDate: result.dueDate.toISOString(),
+        dateForwarded: result.dateForwarded.toISOString(),
+        dateReceived: null,
+        attachments: result.attachments.map((data) => {
+          return { ...data, createdAt: data.createdAt.toDateString() };
+        }),
+      };
+      return modified_data;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong !");
+    }
+  }
+  public async forwardTransactionService(
+    data: z.infer<typeof transactionMutationSchema>,
+    createAttachment: z.infer<typeof filesMutationSchema>[],
+    updateAttachment: z.infer<typeof filesMutationSchema>[],
+    tx: Prisma.TransactionClient,
+  ) {
+    try {
+      const response = await tx.transaction.update({
+        where: {
+          transactionId: data.transactionId,
+        },
+        data: {
+          ...data,
+          dateReceived: null,
           attachments: {
             createMany: {
               data: createAttachment,
@@ -402,26 +398,20 @@ export class TransactionService {
         },
         include: {
           attachments: true,
-          forwarder: true,
-          receiver: true,
           company: true,
           project: true,
         },
       });
-      const new_attachments = response.attachments.map((attachment) => {
-        return {
-          ...attachment,
-          createdAt: attachment.createdAt.toISOString(),
-        };
-      });
-      const modified_transaction = {
+      const modified_data = {
         ...response,
         dueDate: response.dueDate.toISOString(),
         dateForwarded: response.dateForwarded.toISOString(),
-        dateReceived: response.dateReceived ? response.dateReceived.toISOString() : null,
-        attachments: new_attachments,
+        dateReceived: null,
+        attachments: response.attachments.map((data) => {
+          return { ...data, createdAt: data.createdAt.toDateString() };
+        }),
       };
-      return modified_transaction;
+      return modified_data;
     } catch (error) {
       console.log(error);
       throw new Error("something went wrong while updating transaction ");
@@ -486,7 +476,7 @@ export class TransactionService {
       throw new Error("something went wrong while adding logs. ");
     }
   }
-  public async updateTransactionCswById(transactionId: string, data: z.infer<typeof completeStaffWork>) {
+  public async updateTransactionCswById(transactionId: string, data: z.infer<typeof completeStaffWorkMutationSchema>) {
     try {
       const response = await db.transaction.update({
         where: {
@@ -501,18 +491,22 @@ export class TransactionService {
               update: {
                 date: data.date,
                 remarks: data.remarks,
-                attachmentUrl: data.attachmentUrl,
+                attachmentUrl: data.attachmentUrl!,
               },
               create: {
                 date: data.date,
                 remarks: data.remarks,
-                attachmentUrl: data.attachmentUrl,
+                attachmentUrl: data.attachmentUrl!,
               },
             },
           },
         },
         include: {
-          attachments: true,
+          attachments: {
+            omit: {
+              createdAt: true,
+            },
+          },
           forwarder: true,
           receiver: true,
           company: true,
@@ -599,6 +593,7 @@ export class TransactionService {
 
       return response;
     } catch (error) {
+      console.log(error);
       throw new Error("Error inserting notification");
     }
   }
@@ -610,6 +605,9 @@ export class TransactionService {
           where: {
             receiverId: id,
           },
+          include: {
+            forwarder: true,
+          },
           orderBy: {
             createdAt: "desc", // or 'desc'
           },
@@ -618,6 +616,13 @@ export class TransactionService {
         response = await db.notification.findMany({
           where: {
             receiverId: id,
+          },
+          include: {
+            forwarder: {
+              include: {
+                userInfo: true,
+              },
+            },
           },
           orderBy: {
             createdAt: "desc", // or 'desc'

@@ -1,13 +1,18 @@
 import z from "zod";
-import { transactionQueryData } from "shared-contract";
-const cleanedDataUtils = (data: z.infer<typeof transactionQueryData>) => {
+import { transactionQueryData, userInfoQuerySchema } from "shared-contract";
+const cleanedDataUtils = (
+  data: z.infer<typeof transactionQueryData>,
+  forwaderData?: z.infer<typeof userInfoQuerySchema>,
+  receiver?: z.infer<typeof userInfoQuerySchema>,
+) => {
+  const forwarder = forwaderData ? forwaderData : data.forwarder?.userInfo;
   const cleanedData = {
     ...data,
     company: data.company?.companyName!,
     project: data.project?.projectName!,
-    forwarder: `${data.forwarder?.email} - ${data.forwarder?.accountRole}`,
+    forwarder: `${forwarder?.firstName} - ${forwarder?.lastName}`,
     attachments: data.attachments!,
-    receiver: `${data.receiver?.email} - ${data.receiver?.accountRole}` || null,
+    receiver: receiver ? `${receiver?.firstName} - ${receiver?.lastName}` : null,
     transactionId: data.id!,
   };
   const { id, companyId, projectId, forwarderId, ...payload } = cleanedData;
