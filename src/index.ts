@@ -1,5 +1,5 @@
 import express from "express";
-import s from "../src/utils/ts-rest-server";
+import s from "./utils/ts-rest-server";
 import authRouter from "./controller/auth/auth.route";
 import userRouter from "./controller/user/user.routes";
 import transactionRouter from "./controller/transaction/transaction.route";
@@ -13,7 +13,6 @@ import z from "zod";
 import { registerTransactionRoutes } from "./controller/transaction/transaction.routes";
 
 import { registerCompanyRoutes } from "./controller/company/company.routes";
-import { getUserInfoByAccountId } from "./controller/user/user.service";
 import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-schema";
 
 const app = express();

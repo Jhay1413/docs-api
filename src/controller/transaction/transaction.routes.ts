@@ -1,11 +1,8 @@
-import { createExpressEndpoints, initServer } from "@ts-rest/express";
-import { contracts, transactionContract, transactionQueryData } from "shared-contract";
+import { createExpressEndpoints } from "@ts-rest/express";
+import { contracts } from "shared-contract";
 
-import z from "zod";
-import { TransactionService } from "./transaction.service-v2";
-import { s } from "../..";
 import { TransactionController } from "./transaction.controller-v2";
-import { completeStaffWork } from "./transaction.schema";
+import s from "../../utils/ts-rest-server";
 
 const transactionController = new TransactionController();
 const transactionRouter = s.router(contracts.transaction, {

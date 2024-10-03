@@ -8,14 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerTransactionRoutes = void 0;
 const express_1 = require("@ts-rest/express");
 const shared_contract_1 = require("shared-contract");
-const __1 = require("../..");
 const transaction_controller_v2_1 = require("./transaction.controller-v2");
+const ts_rest_server_1 = __importDefault(require("../../utils/ts-rest-server"));
 const transactionController = new transaction_controller_v2_1.TransactionController();
-const transactionRouter = __1.s.router(shared_contract_1.contracts.transaction, {
+const transactionRouter = ts_rest_server_1.default.router(shared_contract_1.contracts.transaction, {
     archivedTransation: (_a) => __awaiter(void 0, [_a], void 0, function* ({ params, body }) {
         try {
             yield transactionController.archivedTransactionHandler(params.id, body.userId);
