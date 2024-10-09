@@ -773,20 +773,6 @@ export class TransactionService {
     }
   }
 
-  public async getPaginateData() {
-    try {
-      const totalTransactions = await this.countTransactions();
-      const totalPages = await this.countPage();
-      return {
-        totalTransactions,
-        totalPages,
-      };
-    } catch (error) {
-      console.log(error);
-      throw new Error("Something went wrong while fetching the summary");
-    }
-  }
-
   public async getTransactionsWithStatus(status?: string) {
     try {
       const transactionWith = await db.transaction.findMany({
