@@ -103,7 +103,7 @@ io.on("connection", (socket) => {
   // });
 });
 
-server.listen(3001 || process.env.PORT, () => {
+server.listen(process.env.PORT || 3001, () => {
   console.log("Server is running on port 3001");
 });
 export { io, userSockets, s };
