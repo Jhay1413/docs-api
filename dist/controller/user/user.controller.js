@@ -20,11 +20,12 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userAccounts = exports.updateUser = exports.getUsers = exports.registerUser = exports.getUser = exports.changeProfile = void 0;
+exports.fetchUserByRoleAccess = exports.userAccounts = exports.updateUser = exports.getUsers = exports.registerUser = exports.getUser = exports.changeProfile = void 0;
 const prisma_1 = require("../../prisma");
 const http_status_codes_1 = require("http-status-codes");
 const aws_config_1 = require("../../services/aws-config");
 const user_service_1 = require("./user.service");
+const query_for_role_1 = require("../../utils/query-for-role");
 const changeProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const file = req.file;
     const id = req.params.id;
@@ -39,9 +40,7 @@ const changeProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
     catch (error) {
         console.error("Error in changeProfile:", error.message);
-        res
-            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
-            .send("Something went wrong while updating the user profile ! ");
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("Something went wrong while updating the user profile ! ");
     }
 });
 exports.changeProfile = changeProfile;
@@ -75,9 +74,7 @@ const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         return res.status(http_status_codes_1.StatusCodes.OK).send(user);
     }
     catch (error) {
-        res
-            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
-            .send("Something went wrong while fetching user - controller!");
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("Something went wrong while fetching user - controller!");
     }
 });
 exports.getUser = getUser;
@@ -89,9 +86,7 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         if (file) {
             imageUrl = yield (0, aws_config_1.uploadImageToS3)(file);
             if (!imageUrl) {
-                return res
-                    .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
-                    .send("Error uploading image");
+                return res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("Error uploading image");
             }
         }
         yield (0, user_service_1.insertUserInfo)(Object.assign(Object.assign({}, data), { imageUrl }));
@@ -100,9 +95,7 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     catch (error) {
         console.log(error);
         console.log(error);
-        res
-            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
-            .send("Something went wrong while creating user");
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("Something went wrong while creating user");
     }
 });
 exports.registerUser = registerUser;
@@ -134,9 +127,7 @@ const getUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
     catch (error) {
         console.log(error);
-        res
-            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
-            .send("Something went wrong while fetching users - controller!");
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("Something went wrong while fetching users - controller!");
     }
 });
 exports.getUsers = getUsers;
@@ -154,9 +145,7 @@ const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
     catch (error) {
         console.log(error);
-        res
-            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
-            .send("Something went wrong while updating user - controller!");
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("Something went wrong while updating user - controller!");
     }
 });
 exports.updateUser = updateUser;
@@ -167,9 +156,25 @@ const userAccounts = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
     catch (error) {
         console.log(error);
-        res
-            .status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR)
-            .send("Something went wrong while fetching user accounts!");
+        res.status(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR).send("Something went wrong while fetching user accounts!");
     }
 });
 exports.userAccounts = userAccounts;
+const fetchUserByRoleAccess = (id, targetDivision, team) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    try {
+        const account = yield (0, user_service_1.getAccountById)(id);
+        if (!account)
+            throw new Error("No user found");
+        const query = (0, query_for_role_1.createQueryForRole)(account === null || account === void 0 ? void 0 : account.accountRole, targetDivision, team, (_a = account === null || account === void 0 ? void 0 : account.userInfo) === null || _a === void 0 ? void 0 : _a.assignedDivision, (_b = account.userInfo) === null || _b === void 0 ? void 0 : _b.assignedSection);
+        console.log(query);
+        const response = yield (0, user_service_1.getUserInfoForForwardTransaction)(query);
+        return response;
+        // else if()
+    }
+    catch (error) {
+        console.log(error);
+        throw new Error("something went wrong");
+    }
+});
+exports.fetchUserByRoleAccess = fetchUserByRoleAccess;

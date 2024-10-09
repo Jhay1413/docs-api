@@ -14,6 +14,7 @@ import { registerTransactionRoutes } from "./controller/transaction/transaction.
 
 import { registerCompanyRoutes } from "./controller/company/company.routes";
 import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-schema";
+import { registerUserRoutes } from "./controller/user/user.route";
 
 const app = express();
 const corsOptions = {
@@ -33,6 +34,7 @@ app.use(cookieParser());
 
 registerCompanyRoutes(app);
 registerTransactionRoutes(app);
+registerUserRoutes(app);
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
@@ -103,7 +105,7 @@ io.on("connection", (socket) => {
   // });
 });
 
-server.listen(3001 || process.env.PORT, () => {
+server.listen(process.env.PORT || 3001, () => {
   console.log("Server is running on port 3001");
 });
 export { io, userSockets, s };
