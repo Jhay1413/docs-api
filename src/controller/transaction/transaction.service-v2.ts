@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "../../prisma";
 import { completeStaffWork, notification } from "./transaction.schema";
 import * as z from "zod";
-import { transactionLogsData, transactionMutationSchema } from "shared-contract";
+import { filesQuerySchema, transactionLogsData, transactionMutationSchema } from "shared-contract";
 import { completeStaffWorkMutationSchema, filesMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
 
 export class TransactionService {
@@ -107,9 +107,13 @@ export class TransactionService {
         return { ...data, date: data.date.toISOString(), transactionId: data.transactionId! };
       });
       const parseTransactionLogs = transaction?.transactionLogs.map((respo) => {
+        const parseAttachments = JSON.parse(respo.attachments) as z.infer<typeof filesQuerySchema>[]
+        const newAttachmentsLogs = parseAttachments.map(data =>  {
+          return {...data, createdAt: new Date(data.createdAt!).toISOString()}
+        })
         return {
           ...respo,
-          attachments: JSON.parse(respo.attachments),
+          attachments: newAttachmentsLogs,
           createdAt: respo.createdAt.toISOString(),
           updatedAt: respo.updatedAt.toISOString(),
           dateForwarded: respo.dateForwarded.toISOString(),
@@ -117,6 +121,7 @@ export class TransactionService {
           dateReceived: respo.dateReceived ? respo.dateReceived.toISOString() : null,
         };
       });
+
 
       //  const {transactionLogs, ...transationData} = transaction
       const parseData = {
@@ -746,6 +751,34 @@ export class TransactionService {
       throw new Error("Failed to fetch transactions");
     }
   }
+ 
+  public async countTransactions() {
+    try { 
+      const count = await db.transaction.count();
+      return count;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong while counting");
+    }
+  }
+
+  public async getTransactionsWithStatus(status?: string) {
+    try {
+      const transactionWith = await db.transaction.findMany({
+        where: {
+          status: { 
+            equals: status || "ON-PROCESS",
+            mode: "insensitive",
+          }
+        }
+      });
+      return transactionWith;
+    } catch(error) {
+      console.log(error);
+      throw new Error("Error fetching transactions");
+    }
+  }
+
   public async searchTransaction(query: string, page: number, pageSize: number, status?: string) {
     const skip = (page - 1) * pageSize;
     try {

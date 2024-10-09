@@ -275,4 +275,26 @@ export class TransactionController {
       throw new Error("Something went wrong searching transactions");
     }
   }
+
+  public async getCountTransaction(req: Request, res: Response) {
+    try {
+      const count = await this.transactionService.countTransactions();
+      res.status(200).json(count)
+
+      } catch (error) {
+        console.log(error);
+      res.status(400).json({message: "Something went wrong"});
+    }
+  }
+
+  public async getTransactionWithStatus(req: Request, res:Response) {
+    try {
+      const { status } = req.query;
+      const transactions = await this.transactionService.getTransactionsWithStatus(status as string);
+      res.status(200).json(transactions);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      res.status(500).json({ message: "An error occurred while fetching transactions." });
+    }
+  }
 }
