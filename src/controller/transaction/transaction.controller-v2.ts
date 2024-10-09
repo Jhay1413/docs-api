@@ -297,4 +297,14 @@ export class TransactionController {
       res.status(500).json({ message: "An error occurred while fetching transactions." });
     }
   }
+
+  public async getPaginationParams(req: Request, res: Response) {
+    try {
+      const paginateData = await this.transactionService.getPaginateData();
+      return res.status(200).json(paginateData);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Error fetching transaction summary." });
+    }
+  }
 }

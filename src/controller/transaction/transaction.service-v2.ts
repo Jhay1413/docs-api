@@ -754,11 +754,36 @@ export class TransactionService {
  
   public async countTransactions() {
     try { 
-      const count = await db.transaction.count();
-      return count;
+      const transactions = await db.transaction.count();
+      return transactions;
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong while counting");
+    }
+  }
+
+  public async countPage() {
+    try {
+      const transactionsPerPage = await this.countTransactions();
+      const pages = Math.ceil(transactionsPerPage / 10);
+      return pages;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong while counting");
+    }
+  }
+
+  public async getPaginateData() {
+    try {
+      const totalTransactions = await this.countTransactions();
+      const totalPages = await this.countPage();
+      return {
+        totalTransactions,
+        totalPages,
+      };
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong while fetching the summary");
     }
   }
 
