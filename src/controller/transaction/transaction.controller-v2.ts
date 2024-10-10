@@ -235,7 +235,6 @@ export class TransactionController {
 
   public async getDashboardData(req: Request, res: Response) {
     try {
-      console.log("asdasdsas");
       const priority = await this.transactionService.getDashboardPriority();
       const perApplication = await this.transactionService.getNumberPerApplication();
       const perSection = await this.transactionService.getNumberPerSection();
@@ -266,47 +265,15 @@ export class TransactionController {
       res.status(StatusCodes.BAD_GATEWAY).json(error);
     }
   }
-  public async getSearchedTransation(query: string, page: number, pageSize: number, status?: string) {
+  public async getTransactionsHandler(query: string, page: number, pageSize: number, status?: string, userId?: string) {
     try {
-      const transactions = await this.transactionService.searchTransaction(query, page, pageSize, status);
-      if (!transactions) return null;
-      return transactions;
+      console.log(status);
+      const transactions = await this.transactionService.getTransactionsService(query, page, pageSize, status, userId);
+      const numOfTransactions = await this.transactionService.countTransactions(query, status, userId);
+      const numOfPages = numOfTransactions / pageSize;
+      return {data: transactions!, numOfTransactions: numOfTransactions, totalPages: numOfPages};
     } catch (error) {
       throw new Error("Something went wrong searching transactions");
-    }
-  }
-
-  public async getCountTransaction(req: Request, res: Response) {
-    try {
-      const count = await this.transactionService.countTransactions();
-      res.status(200).json(count)
-
-      } catch (error) {
-        console.log(error);
-      res.status(400).json({message: "Something went wrong"});
-    }
-  }
-
-  public async getTransactionWithStatus(req: Request, res:Response) {
-    try {
-      const { status } = req.query;
-      const transactions = await this.transactionService.getTransactionsWithStatus(status as string);
-      res.status(200).json(transactions);
-    } catch (error) {
-      console.error("Error fetching transactions:", error);
-      res.status(500).json({ message: "An error occurred while fetching transactions." });
-    }
-  }
-
-  public async getPaginationParams(req: Request, res: Response) {
-    try {
-      const page = await this.transactionService.countTransactions();
-      const transactions = await this.transactionService.countPage();
-      const paginateData = {page, transactions};
-      return res.status(200).json(paginateData);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Error fetching transaction summary." });
     }
   }
 }

@@ -62,6 +62,7 @@ export class TransactionService {
       throw new Error("Error creating transaction");
     }
   }
+
   public async getTransactionByIdService(id: string) {
     try {
       const transaction = await db.transaction.findUnique({
@@ -107,10 +108,10 @@ export class TransactionService {
         return { ...data, date: data.date.toISOString(), transactionId: data.transactionId! };
       });
       const parseTransactionLogs = transaction?.transactionLogs.map((respo) => {
-        const parseAttachments = JSON.parse(respo.attachments) as z.infer<typeof filesQuerySchema>[]
-        const newAttachmentsLogs = parseAttachments.map(data =>  {
-          return {...data, createdAt: new Date(data.createdAt!).toISOString()}
-        })
+        const parseAttachments = JSON.parse(respo.attachments) as z.infer<typeof filesQuerySchema>[];
+        const newAttachmentsLogs = parseAttachments.map((data) => {
+          return { ...data, createdAt: new Date(data.createdAt!).toISOString() };
+        });
         return {
           ...respo,
           attachments: newAttachmentsLogs,
@@ -121,7 +122,6 @@ export class TransactionService {
           dateReceived: respo.dateReceived ? respo.dateReceived.toISOString() : null,
         };
       });
-
 
       //  const {transactionLogs, ...transationData} = transaction
       const parseData = {
@@ -220,67 +220,67 @@ export class TransactionService {
     }
   }
 
-  public async getTransactionsService(status: string, page: number, pageSize: number) {
-    const skip = (page - 1) * pageSize;
-    console.log(page, pageSize);
-    try {
-      const transactions = await db.transaction.findMany({
-        skip,
-        take: pageSize,
+  // public async getTransactionsService(status: string, page: number, pageSize: number) {
+  //   const skip = (page - 1) * pageSize;
+  //   console.log(page, pageSize);
+  //   try {
+  //     const transactions = await db.transaction.findMany({
+  //       skip,
+  //       take: pageSize,
 
-        where: {
-          status: {
-            equals: status,
-          },
-        },
-        include: {
-          forwarder: {
-            include: {
-              userInfo: true,
-            },
-          },
-          receiver: {
-            include: {
-              userInfo: true,
-            },
-          },
-          project: true,
-          company: true,
-          attachments: {
-            omit: {
-              createdAt: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+  //       where: {
+  //         status: {
+  //           equals: status,
+  //         },
+  //       },
+  //       include: {
+  //         forwarder: {
+  //           include: {
+  //             userInfo: true,
+  //           },
+  //         },
+  //         receiver: {
+  //           include: {
+  //             userInfo: true,
+  //           },
+  //         },
+  //         project: true,
+  //         company: true,
+  //         attachments: {
+  //           omit: {
+  //             createdAt: true,
+  //           },
+  //         },
+  //       },
+  //       orderBy: {
+  //         createdAt: "desc",
+  //       },
+  //     });
 
-      // Post-process to calculate percentage and combine names
-      if (!transactions) return null;
-      const processedTransactions = transactions.map((t) => {
-        const finalAttachmentCount = t.attachments.filter((a) => a.fileStatus === "FINAL_ATTACHMENT").length;
-        const totalAttachmentCount = t.attachments.length;
+  //     // Post-process to calculate percentage and combine names
+  //     if (!transactions) return null;
+  //     const processedTransactions = transactions.map((t) => {
+  //       const finalAttachmentCount = t.attachments.filter((a) => a.fileStatus === "FINAL_ATTACHMENT").length;
+  //       const totalAttachmentCount = t.attachments.length;
 
-        const percentage = totalAttachmentCount ? (finalAttachmentCount * 100) / totalAttachmentCount : 0;
+  //       const percentage = totalAttachmentCount ? (finalAttachmentCount * 100) / totalAttachmentCount : 0;
 
-        return {
-          ...t,
-          dueDate: t.dueDate.toISOString(),
-          dateForwarded: t.dateForwarded.toISOString(),
-          dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null,
-          forwarderName: `${t.forwarder?.userInfo?.firstName} ${t.forwarder?.userInfo?.lastName}`,
-          receiverName: `${t.receiver?.userInfo?.firstName} ${t.receiver?.userInfo?.lastName}`, // Assuming you include receiver info in a similar way
-          percentage: Math.round(percentage).toString(),
-        };
-      });
-      return processedTransactions;
-    } catch (error) {
-      console.error("Error fetching transaction", error);
-      throw new Error("Failed to fetch transactions");
-    }
-  }
+  //       return {
+  //         ...t,
+  //         dueDate: t.dueDate.toISOString(),
+  //         dateForwarded: t.dateForwarded.toISOString(),
+  //         dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null,
+  //         forwarderName: `${t.forwarder?.userInfo?.firstName} ${t.forwarder?.userInfo?.lastName}`,
+  //         receiverName: `${t.receiver?.userInfo?.firstName} ${t.receiver?.userInfo?.lastName}`, // Assuming you include receiver info in a similar way
+  //         percentage: Math.round(percentage).toString(),
+  //       };
+  //     });
+  //     return processedTransactions;
+  //   } catch (error) {
+  //     console.error("Error fetching transaction", error);
+  //     throw new Error("Failed to fetch transactions");
+  //   }
+  // }
   public async getArchivedTransaction() {
     try {
       const response = await db.transaction.findMany({
@@ -527,6 +527,8 @@ export class TransactionService {
       throw new Error("Something went wrong while adding csw ! ");
     }
   }
+
+  //Unused function
   public async getDepartmentEntities() {
     try {
       const transactions = await db.$queryRaw`
@@ -751,22 +753,60 @@ export class TransactionService {
       throw new Error("Failed to fetch transactions");
     }
   }
- 
-  public async countTransactions() {
-    try { 
-      const transactions = await db.transaction.count();
-      return transactions;
-    } catch (error) {
-      console.log(error);
-      throw new Error("Something went wrong while counting");
-    }
-  }
 
-  public async countPage() {
-    try {
-      const transactionsPerPage = await this.countTransactions();
-      const pages = Math.ceil(transactionsPerPage / 10);
-      return pages;
+  public async countTransactions(query:string, status?: string, userId?: string) {
+    var condition: any = {};
+
+    if (status === "INBOX") {
+      console.log("iminbox");
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          not: null,
+        },
+      };
+    } else if (status === "INCOMING") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          equals: null,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    }
+    try { 
+      const transactions = await db.transaction.count({
+        where: {
+          AND: [
+            condition,
+            {
+              OR: [
+                {
+                  company: {
+                    OR: [{ companyName: { contains: query, mode: "insensitive" } }, { companyId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                {
+                  project: {
+                    OR: [{ projectName: { contains: query, mode: "insensitive" } }, { projectId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                { team: { contains: query, mode: "insensitive" } },
+                { transactionId: { contains: query, mode: "insensitive" } },
+                { documentSubType: { contains: query, mode: "insensitive" } },
+                { targetDepartment: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } },
+              ],
+            },
+          ],
+        },
+      });
+      return transactions;
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong while counting");
@@ -777,30 +817,54 @@ export class TransactionService {
     try {
       const transactionWith = await db.transaction.findMany({
         where: {
-          status: { 
+          status: {
             equals: status || "ON-PROCESS",
             mode: "insensitive",
-          }
-        }
+          },
+        },
       });
       return transactionWith;
-    } catch(error) {
+    } catch (error) {
       console.log(error);
       throw new Error("Error fetching transactions");
     }
   }
 
-  public async searchTransaction(query: string, page: number, pageSize: number, status?: string) {
+  public async getTransactionsService(query: string, page: number, pageSize: number, status?: string, userId?: string) {
     const skip = (page - 1) * pageSize;
+
+    var condition: any = {};
+
+    if (status === "INBOX") {
+      console.log("iminbox");
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          not: null,
+        },
+      };
+    } else if (status === "INCOMING") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          equals: null,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    }
+    console.log(condition);
     try {
       const transactions = await db.transaction.findMany({
         skip,
         take: pageSize,
         where: {
-          status: {
-            equals: status,
-          },
           AND: [
+            condition,
             {
               OR: [
                 {

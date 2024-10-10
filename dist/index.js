@@ -27,6 +27,7 @@ const socket_io_1 = require("socket.io");
 const transaction_service_v2_1 = require("./controller/transaction/transaction.service-v2");
 const transaction_routes_1 = require("./controller/transaction/transaction.routes");
 const company_routes_1 = require("./controller/company/company.routes");
+const user_route_1 = require("./controller/user/user.route");
 const app = (0, express_1.default)();
 const corsOptions = {
     origin: [
@@ -43,6 +44,7 @@ app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 (0, company_routes_1.registerCompanyRoutes)(app);
 (0, transaction_routes_1.registerTransactionRoutes)(app);
+(0, user_route_1.registerUserRoutes)(app);
 app.use("/api/auth", auth_route_1.default);
 app.use("/api/user", user_routes_1.default);
 app.use("/api/transaction", transaction_route_1.default);
@@ -108,7 +110,7 @@ io.on("connection", (socket) => {
     //   }
     // });
 });
-server.listen(3001 || process.env.PORT, () => {
+server.listen(process.env.PORT || 3001, () => {
     console.log("Server is running on port 3001");
 });
 server.keepAliveTimeout = 65000;

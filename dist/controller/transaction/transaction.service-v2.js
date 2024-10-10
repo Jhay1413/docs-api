@@ -17,7 +17,7 @@ class TransactionService {
             const { transactionId, documentType, subject, receiverId, remarks, dueDate, forwarderId, originDepartment, targetDepartment, dateForwarded, documentSubType, team, projectId, companyId, status, priority, attachments, } = data;
             try {
                 const createdTransaction = yield tx.transaction.create({
-                    data: Object.assign(Object.assign({}, data), { transactionId: data.transactionId, attachments: {
+                    data: Object.assign(Object.assign({}, data), { transactionId: data.transactionId, receiverId: status == "ARCHIVED" ? null : receiverId, dateReceived: null, attachments: {
                             createMany: {
                                 data: attachments,
                             },

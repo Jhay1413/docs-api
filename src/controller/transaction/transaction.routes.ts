@@ -92,25 +92,23 @@ const transactionRouter = s.router(contracts.transaction, {
       };
     }
   },
-  searchTransactions: async ({ query }) => {
+  fetchTransactions: async ({ query }) => {
     try {
-      console.log(query.pageSize);
+      console.log(query.status);
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
 
-      if (query.query) {
-        const result = await transactionController.getSearchedTransation(query.query, page, pageSize, query.status);
-        return {
-          status: 201,
-          body: result || null,
-        };
-      } else {
-        const result = await transactionController.fetchAllTransactions(query.status!, page, pageSize);
-        return {
-          status: 201,
-          body: result || null,
-        };
-      }
+      const result = await transactionController.getTransactionsHandler(query.query, page, pageSize, query.status, query.userId);
+      return {
+        status: 201,
+        body: result!,
+      };
+
+      // const result = await transactionController.fetchAllTransactions(query.status!, page, pageSize, );
+      // return {
+      //   status: 201,
+      //   body: result || null,
+      // };
     } catch (error) {
       return {
         status: 500,

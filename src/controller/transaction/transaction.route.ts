@@ -30,9 +30,6 @@ const transactionController = new TransactionController();
 
 //transactions v2
 // router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
-router.get("/v2/getNumberOfTransactions", transactionController.getCountTransaction.bind(transactionController));
-router.get("/v2/getTransactionsWithStatus", transactionController.getTransactionWithStatus.bind(transactionController));
-router.get("/v2/transactionsPaginate", transactionController.getPaginationParams.bind(transactionController));
 router.get("/v2/dashboardData", transactionController.getDashboardData.bind(transactionController));
 // Fetch archived transactions
 router.get("/v2/archived", transactionController.fetchArchivedTransactionHandler.bind(transactionController));

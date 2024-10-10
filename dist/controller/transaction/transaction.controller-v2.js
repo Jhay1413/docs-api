@@ -24,10 +24,13 @@ class TransactionController {
     insertTransactionHandler(data) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                let receiverInfo = null;
                 const lastId = yield this.transactionService.getLastId();
                 const generatedId = (0, generate_id_1.GenerateId)(lastId);
                 const data_payload = Object.assign(Object.assign({}, data), { transactionId: generatedId });
-                const receiverInfo = yield (0, user_service_1.getUserInfoByAccountId)(data.receiverId);
+                if (data.status != "ARCHIVED" && data.receiverId) {
+                    receiverInfo = yield (0, user_service_1.getUserInfoByAccountId)(data.receiverId);
+                }
                 const forwarder = yield (0, user_service_1.getUserInfoByAccountId)(data.forwarderId);
                 const response = yield prisma_1.db.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                     const transaction = yield this.transactionService.insertTransaction(data_payload, tx);
