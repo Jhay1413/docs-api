@@ -96,7 +96,6 @@ export class TransactionService {
           },
         },
       });
-      console.log(transaction);
       if (!transaction) throw new Error("transaction not found");
       const new_attachments = transaction.attachments.map((data) => {
         return {
@@ -441,10 +440,6 @@ export class TransactionService {
   }
   public async receivedLogsService(transactionId: string, dateForwarded: Date, dateReceived: Date, userId: string) {
     try {
-      console.log(userId, "userId");
-      console.log(dateReceived, "dateRecieved");
-      console.log(dateForwarded, "date forwarded");
-      console.log(transactionId, "transaction ID");
       const response = await db.transactionLogs.update({
         where: {
           refId: {
@@ -758,7 +753,6 @@ export class TransactionService {
     var condition: any = {};
 
     if (status === "INBOX") {
-      console.log("iminbox");
       condition = {
         receiverId: userId,
         dateReceived: {
@@ -857,7 +851,6 @@ export class TransactionService {
         },
       };
     }
-    console.log(condition);
     try {
       const transactions = await db.transaction.findMany({
         skip,
@@ -934,6 +927,114 @@ export class TransactionService {
     } catch (error) {
       console.log(error);
       throw new Error("something went wrong while searching");
+    }
+  }
+
+  public async getTransactionServiceV2(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+    const skip = (page - 1) * pageSize;
+    var condition: any = {};
+
+    if (status === "INBOX") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          not: null,
+        },
+      };
+    } else if (status === "INCOMING") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          equals: null,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    }
+    try {
+      const transactions = await db.transaction.findMany({
+        skip,
+        take: pageSize,
+        where: {
+          AND: [
+            condition,
+            {
+              OR: [
+                {
+                  company: {
+                    OR: [{ companyName: { contains: query, mode: "insensitive" } }, { companyId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                {
+                  project: {
+                    OR: [{ projectName: { contains: query, mode: "insensitive" } }, { projectId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                { team: { contains: query, mode: "insensitive" } },
+                { transactionId: { contains: query, mode: "insensitive" } },
+                { documentSubType: { contains: query, mode: "insensitive" } },
+                { targetDepartment: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } },
+              ],
+            },
+          ],
+        },
+        select: {
+          id: true,
+          transactionId: true,
+          project:{
+            select: {
+              projectName: true,
+      
+            }
+          },
+          company:{
+            select: {
+              companyName: true,
+            }
+          },
+          documentType: true,
+          documentSubType: true,
+          subject: true,
+          dueDate: true,
+          forwarder: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                }
+              }
+            }
+          },
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                }
+              }
+            }
+          },
+          status: true,
+          priority: true
+        },
+        orderBy: {
+          createdAt: "desc",
+        }
+      });
+      const newData = transactions.map(data => {
+        return { ...data, dueDate: data.dueDate.toISOString() }
+      });
+      return newData;
+    } catch(error) {
+      console.log("Something went wrong while fetching transactions.", error);
+      throw new Error(("something went wrong while searching"));
     }
   }
 }

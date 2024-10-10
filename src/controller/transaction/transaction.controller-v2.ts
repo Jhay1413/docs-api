@@ -274,4 +274,15 @@ export class TransactionController {
       throw new Error("Something went wrong searching transactions");
     }
   }
+
+  public async getTransactionsV2(query: string, page: number, pageSize: number, status?: string, userId?: string){
+    try {
+      const transactionsFetched = await this.transactionService.getTransactionServiceV2(query, page, pageSize, status, userId);
+      const numOfTransactions = await this.transactionService.countTransactions(query, status, userId);
+      const numOfPages = Math.ceil(numOfTransactions / pageSize);
+      return { data: transactionsFetched, numOfTransactions: numOfTransactions, totalPages: numOfPages };
+    } catch (error) {
+      throw new Error("Something went wrong searching transactions");
+    }
+  }
 }
