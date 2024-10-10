@@ -174,7 +174,6 @@ export class TransactionController {
   public async receivedTransactionHandler(id: string, dateReceived: string) {
     try {
       const result = await this.transactionService.receiveTransactionService(id, dateReceived);
-      console.log(result);
       await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
       return result;
     } catch (error) {
@@ -235,7 +234,6 @@ export class TransactionController {
 
   public async getDashboardData(req: Request, res: Response) {
     try {
-      console.log("asdasdsas");
       const priority = await this.transactionService.getDashboardPriority();
       const perApplication = await this.transactionService.getNumberPerApplication();
       const perSection = await this.transactionService.getNumberPerSection();
@@ -266,11 +264,12 @@ export class TransactionController {
       res.status(StatusCodes.BAD_GATEWAY).json(error);
     }
   }
-  public async getSearchedTransation(query: string, page: number, pageSize: number, status?: string) {
+  public async getTransactionsHandler(query: string, page: number, pageSize: number, status?: string, userId?: string) {
     try {
-      const transactions = await this.transactionService.searchTransaction(query, page, pageSize, status);
-      if (!transactions) return null;
-      return transactions;
+      const transactions = await this.transactionService.getTransactionsService(query, page, pageSize, status, userId);
+      const numOfTransactions = await this.transactionService.countTransactions(query, status, userId);
+      const numOfPages = Math.ceil(numOfTransactions / pageSize);
+      return {data: transactions!, numOfTransactions: numOfTransactions, totalPages: numOfPages};
     } catch (error) {
       throw new Error("Something went wrong searching transactions");
     }

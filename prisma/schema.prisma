@@ -104,7 +104,7 @@ model Transaction {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   documentSubType   String
-  team              String?
+  team              String
   status            String
   priority          String
   companyId         String
@@ -189,7 +189,6 @@ enum Roles {
   QA
   DMS
   FINANCE
-  
 }
 
 enum Status {
