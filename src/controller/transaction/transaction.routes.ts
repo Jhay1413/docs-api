@@ -118,6 +118,26 @@ const transactionRouter = s.router(contracts.transaction, {
       };
     }
   },
+  fetchTransactionsV2: async ({ query }) => {
+    try {
+      console.log(query.status);
+      const page = parseInt(query.page, 10);
+      const pageSize = parseInt(query.pageSize, 10);
+
+      const result = await transactionController.getTransactionsV2(query.query, page, pageSize, query.status, query.userId);
+      return {
+        status: 201,
+        body: result!,
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong",
+        },
+      };
+    }
+  },
   fetchTransactionById: async ({ params }) => {
     try {
       const result = await transactionController.fetchTransactionByIdHandler(params.id);

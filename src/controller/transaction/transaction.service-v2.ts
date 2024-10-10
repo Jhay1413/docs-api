@@ -1000,6 +1000,7 @@ export class TransactionService {
           documentType: true,
           documentSubType: true,
           subject: true,
+          dueDate: true,
           forwarder: {
             select: {
               userInfo: {
@@ -1027,9 +1028,13 @@ export class TransactionService {
           createdAt: "desc",
         }
       });
-      return transactions;
+      const newData = transactions.map(data => {
+        return { ...data, dueDate: data.dueDate.toISOString() }
+      });
+      return newData;
     } catch(error) {
-
+      console.log("Something went wrong while fetching transactions.", error);
+      throw new Error(("something went wrong while searching"));
     }
   }
 }
