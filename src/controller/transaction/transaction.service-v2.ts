@@ -62,6 +62,7 @@ export class TransactionService {
       throw new Error("Error creating transaction");
     }
   }
+
   public async getTransactionByIdService(id: string) {
     try {
       const transaction = await db.transaction.findUnique({
@@ -753,10 +754,59 @@ export class TransactionService {
     }
   }
 
-  public async countTransactions() {
-    try {
-      const count = await db.transaction.count();
-      return count;
+  public async countTransactions(query:string, status?: string, userId?: string) {
+    var condition: any = {};
+
+    if (status === "INBOX") {
+      console.log("iminbox");
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          not: null,
+        },
+      };
+    } else if (status === "INCOMING") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          equals: null,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    }
+    try { 
+      const transactions = await db.transaction.count({
+        where: {
+          AND: [
+            condition,
+            {
+              OR: [
+                {
+                  company: {
+                    OR: [{ companyName: { contains: query, mode: "insensitive" } }, { companyId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                {
+                  project: {
+                    OR: [{ projectName: { contains: query, mode: "insensitive" } }, { projectId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                { team: { contains: query, mode: "insensitive" } },
+                { transactionId: { contains: query, mode: "insensitive" } },
+                { documentSubType: { contains: query, mode: "insensitive" } },
+                { targetDepartment: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } },
+              ],
+            },
+          ],
+        },
+      });
+      return transactions;
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong while counting");
