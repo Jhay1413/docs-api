@@ -174,7 +174,6 @@ export class TransactionController {
   public async receivedTransactionHandler(id: string, dateReceived: string) {
     try {
       const result = await this.transactionService.receiveTransactionService(id, dateReceived);
-      console.log(result);
       await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
       return result;
     } catch (error) {
@@ -267,10 +266,9 @@ export class TransactionController {
   }
   public async getTransactionsHandler(query: string, page: number, pageSize: number, status?: string, userId?: string) {
     try {
-      console.log(status);
       const transactions = await this.transactionService.getTransactionsService(query, page, pageSize, status, userId);
       const numOfTransactions = await this.transactionService.countTransactions(query, status, userId);
-      const numOfPages = numOfTransactions / pageSize;
+      const numOfPages = Math.ceil(numOfTransactions / pageSize);
       return {data: transactions!, numOfTransactions: numOfTransactions, totalPages: numOfPages};
     } catch (error) {
       throw new Error("Something went wrong searching transactions");
