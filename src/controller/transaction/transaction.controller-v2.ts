@@ -1,16 +1,14 @@
 import { StatusCodes } from "http-status-codes";
 import { TransactionService } from "./transaction.service-v2";
 import { Request, Response } from "express";
-import { notification } from "./transaction.schema";
 import { GenerateId } from "../../utils/generate-id";
 import { cleanedDataUtils } from "./transaction.utils";
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
-import { transactionMutationSchema, transactionQueryData, userInfoQuerySchema } from "shared-contract";
+import { transactionMutationSchema, userInfoQuerySchema } from "shared-contract";
 import { completeStaffWorkMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
-import { getAccountById, getUserInfoByAccountId } from "../user/user.service";
-import { getCompanyById, getProjectById } from "../company/company.service";
+import { getUserInfoByAccountId } from "../user/user.service";
 export class TransactionController {
   private transactionService: TransactionService;
 
@@ -179,6 +177,7 @@ export class TransactionController {
     try {
       const result = await this.transactionService.receiveTransactionService(id, dateReceived);
       await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
+      console.log(result);
       return result;
     } catch (error) {
       console.log(error);

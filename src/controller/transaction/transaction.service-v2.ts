@@ -431,8 +431,55 @@ export class TransactionService {
         data: {
           dateReceived: dateReceived,
         },
+        select: {
+          id: true,
+          transactionId: true,
+          project: {
+            select: {
+              projectName: true,
+            },
+          },
+          company: {
+            select: {
+              companyName: true,
+            },
+          },
+          percentage: true,
+          documentType: true,
+          documentSubType: true,
+          subject: true,
+          dueDate: true,
+          forwarder: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          dateForwarded: true,
+          dateReceived: true,
+          receiverId: true,
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          status: true,
+          priority: true,
+        },
       });
-      return response;
+
+      const receiver = response.receiver?.userInfo ? `${response.receiver.userInfo.firstName} - ${response.receiver.userInfo.lastName}` : null;
+      const forwarder = response.forwarder?.userInfo ? `${response.forwarder.userInfo.firstName} - ${response.forwarder.userInfo.lastName}` : null;
+      return { ...response, receiver: receiver, forwarder: forwarder, dueDate: response.dueDate.toISOString() };
     } catch (error) {
       console.log(error);
       throw new Error("Error while receiving transaction .");
@@ -1016,7 +1063,6 @@ export class TransactionService {
               },
             },
           },
-          attachments: true,
           status: true,
           priority: true,
         },
