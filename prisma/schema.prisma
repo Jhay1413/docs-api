@@ -111,6 +111,7 @@ model Transaction {
   projectId         String
   remarks           String
   dateForwarded     DateTime
+  percentage        Int               @default(0)
   dateReceived      DateTime?
   originDepartment  String
   targetDepartment  String
@@ -146,6 +147,7 @@ model TransactionLogs {
   forwarder        String
   originDepartment String
   targetDepartment String
+  percentage        Int          @default(0)
   dateForwarded    DateTime
   dateReceived     DateTime?
   attachments      String      @default("")

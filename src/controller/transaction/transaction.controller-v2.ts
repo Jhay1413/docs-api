@@ -18,14 +18,19 @@ export class TransactionController {
     this.transactionService = new TransactionService();
   }
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
+    data.attachments;
+
+    let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
+
+    const lastId = await this.transactionService.getLastId();
+    const generatedId = GenerateId(lastId);
+
+    const data_payload = { ...data, transactionId: generatedId };
+
+    if (data.status != "ARCHIVED" && data.receiverId) {
+      receiverInfo = await getUserInfoByAccountId(data.receiverId);
+    }
     try {
-      let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
-      const lastId = await this.transactionService.getLastId();
-      const generatedId = GenerateId(lastId);
-      const data_payload = { ...data, transactionId: generatedId };
-      if (data.status != "ARCHIVED" && data.receiverId) {
-        receiverInfo = await getUserInfoByAccountId(data.receiverId);
-      }
       const forwarder = await getUserInfoByAccountId(data.forwarderId);
 
       const response = await db.$transaction(async (tx) => {
@@ -38,7 +43,6 @@ export class TransactionController {
         return transaction;
       });
 
-      if (!response) throw new Error("Something went wrong inserting data !");
       if (response.status === "ARCHIVED") return response;
 
       const notifications = await this.transactionService.fetchAllNotificationById(response.receiverId!);
@@ -269,13 +273,13 @@ export class TransactionController {
       const transactions = await this.transactionService.getTransactionsService(query, page, pageSize, status, userId);
       const numOfTransactions = await this.transactionService.countTransactions(query, status, userId);
       const numOfPages = Math.ceil(numOfTransactions / pageSize);
-      return {data: transactions!, numOfTransactions: numOfTransactions, totalPages: numOfPages};
+      return { data: transactions!, numOfTransactions: numOfTransactions, totalPages: numOfPages };
     } catch (error) {
       throw new Error("Something went wrong searching transactions");
     }
   }
 
-  public async getTransactionsV2(query: string, page: number, pageSize: number, status?: string, userId?: string){
+  public async getTransactionsV2(query: string, page: number, pageSize: number, status?: string, userId?: string) {
     try {
       const transactionsFetched = await this.transactionService.getTransactionServiceV2(query, page, pageSize, status, userId);
       const numOfTransactions = await this.transactionService.countTransactions(query, status, userId);

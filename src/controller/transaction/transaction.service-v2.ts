@@ -749,7 +749,7 @@ export class TransactionService {
     }
   }
 
-  public async countTransactions(query:string, status?: string, userId?: string) {
+  public async countTransactions(query: string, status?: string, userId?: string) {
     var condition: any = {};
 
     if (status === "INBOX") {
@@ -773,7 +773,7 @@ export class TransactionService {
         },
       };
     }
-    try { 
+    try {
       const transactions = await db.transaction.count({
         where: {
           AND: [
@@ -890,6 +890,7 @@ export class TransactionService {
               userInfo: true,
             },
           },
+
           project: true,
           company: true,
           attachments: {
@@ -906,11 +907,6 @@ export class TransactionService {
       // Post-process to calculate percentage and combine names
       if (!transactions) return null;
       const processedTransactions = transactions.map((t) => {
-        const finalAttachmentCount = t.attachments.filter((a) => a.fileStatus === "FINAL_ATTACHMENT").length;
-        const totalAttachmentCount = t.attachments.length;
-
-        const percentage = totalAttachmentCount ? (finalAttachmentCount * 100) / totalAttachmentCount : 0;
-
         return {
           ...t,
           dueDate: t.dueDate.toISOString(),
@@ -919,7 +915,6 @@ export class TransactionService {
           dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null,
           forwarderName: `${t.forwarder?.userInfo?.firstName} ${t.forwarder?.userInfo?.lastName}`,
           receiverName: `${t.receiver?.userInfo?.firstName} ${t.receiver?.userInfo?.lastName}`, // Assuming you include receiver info in a similar way
-          percentage: Math.round(percentage).toString(),
         };
       });
 
@@ -986,17 +981,17 @@ export class TransactionService {
         select: {
           id: true,
           transactionId: true,
-          project:{
+          project: {
             select: {
               projectName: true,
-      
-            }
+            },
           },
-          company:{
+          company: {
             select: {
               companyName: true,
-            }
+            },
           },
+          percentage: true,
           documentType: true,
           documentSubType: true,
           subject: true,
@@ -1007,9 +1002,9 @@ export class TransactionService {
                 select: {
                   firstName: true,
                   lastName: true,
-                }
-              }
-            }
+                },
+              },
+            },
           },
           receiver: {
             select: {
@@ -1017,24 +1012,33 @@ export class TransactionService {
                 select: {
                   firstName: true,
                   lastName: true,
-                }
-              }
-            }
+                },
+              },
+            },
           },
+          attachments: true,
           status: true,
-          priority: true
+          priority: true,
         },
         orderBy: {
           createdAt: "desc",
-        }
+        },
       });
-      const newData = transactions.map(data => {
-        return { ...data, dueDate: data.dueDate.toISOString() }
+      const newData = transactions.map((data) => {
+        const receiver = data.receiver?.userInfo ? `${data.receiver.userInfo.firstName} - ${data.receiver.userInfo.lastName}` : null;
+        const forwarder = data.forwarder?.userInfo ? `${data.forwarder.userInfo.firstName} - ${data.forwarder.userInfo.lastName}` : null;
+        return {
+          ...data,
+          dueDate: data.dueDate.toISOString(),
+          receiver: receiver,
+          forwarder: forwarder,
+        };
       });
+
       return newData;
-    } catch(error) {
+    } catch (error) {
       console.log("Something went wrong while fetching transactions.", error);
-      throw new Error(("something went wrong while searching"));
+      throw new Error("something went wrong while searching");
     }
   }
 }
