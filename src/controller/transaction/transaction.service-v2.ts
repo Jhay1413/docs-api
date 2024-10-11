@@ -6,11 +6,12 @@ import { filesQuerySchema, transactionLogsData, transactionMutationSchema } from
 import { completeStaffWorkMutationSchema, filesMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
 
 export class TransactionService {
-  public async insertTransaction(data: z.infer<typeof transactionMutationSchema>, tx: Prisma.TransactionClient) {
+  public async insertTransaction(data: z.infer<typeof transactionMutationSchema>,percentage:number, tx: Prisma.TransactionClient) {
     const {
       transactionId,
       documentType,
       subject,
+     
       receiverId,
       remarks,
       dueDate,
@@ -31,6 +32,7 @@ export class TransactionService {
       const createdTransaction = await tx.transaction.create({
         data: {
           ...data,
+          percentage:percentage,
           transactionId: data.transactionId!,
           receiverId: status == "ARCHIVED" ? null : receiverId,
           dateReceived: null,
@@ -379,6 +381,7 @@ export class TransactionService {
     data: z.infer<typeof transactionMutationSchema>,
     createAttachment: z.infer<typeof filesMutationSchema>[],
     updateAttachment: z.infer<typeof filesMutationSchema>[],
+    percentage: number,
     tx: Prisma.TransactionClient,
   ) {
     try {
@@ -388,6 +391,7 @@ export class TransactionService {
         },
         data: {
           ...data,
+          percentage: percentage,
           dateReceived: null,
           attachments: {
             createMany: {

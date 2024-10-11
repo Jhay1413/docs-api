@@ -3,7 +3,7 @@ import { TransactionService } from "./transaction.service-v2";
 import { Request, Response } from "express";
 import { notification } from "./transaction.schema";
 import { GenerateId } from "../../utils/generate-id";
-import { cleanedDataUtils } from "./transaction.utils";
+import { cleanedDataUtils, getAttachmentsPercentage } from "./transaction.utils";
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
@@ -18,22 +18,19 @@ export class TransactionController {
     this.transactionService = new TransactionService();
   }
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
-    const attachmentsCount = data.attachments.length;
-    const finalAttachmentsCount = data.attachments.filter(attachment => attachment.fileStatus === "FINAL_ATTACHMENT").length;
-    const percentage = Math.ceil(finalAttachmentsCount / attachmentsCount);
-
+    const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
     try {
       let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
       const lastId = await this.transactionService.getLastId();
       const generatedId = GenerateId(lastId);
-      const data_payload = { ...data, transactionId: generatedId, percentage: percentage};
+      const data_payload = { ...data, transactionId: generatedId};
       if (data.status != "ARCHIVED" && data.receiverId) {
         receiverInfo = await getUserInfoByAccountId(data.receiverId);
       }
       const forwarder = await getUserInfoByAccountId(data.forwarderId);
 
       const response = await db.$transaction(async (tx) => {
-        const transaction = await this.transactionService.insertTransaction(data_payload, tx);
+        const transaction = await this.transactionService.insertTransaction(data_payload, attachmentsPercentage, tx);
 
         const payload = cleanedDataUtils(transaction, forwarder!, receiverInfo);
 
@@ -141,9 +138,10 @@ export class TransactionController {
       const forwarder = await getUserInfoByAccountId(data.forwarderId);
       const createAttachment = data.attachments.filter((attachment) => !attachment.id);
       const updateAttachment = data.attachments.filter((attachment) => attachment.id);
+      const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
 
       const response = await db.$transaction(async (tx) => {
-        const result = await this.transactionService.forwardTransactionService(data, createAttachment, updateAttachment, tx);
+        const result = await this.transactionService.forwardTransactionService(data, createAttachment, updateAttachment, attachmentsPercentage, tx);
         const payload = cleanedDataUtils(result, forwarder!, receiverInfo!);
         await this.transactionService.logPostTransaction(payload, tx);
         return result;
