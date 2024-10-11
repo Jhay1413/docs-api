@@ -1,5 +1,5 @@
 import z from "zod";
-import { transactionQueryData, userInfoQuerySchema } from "shared-contract";
+import { filesMutationSchema, transactionQueryData, userInfoQuerySchema } from "shared-contract";
 const cleanedDataUtils = (
   data: z.infer<typeof transactionQueryData>,
   forwaderData?: z.infer<typeof userInfoQuerySchema>,
@@ -28,4 +28,15 @@ const cleanedDataUtils = (
   return createData;
 };
 
-export { cleanedDataUtils };
+const getAttachmentsPercentage = (attachments: z.infer<typeof filesMutationSchema>[]) => {
+  if (!attachments) return 0;
+
+  const attachmentsCount = attachments.length;
+  const finalAttachmentsCount = attachments.filter(
+    (attachment) => attachment.fileStatus === "FINAL_ATTACHMENT"
+  ).length;
+
+  return Math.ceil((finalAttachmentsCount * 100) / attachmentsCount);
+};
+
+export { cleanedDataUtils, getAttachmentsPercentage };

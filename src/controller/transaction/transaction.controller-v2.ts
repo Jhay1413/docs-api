@@ -1,16 +1,14 @@
 import { StatusCodes } from "http-status-codes";
 import { TransactionService } from "./transaction.service-v2";
 import { Request, Response } from "express";
-import { notification } from "./transaction.schema";
 import { GenerateId } from "../../utils/generate-id";
-import { cleanedDataUtils } from "./transaction.utils";
+import { cleanedDataUtils, getAttachmentsPercentage } from "./transaction.utils";
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
-import { transactionMutationSchema, transactionQueryData, userInfoQuerySchema } from "shared-contract";
+import { transactionMutationSchema, userInfoQuerySchema } from "shared-contract";
 import { completeStaffWorkMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
-import { getAccountById, getUserInfoByAccountId } from "../user/user.service";
-import { getCompanyById, getProjectById } from "../company/company.service";
+import { getUserInfoByAccountId } from "../user/user.service";
 export class TransactionController {
   private transactionService: TransactionService;
 
@@ -18,18 +16,19 @@ export class TransactionController {
     this.transactionService = new TransactionService();
   }
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
+    const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
     try {
       let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
       const lastId = await this.transactionService.getLastId();
       const generatedId = GenerateId(lastId);
-      const data_payload = { ...data, transactionId: generatedId };
+      const data_payload = { ...data, transactionId: generatedId};
       if (data.status != "ARCHIVED" && data.receiverId) {
         receiverInfo = await getUserInfoByAccountId(data.receiverId);
       }
       const forwarder = await getUserInfoByAccountId(data.forwarderId);
 
       const response = await db.$transaction(async (tx) => {
-        const transaction = await this.transactionService.insertTransaction(data_payload, tx);
+        const transaction = await this.transactionService.insertTransaction(data_payload, attachmentsPercentage, tx);
 
         const payload = cleanedDataUtils(transaction, forwarder!, receiverInfo);
 
@@ -38,7 +37,6 @@ export class TransactionController {
         return transaction;
       });
 
-      if (!response) throw new Error("Something went wrong inserting data !");
       if (response.status === "ARCHIVED") return response;
 
       const notifications = await this.transactionService.fetchAllNotificationById(response.receiverId!);
@@ -57,7 +55,6 @@ export class TransactionController {
       if (receiverSocketId) {
         io.to(receiverSocketId).emit("notification", message, modified_message, quantityTracker);
       }
-
       return response;
     } catch (error) {
       console.log(error);
@@ -139,9 +136,10 @@ export class TransactionController {
       const forwarder = await getUserInfoByAccountId(data.forwarderId);
       const createAttachment = data.attachments.filter((attachment) => !attachment.id);
       const updateAttachment = data.attachments.filter((attachment) => attachment.id);
+      const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
 
       const response = await db.$transaction(async (tx) => {
-        const result = await this.transactionService.forwardTransactionService(data, createAttachment, updateAttachment, tx);
+        const result = await this.transactionService.forwardTransactionService(data, createAttachment, updateAttachment, attachmentsPercentage, tx);
         const payload = cleanedDataUtils(result, forwarder!, receiverInfo!);
         await this.transactionService.logPostTransaction(payload, tx);
         return result;
@@ -175,6 +173,7 @@ export class TransactionController {
     try {
       const result = await this.transactionService.receiveTransactionService(id, dateReceived);
       await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
+      console.log(result);
       return result;
     } catch (error) {
       console.log(error);
@@ -269,7 +268,18 @@ export class TransactionController {
       const transactions = await this.transactionService.getTransactionsService(query, page, pageSize, status, userId);
       const numOfTransactions = await this.transactionService.countTransactions(query, status, userId);
       const numOfPages = Math.ceil(numOfTransactions / pageSize);
-      return {data: transactions!, numOfTransactions: numOfTransactions, totalPages: numOfPages};
+      return { data: transactions!, numOfTransactions: numOfTransactions, totalPages: numOfPages };
+    } catch (error) {
+      throw new Error("Something went wrong searching transactions");
+    }
+  }
+
+  public async getTransactionsV2(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+    try {
+      const transactionsFetched = await this.transactionService.getTransactionServiceV2(query, page, pageSize, status, userId);
+      const numOfTransactions = await this.transactionService.countTransactions(query, status, userId);
+      const numOfPages = Math.ceil(numOfTransactions / pageSize);
+      return { data: transactionsFetched, numOfTransactions: numOfTransactions, totalPages: numOfPages };
     } catch (error) {
       throw new Error("Something went wrong searching transactions");
     }
