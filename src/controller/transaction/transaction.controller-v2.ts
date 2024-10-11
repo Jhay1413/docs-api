@@ -18,11 +18,15 @@ export class TransactionController {
     this.transactionService = new TransactionService();
   }
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
+    const attachmentsCount = data.attachments.length;
+    const finalAttachmentsCount = data.attachments.filter(attachment => attachment.fileStatus === "FINAL_ATTACHMENT").length;
+    const percentage = Math.ceil(finalAttachmentsCount / attachmentsCount);
+
     try {
       let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
       const lastId = await this.transactionService.getLastId();
       const generatedId = GenerateId(lastId);
-      const data_payload = { ...data, transactionId: generatedId };
+      const data_payload = { ...data, transactionId: generatedId, percentage: percentage};
       if (data.status != "ARCHIVED" && data.receiverId) {
         receiverInfo = await getUserInfoByAccountId(data.receiverId);
       }
@@ -57,7 +61,6 @@ export class TransactionController {
       if (receiverSocketId) {
         io.to(receiverSocketId).emit("notification", message, modified_message, quantityTracker);
       }
-
       return response;
     } catch (error) {
       console.log(error);
