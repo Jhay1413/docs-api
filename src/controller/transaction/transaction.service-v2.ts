@@ -6,33 +6,14 @@ import { filesQuerySchema, transactionLogsData, transactionMutationSchema } from
 import { completeStaffWorkMutationSchema, filesMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
 
 export class TransactionService {
-  public async insertTransaction(data: z.infer<typeof transactionMutationSchema>,percentage:number, tx: Prisma.TransactionClient) {
-    const {
-      transactionId,
-      documentType,
-      subject,
-     
-      receiverId,
-      remarks,
-      dueDate,
-      forwarderId,
-      originDepartment,
-      targetDepartment,
-      dateForwarded,
-      documentSubType,
-      team,
-      projectId,
-      companyId,
-      status,
-      priority,
-      attachments,
-    } = data;
+  public async insertTransaction(data: z.infer<typeof transactionMutationSchema>, percentage: number, tx: Prisma.TransactionClient) {
+    const { receiverId, status, attachments } = data;
 
     try {
       const createdTransaction = await tx.transaction.create({
         data: {
           ...data,
-          percentage:percentage,
+          percentage: percentage,
           transactionId: data.transactionId!,
           receiverId: status == "ARCHIVED" ? null : receiverId,
           dateReceived: null,
@@ -221,67 +202,6 @@ export class TransactionService {
     }
   }
 
-  // public async getTransactionsService(status: string, page: number, pageSize: number) {
-  //   const skip = (page - 1) * pageSize;
-  //   console.log(page, pageSize);
-  //   try {
-  //     const transactions = await db.transaction.findMany({
-  //       skip,
-  //       take: pageSize,
-
-  //       where: {
-  //         status: {
-  //           equals: status,
-  //         },
-  //       },
-  //       include: {
-  //         forwarder: {
-  //           include: {
-  //             userInfo: true,
-  //           },
-  //         },
-  //         receiver: {
-  //           include: {
-  //             userInfo: true,
-  //           },
-  //         },
-  //         project: true,
-  //         company: true,
-  //         attachments: {
-  //           omit: {
-  //             createdAt: true,
-  //           },
-  //         },
-  //       },
-  //       orderBy: {
-  //         createdAt: "desc",
-  //       },
-  //     });
-
-  //     // Post-process to calculate percentage and combine names
-  //     if (!transactions) return null;
-  //     const processedTransactions = transactions.map((t) => {
-  //       const finalAttachmentCount = t.attachments.filter((a) => a.fileStatus === "FINAL_ATTACHMENT").length;
-  //       const totalAttachmentCount = t.attachments.length;
-
-  //       const percentage = totalAttachmentCount ? (finalAttachmentCount * 100) / totalAttachmentCount : 0;
-
-  //       return {
-  //         ...t,
-  //         dueDate: t.dueDate.toISOString(),
-  //         dateForwarded: t.dateForwarded.toISOString(),
-  //         dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null,
-  //         forwarderName: `${t.forwarder?.userInfo?.firstName} ${t.forwarder?.userInfo?.lastName}`,
-  //         receiverName: `${t.receiver?.userInfo?.firstName} ${t.receiver?.userInfo?.lastName}`, // Assuming you include receiver info in a similar way
-  //         percentage: Math.round(percentage).toString(),
-  //       };
-  //     });
-  //     return processedTransactions;
-  //   } catch (error) {
-  //     console.error("Error fetching transaction", error);
-  //     throw new Error("Failed to fetch transactions");
-  //   }
-  // }
   public async getArchivedTransaction() {
     try {
       const response = await db.transaction.findMany({
@@ -379,8 +299,7 @@ export class TransactionService {
   }
   public async forwardTransactionService(
     data: z.infer<typeof transactionMutationSchema>,
-    createAttachment: z.infer<typeof filesMutationSchema>[],
-    updateAttachment: z.infer<typeof filesMutationSchema>[],
+
     percentage: number,
     tx: Prisma.TransactionClient,
   ) {
@@ -395,14 +314,8 @@ export class TransactionService {
           dateReceived: null,
           attachments: {
             createMany: {
-              data: createAttachment,
+              data: data.attachments,
             },
-            update: updateAttachment.map((attachment) => ({
-              where: {
-                id: attachment.id!,
-              },
-              data: attachment,
-            })),
           },
         },
         include: {
@@ -707,31 +620,17 @@ export class TransactionService {
   }
   public async getDashboardPriority() {
     try {
-      const transactions = await db.$queryRaw`
-      SELECT 
-          t.id,
-          t."transactionId",
-          c."projectName",
-          COALESCE(
-              ROUND(
-                  (SUM(CASE WHEN a."fileStatus" = 'FINAL_ATTACHMENT' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(a.id), 0)
-              ),
-              0
-          ) AS percentage
-      FROM "Transaction" t
-      LEFT JOIN "Attachment" a ON t.id = a."transactionId"
-      LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
-      LEFT JOIN "CompanyProject" c ON c.id = t."projectId"
-      WHERE t.status <> 'ARCHIVED' AND t.priority = 'HIGH'
-      GROUP BY
-          t.id,
-          t."transactionId",
-          c."projectName"
-      ORDER BY 
-          t."createdAt" DESC
-      LIMIT 10;
-  `;
-
+      const transactions = await db.transaction.findMany({
+        take: 10,
+        select: {
+          id: true,
+          transactionId: true,
+          percentage: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
       return transactions;
     } catch (error) {
       console.error("Error fetching transaction", error);
@@ -1086,6 +985,31 @@ export class TransactionService {
       });
 
       return newData;
+    } catch (error) {
+      console.log("Something went wrong while fetching transactions.", error);
+      throw new Error("something went wrong while searching");
+    }
+  }
+  public async fetchTransactionAttachments(id: string) {
+    try {
+      const result = await db.attachment.findMany({
+        where: {
+          transactionId: id,
+        },
+      });
+      return result;
+    } catch (error) {
+      console.log("Something went wrong while fetching transactions.", error);
+      throw new Error("something went wrong while searching");
+    }
+  }
+  public async deleteAttachmentByTransaction(id: string, tx: Prisma.TransactionClient) {
+    try {
+      await tx.attachment.deleteMany({
+        where: {
+          transactionId: id,
+        },
+      });
     } catch (error) {
       console.log("Something went wrong while fetching transactions.", error);
       throw new Error("something went wrong while searching");

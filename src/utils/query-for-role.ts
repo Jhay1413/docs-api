@@ -65,10 +65,14 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
       };
 
     case "CH":
-      if (targetDivision === "Finance" || targetDivision === "Admin Department") {
+      if (assignedDivision === "Finance" || assignedDivision === "Admin Department") {
         return {
-          assignedDivision: targetDivision,
-          account: { accountRole: "MANAGER" },
+          OR: [
+            {
+              AND: [{ assignedDivision: targetDivision }, { account: { accountRole: "MANAGER" } }],
+            },
+            { account: { accountRole: "RECORDS" } },
+          ],
         };
       } else {
         return {
