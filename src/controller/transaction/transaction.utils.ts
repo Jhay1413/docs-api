@@ -15,7 +15,7 @@ const cleanedDataUtils = (
     receiver: receiver ? `${receiver?.firstName} - ${receiver?.lastName}` : null,
     transactionId: data.id!,
   };
-  const { id, companyId, projectId, forwarderId, ...payload } = cleanedData;
+  const { id, companyId, projectId, category, forwarderId, ...payload } = cleanedData;
 
   const createData: any = {
     ...payload,
@@ -32,9 +32,7 @@ const getAttachmentsPercentage = (attachments: z.infer<typeof filesMutationSchem
   if (!attachments) return 0;
 
   const attachmentsCount = attachments.length;
-  const finalAttachmentsCount = attachments.filter(
-    (attachment) => attachment.fileStatus === "FINAL_ATTACHMENT"
-  ).length;
+  const finalAttachmentsCount = attachments.filter((attachment) => attachment.fileStatus === "FINAL_ATTACHMENT").length;
 
   return Math.ceil((finalAttachmentsCount * 100) / attachmentsCount);
 };

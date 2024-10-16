@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { getSignedUrlFromS3, getUploadSignedUrlFromS3 } from "../../services/aws-config";
 import { StatusCodes } from "http-status-codes";
 import { paramsRequestData } from "../transaction/transaction.schema";
+import { getUploadSignedUrlV2, uploadFileService } from "./aws.service";
 
 const transactionGetSignedUrl = async (req: Request, res: Response) => {
   const { key } = req.query;
@@ -41,4 +42,21 @@ const transactionSignedUrl = async (req: Request, res: Response) => {
   }
 };
 
-export { transactionGetSignedUrl, transactionSignedUrl };
+const uploadSingleFile = async (company: string, fileName: string, file: Express.Multer.File) => {
+  try {
+    const response = await uploadFileService(company, fileName, file.mimetype, file);
+    return { response };
+  } catch (error) {
+    throw new Error("Something went wrong on calliung service");
+  }
+};
+
+const transactionSignedUrlV2 = async (company: string, fileName: string, contentType: string) => {
+  try {
+    const response = await getUploadSignedUrlV2(company, fileName, contentType);
+    return { company, fileName, contentType, signedUrl: response.signedUrl, fileUrl: response.key };
+  } catch (error) {
+    throw new Error("something went wrong requesting signedUrl");
+  }
+};
+export { transactionGetSignedUrl, transactionSignedUrl, uploadSingleFile, transactionSignedUrlV2 };
