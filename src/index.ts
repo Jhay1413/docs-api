@@ -15,6 +15,7 @@ import { registerTransactionRoutes } from "./controller/transaction/transaction.
 import { registerCompanyRoutes } from "./controller/company/company.routes";
 import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-schema";
 import { registerUserRoutes } from "./controller/user/user.route";
+import { registerFileRoutes } from "./controller/aws/aws.route";
 
 // Import For testing of Ticketing
 import ticketingRoutes from "./controller/ticketing/ticketing.routes";
@@ -39,6 +40,7 @@ app.use(cookieParser());
 registerCompanyRoutes(app);
 registerTransactionRoutes(app);
 registerUserRoutes(app);
+registerFileRoutes(app);
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);

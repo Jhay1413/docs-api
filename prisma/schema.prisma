@@ -121,6 +121,7 @@ model Transaction {
   targetDepartment  String
   receiverId        String?
   forwarderId       String
+  category          String            @default("")
   attachments       Attachment[]
   completeStaffWork CompleteStaffWork[]
   notifications     Notification[]

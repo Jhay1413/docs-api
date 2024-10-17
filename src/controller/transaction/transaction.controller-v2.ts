@@ -1,16 +1,15 @@
 import { StatusCodes } from "http-status-codes";
 import { TransactionService } from "./transaction.service-v2";
 import { Request, Response } from "express";
-import { notification } from "./transaction.schema";
 import { GenerateId } from "../../utils/generate-id";
 import { cleanedDataUtils, getAttachmentsPercentage } from "./transaction.utils";
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
-import { transactionMutationSchema, transactionQueryData, userInfoQuerySchema } from "shared-contract";
+import { filesQuerySchema, transactionMutationSchema, userInfoQuerySchema } from "shared-contract";
 import { completeStaffWorkMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
-import { getAccountById, getUserInfoByAccountId } from "../user/user.service";
-import { getCompanyById, getProjectById } from "../company/company.service";
+import { getUserInfoByAccountId } from "../user/user.service";
+import { transferFile } from "../aws/aws.service";
 export class TransactionController {
   private transactionService: TransactionService;
 
@@ -23,7 +22,7 @@ export class TransactionController {
       let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
       const lastId = await this.transactionService.getLastId();
       const generatedId = GenerateId(lastId);
-      const data_payload = { ...data, transactionId: generatedId};
+      const data_payload = { ...data, transactionId: generatedId };
       if (data.status != "ARCHIVED" && data.receiverId) {
         receiverInfo = await getUserInfoByAccountId(data.receiverId);
       }
@@ -38,6 +37,24 @@ export class TransactionController {
 
         return transaction;
       });
+
+      const fileToTransfer = data.attachments.filter((attachment) => attachment.fileUrl);
+      if (fileToTransfer.length > 0) {
+        await Promise.all(
+          fileToTransfer.map(async (attachment) => {
+            if (!attachment.fileUrl) {
+              throw new Error("Attachment does not have a valid file URL");
+            }
+            try {
+              const result = await transferFile(attachment.fileUrl);
+              return result;
+            } catch (error) {
+              console.error(`Failed to transfer file ${attachment.fileUrl}:`, error);
+              throw new Error(`Failed to transfer file: ${attachment.fileUrl}`);
+            }
+          }),
+        );
+      }
 
       if (response.status === "ARCHIVED") return response;
 
@@ -136,17 +153,46 @@ export class TransactionController {
 
       const receiverInfo = await getUserInfoByAccountId(data.receiverId!);
       const forwarder = await getUserInfoByAccountId(data.forwarderId);
-      const createAttachment = data.attachments.filter((attachment) => !attachment.id);
-      const updateAttachment = data.attachments.filter((attachment) => attachment.id);
-      const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
 
+      const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
+      const old_attachments = await this.transactionService.fetchTransactionAttachments(data.id!);
+
+      const updatedAttachments = data.attachments.filter((newAttachment) => {
+        const oldAttachment = old_attachments.find((oldAttachment) => oldAttachment.fileName === newAttachment.fileName);
+
+        // Check if the old attachment exists
+        if (oldAttachment) {
+          // If it exists, check if the URLs are different
+          return newAttachment.fileUrl !== oldAttachment.fileUrl;
+        } else {
+          return true;
+        }
+      });
+      console.log(updatedAttachments);
       const response = await db.$transaction(async (tx) => {
-        const result = await this.transactionService.forwardTransactionService(data, createAttachment, updateAttachment, attachmentsPercentage, tx);
+        await this.transactionService.deleteAttachmentByTransaction(data.id!, tx);
+        const result = await this.transactionService.forwardTransactionService(data, attachmentsPercentage, tx);
         const payload = cleanedDataUtils(result, forwarder!, receiverInfo!);
         await this.transactionService.logPostTransaction(payload, tx);
         return result;
       });
 
+      if (updatedAttachments.length > 0) {
+        await Promise.all(
+          updatedAttachments.map(async (attachment) => {
+            if (!attachment.fileUrl) {
+              throw new Error("Attachment does not have a valid file URL");
+            }
+            try {
+              const result = await transferFile(attachment.fileUrl);
+              return result;
+            } catch (error) {
+              console.error(`Failed to transfer file ${attachment.fileUrl}:`, error);
+              throw new Error(`Failed to transfer file: ${attachment.fileUrl}`);
+            }
+          }),
+        );
+      }
       const notifications = await this.transactionService.fetchAllNotificationById(response.receiverId!);
       const tracker = await this.transactionService.getIncomingTransaction(response.receiverId!);
 
@@ -175,6 +221,7 @@ export class TransactionController {
     try {
       const result = await this.transactionService.receiveTransactionService(id, dateReceived);
       await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
+      console.log(result);
       return result;
     } catch (error) {
       console.log(error);
