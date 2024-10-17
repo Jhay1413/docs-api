@@ -18,6 +18,8 @@ export class TransactionController {
   }
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
     const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
+
+    console.log(data);
     try {
       let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
       const lastId = await this.transactionService.getLastId();
@@ -30,7 +32,6 @@ export class TransactionController {
 
       const response = await db.$transaction(async (tx) => {
         const transaction = await this.transactionService.insertTransaction(data_payload, attachmentsPercentage, tx);
-
         const payload = cleanedDataUtils(transaction, forwarder!, receiverInfo);
 
         await this.transactionService.logPostTransaction(payload, tx);
@@ -158,6 +159,7 @@ export class TransactionController {
       const old_attachments = await this.transactionService.fetchTransactionAttachments(data.id!);
 
       const updatedAttachments = data.attachments.filter((newAttachment) => {
+        if (!newAttachment.fileUrl) return false;
         const oldAttachment = old_attachments.find((oldAttachment) => oldAttachment.fileName === newAttachment.fileName);
 
         // Check if the old attachment exists
@@ -168,7 +170,6 @@ export class TransactionController {
           return true;
         }
       });
-      console.log(updatedAttachments);
       const response = await db.$transaction(async (tx) => {
         await this.transactionService.deleteAttachmentByTransaction(data.id!, tx);
         const result = await this.transactionService.forwardTransactionService(data, attachmentsPercentage, tx);
