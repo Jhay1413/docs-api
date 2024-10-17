@@ -67,7 +67,7 @@ export class TransactionService {
           forwarder: true,
           transactionLogs: {
             orderBy: {
-              dateForwarded: "asc",
+              dateForwarded: "desc",
             },
           },
           attachments: true,
@@ -716,10 +716,16 @@ export class TransactionService {
           equals: null,
         },
       };
-    } else {
+    } else if (status === "ARCHIVED") {
       condition = {
         status: {
           equals: status,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          not: "ARCHIVED",
         },
       };
     }
@@ -893,10 +899,16 @@ export class TransactionService {
           equals: null,
         },
       };
-    } else {
+    } else if (status === "ARCHIVED") {
       condition = {
         status: {
           equals: status,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          not: "ARCHIVED",
         },
       };
     }
