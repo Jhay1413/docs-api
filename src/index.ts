@@ -16,6 +16,10 @@ import { registerCompanyRoutes } from "./controller/company/company.routes";
 import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-schema";
 import { registerUserRoutes } from "./controller/user/user.route";
 
+// Import For testing of Ticketing
+import ticketingRoutes from "./controller/ticketing/ticketing.routes";
+
+
 const app = express();
 const corsOptions = {
   origin: [
@@ -39,6 +43,9 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
 app.use("/api/companies", companyRouter);
+
+// Router USe For testing of Ticketing 
+app.use("/api/ticketing", ticketingRoutes);
 
 const userSockets = new Map<string, string>();
 
