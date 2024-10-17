@@ -76,7 +76,6 @@ const transactionRouter = s.router(contracts.transaction, {
     }
   },
   receivedTransaction: async ({ params, body }) => {
-    console.log(params.id);
     try {
       const result = await transactionController.receivedTransactionHandler(params.id, body.dateReceived);
       return {
@@ -94,7 +93,6 @@ const transactionRouter = s.router(contracts.transaction, {
   },
   fetchTransactions: async ({ query }) => {
     try {
-      console.log(query.status);
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
 
@@ -120,7 +118,6 @@ const transactionRouter = s.router(contracts.transaction, {
   },
   fetchTransactionsV2: async ({ query }) => {
     try {
-      console.log(query.status);
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
 
@@ -180,7 +177,6 @@ const transactionRouter = s.router(contracts.transaction, {
   // },
   insertTransacitons: async ({ body }) => {
     try {
-      console.log(body);
       const result = await transactionController.insertTransactionHandler(body);
       return {
         status: 200,
@@ -196,9 +192,9 @@ const transactionRouter = s.router(contracts.transaction, {
     }
   },
 
-  updateTransaction: async ({ body }) => {
+  updateTransaction: async ({ body, params }) => {
     try {
-      await transactionController.forwardTransactionHandler(body);
+      await transactionController.forwardTransactionHandler(body, params.id);
 
       return {
         status: 200,

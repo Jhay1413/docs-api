@@ -148,8 +148,11 @@ export class TransactionController {
       throw new Error("something went wrong fetching transactions by params");
     }
   }
-  public async forwardTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
+  public async forwardTransactionHandler(data: z.infer<typeof transactionMutationSchema>, id: string) {
     try {
+      if (!id) {
+        throw new Error("No ID for forwarding");
+      }
       if (!data.receiverId || data.receiverId == data.forwarderId) throw new Error("Please forward the transaction ");
 
       const receiverInfo = await getUserInfoByAccountId(data.receiverId!);
@@ -171,21 +174,21 @@ export class TransactionController {
         }
       });
       const response = await db.$transaction(async (tx) => {
-        await this.transactionService.deleteAttachmentByTransaction(data.id!, tx);
+        if (!id) throw new Error("Please provide an ID");
+        await this.transactionService.deleteAttachmentByTransaction(id, tx);
         const result = await this.transactionService.forwardTransactionService(data, attachmentsPercentage, tx);
         const payload = cleanedDataUtils(result, forwarder!, receiverInfo!);
         await this.transactionService.logPostTransaction(payload, tx);
         return result;
       });
 
-      if (updatedAttachments.length > 0) {
+      const fileToTransfer = updatedAttachments.filter((data) => data.fileUrl);
+
+      if (fileToTransfer.length > 0) {
         await Promise.all(
-          updatedAttachments.map(async (attachment) => {
-            if (!attachment.fileUrl) {
-              throw new Error("Attachment does not have a valid file URL");
-            }
+          fileToTransfer.map(async (attachment) => {
             try {
-              const result = await transferFile(attachment.fileUrl);
+              const result = await transferFile(attachment.fileUrl!);
               return result;
             } catch (error) {
               console.error(`Failed to transfer file ${attachment.fileUrl}:`, error);
