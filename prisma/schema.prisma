@@ -44,6 +44,7 @@ model UserAccounts {
   userInfo              UserInfo?
   ticketsSent           Ticket[]       @relation("TicketSender")
   ticketsReceived       Ticket[]       @relation("TicketReceiver")
+  ticketsRequestee      Ticket[]       @relation("TicketRequestee")
 }
 
 model Attachment {
@@ -190,12 +191,15 @@ model Ticket {
 	ticketId	      String 		      @unique
 	subject		      String
 	section		      String
+  division        String
 	status		      String
-  requestDetails  String
+  requestType     String          @default("")
+  requestDetails  String         
 	priority	      String
 	dueDate		      DateTime
   senderId	      String
   receiverId	    String
+  requesteeId     String
   remarks		      String?
   projectId	      String?
   transactionId	  String?
@@ -206,30 +210,8 @@ model Ticket {
 	project		      CompanyProject?	@relation(fields: [projectId], references: [id])
 	sender		      UserAccounts	  @relation("TicketSender", fields:[senderId], references: [id])
 	receiver	      UserAccounts	  @relation("TicketReceiver", fields: [receiverId], references: [id])
+  requestee       UserAccounts    @relation("TicketRequestee", fields: [requesteeId], references: [id])
 }
-
-// model TicketLogs {
-// 	id		          String		      @id @default(uuid())
-// 	ticketId	      String 		      @unique
-// 	subject		      String
-// 	section		      String
-// 	status		      String
-//   requestDetails  String
-// 	priority	      String
-// 	dueDate		      DateTime
-//   senderId	      String
-//   receiverId	    String
-//   remarks		      String?
-//   projectId	      String?
-//   transactionId	  String?
-//   attachments     String?
-// 	createdAt	      DateTime	      @default(now())
-// 	updatedAt	      DateTime	      @updatedAt
-// 	transaction	    Transaction?	  @relation(fields: [transactionId], references: [id])
-// 	project		      CompanyProject?	@relation(fields: [projectId], references: [id])
-// 	sender		      UserAccounts	  @relation("TicketSender", fields:[senderId], references: [id])
-// 	receiver	      UserAccounts	  @relation("TicketReceiver", fields: [receiverId], references: [id])
-// }
 
 enum Roles {
   SUPERADMIN
