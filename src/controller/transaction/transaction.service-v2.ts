@@ -786,7 +786,6 @@ export class TransactionService {
     var condition: any = {};
 
     if (status === "INBOX") {
-      console.log("iminbox");
       condition = {
         receiverId: userId,
         dateReceived: {
