@@ -44,7 +44,6 @@ model UserAccounts {
   userInfo              UserInfo?
   ticketsSent           Ticket[]       @relation("TicketSender")
   ticketsReceived       Ticket[]       @relation("TicketReceiver")
-  ticketsRequested      Ticket[]       @relation("TicketRequestee")
 }
 
 model Attachment {
@@ -192,24 +191,45 @@ model Ticket {
 	subject		      String
 	section		      String
 	status		      String
-	remarks		      String?
+  requestDetails  String
 	priority	      String
 	dueDate		      DateTime
-	createdAt	      DateTime	      @default(now())
-	updatedAt	      DateTime	      @updatedAt
-  attachments     String
-	transactionId	  String?
-  projectId	      String?
   senderId	      String
   receiverId	    String
-  assigneeId	    String
-  requesteeId	    String
-	transaction	    Transaction?	    @relation(fields: [transactionId], references: [id])
+  remarks		      String?
+  projectId	      String?
+  transactionId	  String?
+  attachments     String?
+	createdAt	      DateTime	      @default(now())
+	updatedAt	      DateTime	      @updatedAt
+	transaction	    Transaction?	  @relation(fields: [transactionId], references: [id])
 	project		      CompanyProject?	@relation(fields: [projectId], references: [id])
 	sender		      UserAccounts	  @relation("TicketSender", fields:[senderId], references: [id])
 	receiver	      UserAccounts	  @relation("TicketReceiver", fields: [receiverId], references: [id])
-	requestee	      UserAccounts	  @relation("TicketRequestee", fields: [requesteeId], references: [id])		
 }
+
+// model TicketLogs {
+// 	id		          String		      @id @default(uuid())
+// 	ticketId	      String 		      @unique
+// 	subject		      String
+// 	section		      String
+// 	status		      String
+//   requestDetails  String
+// 	priority	      String
+// 	dueDate		      DateTime
+//   senderId	      String
+//   receiverId	    String
+//   remarks		      String?
+//   projectId	      String?
+//   transactionId	  String?
+//   attachments     String?
+// 	createdAt	      DateTime	      @default(now())
+// 	updatedAt	      DateTime	      @updatedAt
+// 	transaction	    Transaction?	  @relation(fields: [transactionId], references: [id])
+// 	project		      CompanyProject?	@relation(fields: [projectId], references: [id])
+// 	sender		      UserAccounts	  @relation("TicketSender", fields:[senderId], references: [id])
+// 	receiver	      UserAccounts	  @relation("TicketReceiver", fields: [receiverId], references: [id])
+// }
 
 enum Roles {
   SUPERADMIN
