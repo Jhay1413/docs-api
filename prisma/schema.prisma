@@ -166,7 +166,7 @@ model CompleteStaffWork {
   id            String       @id @default(uuid())
   date          DateTime
   remarks       String
-  attachmentUrl String
+  attachmentUrl String?
   transactionId String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt

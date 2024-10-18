@@ -1,7 +1,4 @@
-import { z, ZodObject } from "zod";
-import { AccountSchema, accountSchema } from "../user/user.schema";
-import { companyFormData, projects } from "../company/company.schema";
-import { filesSchema } from "../transaction/transaction.schema";
+import { z } from "zod";
 
 export const ticketingFormData = z.object({
     id: z.string().optional(),
