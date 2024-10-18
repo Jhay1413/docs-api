@@ -16,6 +16,7 @@ import { registerCompanyRoutes } from "./controller/company/company.routes";
 import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-schema";
 import { registerUserRoutes } from "./controller/user/user.route";
 import { registerFileRoutes } from "./controller/aws/aws.route";
+import { dsahboardRoutes } from "./controller/dashboard/dashboard.route";
 
 // Import For testing of Ticketing
 import ticketingRoutes from "./controller/ticketing/ticketing.routes";
@@ -41,6 +42,7 @@ registerCompanyRoutes(app);
 registerTransactionRoutes(app);
 registerUserRoutes(app);
 registerFileRoutes(app);
+dsahboardRoutes(app);
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);

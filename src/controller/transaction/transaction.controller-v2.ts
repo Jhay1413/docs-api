@@ -18,6 +18,7 @@ export class TransactionController {
   }
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
     const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
+
     try {
       let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
       const lastId = await this.transactionService.getLastId();
@@ -30,7 +31,6 @@ export class TransactionController {
 
       const response = await db.$transaction(async (tx) => {
         const transaction = await this.transactionService.insertTransaction(data_payload, attachmentsPercentage, tx);
-
         const payload = cleanedDataUtils(transaction, forwarder!, receiverInfo);
 
         await this.transactionService.logPostTransaction(payload, tx);
@@ -147,8 +147,11 @@ export class TransactionController {
       throw new Error("something went wrong fetching transactions by params");
     }
   }
-  public async forwardTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
+  public async forwardTransactionHandler(data: z.infer<typeof transactionMutationSchema>, id: string) {
     try {
+      if (!id) {
+        throw new Error("No ID for forwarding");
+      }
       if (!data.receiverId || data.receiverId == data.forwarderId) throw new Error("Please forward the transaction ");
 
       const receiverInfo = await getUserInfoByAccountId(data.receiverId!);
@@ -158,6 +161,7 @@ export class TransactionController {
       const old_attachments = await this.transactionService.fetchTransactionAttachments(data.id!);
 
       const updatedAttachments = data.attachments.filter((newAttachment) => {
+        if (!newAttachment.fileUrl) return false;
         const oldAttachment = old_attachments.find((oldAttachment) => oldAttachment.fileName === newAttachment.fileName);
 
         // Check if the old attachment exists
@@ -168,23 +172,22 @@ export class TransactionController {
           return true;
         }
       });
-      console.log(updatedAttachments);
       const response = await db.$transaction(async (tx) => {
-        await this.transactionService.deleteAttachmentByTransaction(data.id!, tx);
+        if (!id) throw new Error("Please provide an ID");
+        await this.transactionService.deleteAttachmentByTransaction(id, tx);
         const result = await this.transactionService.forwardTransactionService(data, attachmentsPercentage, tx);
         const payload = cleanedDataUtils(result, forwarder!, receiverInfo!);
         await this.transactionService.logPostTransaction(payload, tx);
         return result;
       });
 
-      if (updatedAttachments.length > 0) {
+      const fileToTransfer = updatedAttachments.filter((data) => data.fileUrl);
+
+      if (fileToTransfer.length > 0) {
         await Promise.all(
-          updatedAttachments.map(async (attachment) => {
-            if (!attachment.fileUrl) {
-              throw new Error("Attachment does not have a valid file URL");
-            }
+          fileToTransfer.map(async (attachment) => {
             try {
-              const result = await transferFile(attachment.fileUrl);
+              const result = await transferFile(attachment.fileUrl!);
               return result;
             } catch (error) {
               console.error(`Failed to transfer file ${attachment.fileUrl}:`, error);
@@ -221,7 +224,7 @@ export class TransactionController {
     try {
       const result = await this.transactionService.receiveTransactionService(id, dateReceived);
       await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
-      console.log(result);
+
       return result;
     } catch (error) {
       console.log(error);

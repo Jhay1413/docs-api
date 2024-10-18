@@ -786,7 +786,6 @@ export class TransactionService {
     var condition: any = {};
 
     if (status === "INBOX") {
-      console.log("iminbox");
       condition = {
         receiverId: userId,
         dateReceived: {
@@ -1017,6 +1016,7 @@ export class TransactionService {
   }
   public async deleteAttachmentByTransaction(id: string, tx: Prisma.TransactionClient) {
     try {
+      if (!id) throw new Error("No ID provided ! ");
       await tx.attachment.deleteMany({
         where: {
           transactionId: id,
