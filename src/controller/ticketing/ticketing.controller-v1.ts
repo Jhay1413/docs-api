@@ -53,11 +53,26 @@ export class TicketingController {
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
 
-      // Narrow down error type
       if (error instanceof Error) {
         res.status(500).json({ error: 'Failed to fetch tickets', details: error.message });
       } else {
         res.status(500).json({ error: 'Failed to fetch tickets due to unknown error' });
+      }
+    }
+  }
+
+  public async updateTicket(req: Request, res: Response): Promise<void> {
+    const { ticketId } = req.params;
+    const updateData = req.body;
+
+    try {
+      const result = await this.ticketingService.updateTicket(ticketId, updateData);
+      res.status(200).json(result);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        res.status(500).json({ error: 'Failed to update ticket', details: err.message });
+      } else {
+        res.status(500).json({ error: 'Failed to update ticket due to unknown error' });
       }
     }
   }

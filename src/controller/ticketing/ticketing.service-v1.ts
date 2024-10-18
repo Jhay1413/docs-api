@@ -133,4 +133,31 @@ export class TicketingService {
       throw new Error("Something went wrong while searching");
     }
   }
+
+  public async updateTicket(ticketId: string, data: Partial<Pick<Ticket, 'senderId' | 'receiverId' | 'remarks' | 'priority' | 'status'>>) {
+    try {
+      const updatedTicket = await this.db.ticket.update({
+        where: { ticketId },
+        data: {
+          senderId: data.senderId,
+          receiverId: data.receiverId,
+          remarks: data.remarks,
+          priority: data.priority,
+          status: data.status,
+        },
+        include: {
+          project: true,
+          transaction: true,
+        },
+      });
+
+      return {
+        message: "Ticket updated successfully",
+        ticket: updatedTicket,
+      };
+    } catch (error) {
+      console.error("Failed to update ticket:", error);
+      throw new Error("Failed to update ticket");
+    }
+  }
 }
