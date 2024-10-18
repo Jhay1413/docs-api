@@ -19,7 +19,6 @@ export class TransactionController {
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
     const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
 
-    console.log(data);
     try {
       let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
       const lastId = await this.transactionService.getLastId();
@@ -225,7 +224,7 @@ export class TransactionController {
     try {
       const result = await this.transactionService.receiveTransactionService(id, dateReceived);
       await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
-      console.log(result);
+
       return result;
     } catch (error) {
       console.log(error);
