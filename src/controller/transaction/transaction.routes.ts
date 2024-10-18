@@ -183,6 +183,7 @@ const transactionRouter = s.router(contracts.transaction, {
         body: result,
       };
     } catch (error) {
+      console.log(error);
       return {
         status: 501,
         body: {

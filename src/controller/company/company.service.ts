@@ -1,7 +1,8 @@
+import { companyFormData } from "shared-contract";
 import { db } from "../../prisma";
-import { TcompanyFormData } from "./company.schema";
 
-export const updateCompany = async (id: string, data: TcompanyFormData) => {
+import { z } from "zod";
+export const updateCompany = async (id: string, data: z.infer<typeof companyFormData>) => {
   try {
     const response = await db.company.update({
       where: {
@@ -16,7 +17,6 @@ export const updateCompany = async (id: string, data: TcompanyFormData) => {
             where: {
               projectId: project.projectId,
             },
-
             create: {
               projectId: project.projectId,
               projectName: project.projectName,
@@ -94,7 +94,7 @@ export const deleteCompany = async (id: string) => {
   }
 };
 
-export const insertCompany = async (data: TcompanyFormData) => {
+export const insertCompany = async (data: z.infer<typeof companyFormData>) => {
   try {
     const response = await db.company.create({
       data: {
