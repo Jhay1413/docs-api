@@ -27,6 +27,7 @@ export class TransactionController {
       if (data.status != "ARCHIVED" && data.receiverId) {
         receiverInfo = await getUserInfoByAccountId(data.receiverId);
       }
+      if (data.status !== "ARCHIVED" && !data.receiverId) throw new Error("No receiver provided ! ");
       const forwarder = await getUserInfoByAccountId(data.forwarderId);
 
       const response = await db.$transaction(async (tx) => {

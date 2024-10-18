@@ -17,6 +17,7 @@ import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-sche
 import { registerUserRoutes } from "./controller/user/user.route";
 import { registerFileRoutes } from "./controller/aws/aws.route";
 import { dsahboardRoutes } from "./controller/dashboard/dashboard.route";
+import { disableAfter5PM } from "./middleware/time-checker";
 
 const app = express();
 const corsOptions = {
@@ -34,6 +35,8 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
+app.use(disableAfter5PM);
+// app.use(restrictIP);
 registerCompanyRoutes(app);
 registerTransactionRoutes(app);
 registerUserRoutes(app);

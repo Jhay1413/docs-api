@@ -303,6 +303,7 @@ export class TransactionService {
     percentage: number,
     tx: Prisma.TransactionClient,
   ) {
+    console.log(data);
     try {
       const response = await tx.transaction.update({
         where: {
