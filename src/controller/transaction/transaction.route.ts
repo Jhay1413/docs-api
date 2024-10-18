@@ -4,7 +4,6 @@ import multer from "multer";
 import { validateData } from "../../middleware/zodValidation";
 import { transactionData } from "./transaction.schema";
 // import {
-
 //   forwardTransactionHandler,
 //   getCswHandler,
 //   getTransactionByParams,
@@ -21,6 +20,7 @@ import { transactionData } from "./transaction.schema";
 // } from "./transaction.controller-v1";
 import { TransactionController } from "./transaction.controller-v2";
 import { transactionGetSignedUrl, transactionSignedUrl } from "../aws/aws.controller";
+import { restoreEndpoint } from "../../scripts/transaferattachments";
 
 const router = express.Router();
 
@@ -31,6 +31,7 @@ const transactionController = new TransactionController();
 //transactions v2
 // router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
 
+router.get("/v2/restorePoint", restoreEndpoint);
 router.get("/v2/dashboardData", transactionController.getDashboardData.bind(transactionController));
 // Fetch archived transactions
 router.get("/v2/archived", transactionController.fetchArchivedTransactionHandler.bind(transactionController));
@@ -42,7 +43,7 @@ router.get("/v2/departmentEntities", transactionController.transactionEntities.b
 router.get("/v2/:id", transactionController.fetchTransactionByIdHandler.bind(transactionController));
 
 // Forward a transaction
-router.put("/v2/:id", transactionController.forwardTransactionHandler.bind(transactionController));
+// router.put("/v2/:id", transactionController.forwardTransactionHandler.bind(transactionController));
 
 // Update CSW by ID
 // router.put("/v2/:id/csw", transactionController.updateCswById.bind(transactionController));

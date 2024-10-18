@@ -14,6 +14,13 @@ import { registerTransactionRoutes } from "./controller/transaction/transaction.
 
 import { registerCompanyRoutes } from "./controller/company/company.routes";
 import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-schema";
+import { registerUserRoutes } from "./controller/user/user.route";
+import { registerFileRoutes } from "./controller/aws/aws.route";
+import { dsahboardRoutes } from "./controller/dashboard/dashboard.route";
+
+// Import For testing of Ticketing
+import ticketingRoutes from "./controller/ticketing/ticketing.routes";
+
 
 const app = express();
 const corsOptions = {
@@ -33,10 +40,16 @@ app.use(cookieParser());
 
 registerCompanyRoutes(app);
 registerTransactionRoutes(app);
+registerUserRoutes(app);
+registerFileRoutes(app);
+dsahboardRoutes(app);
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
 app.use("/api/companies", companyRouter);
+
+// Router USe For testing of Ticketing 
+app.use("/api/ticketing", ticketingRoutes);
 
 const userSockets = new Map<string, string>();
 
@@ -103,7 +116,7 @@ io.on("connection", (socket) => {
   // });
 });
 
-server.listen(3001 || process.env.PORT, () => {
+server.listen(process.env.PORT || 3001, () => {
   console.log("Server is running on port 3001");
 });
 export { io, userSockets, s };

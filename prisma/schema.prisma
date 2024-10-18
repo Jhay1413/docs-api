@@ -42,6 +42,9 @@ model UserAccounts {
   forwarded             Transaction[]  @relation("ForwardedTransactions")
   ReceivingTransaction  Transaction[]  @relation("ReceivingTransactions")
   userInfo              UserInfo?
+  ticketsSent           Ticket[]       @relation("TicketSender")
+  ticketsReceived       Ticket[]       @relation("TicketReceiver")
+  ticketsRequestee      Ticket[]       @relation("TicketRequestee")
 }
 
 model Attachment {
@@ -83,6 +86,7 @@ model CompanyProject {
   company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contactPersons  ContactPerson? @relation(fields: [contactPersonId], references: [id])
   transaction     Transaction[]
+  tickets         Ticket[]
 }
 
 model ContactPerson {
@@ -111,11 +115,13 @@ model Transaction {
   projectId         String
   remarks           String
   dateForwarded     DateTime
+  percentage        Int               @default(0)
   dateReceived      DateTime?
   originDepartment  String
   targetDepartment  String
   receiverId        String?
   forwarderId       String
+  category          String            @default("")
   attachments       Attachment[]
   completeStaffWork CompleteStaffWork[]
   notifications     Notification[]
@@ -124,6 +130,7 @@ model Transaction {
   project           CompanyProject      @relation(fields: [projectId], references: [id])
   receiver          UserAccounts?       @relation("ReceivingTransactions", fields: [receiverId], references: [id])
   transactionLogs   TransactionLogs[]
+  tickets           Ticket[]
 }
 
 model TransactionLogs {
@@ -135,7 +142,7 @@ model TransactionLogs {
   documentSubType  String
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
-  team             String
+  team             String?
   status           String
   priority         String
   company          String
@@ -146,6 +153,7 @@ model TransactionLogs {
   forwarder        String
   originDepartment String
   targetDepartment String
+  percentage        Int          @default(0)
   dateForwarded    DateTime
   dateReceived     DateTime?
   attachments      String      @default("")
@@ -158,7 +166,7 @@ model CompleteStaffWork {
   id            String       @id @default(uuid())
   date          DateTime
   remarks       String
-  attachmentUrl String
+  attachmentUrl String?
   transactionId String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -178,6 +186,33 @@ model Notification {
   transaction   Transaction  @relation(fields: [transactionId], references: [id])
 }
 
+model Ticket {
+	id		          String		      @id @default(uuid())
+	ticketId	      String 		      @unique
+	subject		      String
+	section		      String
+  division        String
+	status		      String
+  requestType     String          @default("")
+  requestDetails  String         
+	priority	      String
+	dueDate		      DateTime
+  senderId	      String
+  receiverId	    String
+  requesteeId     String
+  remarks		      String?
+  projectId	      String?
+  transactionId	  String?
+  attachments     String?
+	createdAt	      DateTime	      @default(now())
+	updatedAt	      DateTime	      @updatedAt
+	transaction	    Transaction?	  @relation(fields: [transactionId], references: [id])
+	project		      CompanyProject?	@relation(fields: [projectId], references: [id])
+	sender		      UserAccounts	  @relation("TicketSender", fields:[senderId], references: [id])
+	receiver	      UserAccounts	  @relation("TicketReceiver", fields: [receiverId], references: [id])
+  requestee       UserAccounts    @relation("TicketRequestee", fields: [requesteeId], references: [id])
+}
+
 enum Roles {
   SUPERADMIN
   ADMIN
@@ -187,6 +222,8 @@ enum Roles {
   RECORDS
   MANAGER
   QA
+  DMS
+  FINANCE
 }
 
 enum Status {

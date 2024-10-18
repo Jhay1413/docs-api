@@ -144,6 +144,29 @@ export const getUserInfoByAccountId = async (id: string) => {
     });
     return result;
   } catch (error) {
+    console.log(error);
     throw new Error("something went wrong fetching user");
+  }
+};
+export const getUserInfoForForwardTransaction = async (query: any) => {
+  try {
+    const result = await db.userInfo.findMany({
+      where: query,
+      select: {
+        accountId: true,
+        firstName: true,
+        lastName: true,
+        account: {
+          select: {
+            accountRole: true,
+          },
+        },
+      },
+    });
+
+    return result;
+  } catch (error) {
+    console.log(error);
+    throw new Error("something went wrong ! ");
   }
 };

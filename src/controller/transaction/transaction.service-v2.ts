@@ -2,35 +2,18 @@ import { Prisma } from "@prisma/client";
 import { db } from "../../prisma";
 import { completeStaffWork, notification } from "./transaction.schema";
 import * as z from "zod";
-import { transactionLogsData, transactionMutationSchema } from "shared-contract";
+import { filesQuerySchema, transactionLogsData, transactionMutationSchema } from "shared-contract";
 import { completeStaffWorkMutationSchema, filesMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
 
 export class TransactionService {
-  public async insertTransaction(data: z.infer<typeof transactionMutationSchema>, tx: Prisma.TransactionClient) {
-    const {
-      transactionId,
-      documentType,
-      subject,
-      receiverId,
-      remarks,
-      dueDate,
-      forwarderId,
-      originDepartment,
-      targetDepartment,
-      dateForwarded,
-      documentSubType,
-      team,
-      projectId,
-      companyId,
-      status,
-      priority,
-      attachments,
-    } = data;
+  public async insertTransaction(data: z.infer<typeof transactionMutationSchema>, percentage: number, tx: Prisma.TransactionClient) {
+    const { receiverId, status, attachments } = data;
 
     try {
       const createdTransaction = await tx.transaction.create({
         data: {
           ...data,
+          percentage: percentage,
           transactionId: data.transactionId!,
           receiverId: status == "ARCHIVED" ? null : receiverId,
           dateReceived: null,
@@ -62,6 +45,7 @@ export class TransactionService {
       throw new Error("Error creating transaction");
     }
   }
+
   public async getTransactionByIdService(id: string) {
     try {
       const transaction = await db.transaction.findUnique({
@@ -83,7 +67,7 @@ export class TransactionService {
           forwarder: true,
           transactionLogs: {
             orderBy: {
-              dateForwarded: "asc",
+              dateForwarded: "desc",
             },
           },
           attachments: true,
@@ -95,7 +79,6 @@ export class TransactionService {
           },
         },
       });
-      console.log(transaction);
       if (!transaction) throw new Error("transaction not found");
       const new_attachments = transaction.attachments.map((data) => {
         return {
@@ -107,9 +90,13 @@ export class TransactionService {
         return { ...data, date: data.date.toISOString(), transactionId: data.transactionId! };
       });
       const parseTransactionLogs = transaction?.transactionLogs.map((respo) => {
+        const parseAttachments = JSON.parse(respo.attachments) as z.infer<typeof filesQuerySchema>[];
+        const newAttachmentsLogs = parseAttachments.map((data) => {
+          return { ...data, createdAt: new Date(data.createdAt!).toISOString() };
+        });
         return {
           ...respo,
-          attachments: JSON.parse(respo.attachments),
+          attachments: newAttachmentsLogs,
           createdAt: respo.createdAt.toISOString(),
           updatedAt: respo.updatedAt.toISOString(),
           dateForwarded: respo.dateForwarded.toISOString(),
@@ -215,67 +202,6 @@ export class TransactionService {
     }
   }
 
-  public async getTransactionsService(status: string, page: number, pageSize: number) {
-    const skip = (page - 1) * pageSize;
-    console.log(page, pageSize);
-    try {
-      const transactions = await db.transaction.findMany({
-        skip,
-        take: pageSize,
-
-        where: {
-          status: {
-            equals: status,
-          },
-        },
-        include: {
-          forwarder: {
-            include: {
-              userInfo: true,
-            },
-          },
-          receiver: {
-            include: {
-              userInfo: true,
-            },
-          },
-          project: true,
-          company: true,
-          attachments: {
-            omit: {
-              createdAt: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-
-      // Post-process to calculate percentage and combine names
-      if (!transactions) return null;
-      const processedTransactions = transactions.map((t) => {
-        const finalAttachmentCount = t.attachments.filter((a) => a.fileStatus === "FINAL_ATTACHMENT").length;
-        const totalAttachmentCount = t.attachments.length;
-
-        const percentage = totalAttachmentCount ? (finalAttachmentCount * 100) / totalAttachmentCount : 0;
-
-        return {
-          ...t,
-          dueDate: t.dueDate.toISOString(),
-          dateForwarded: t.dateForwarded.toISOString(),
-          dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null,
-          forwarderName: `${t.forwarder?.userInfo?.firstName} ${t.forwarder?.userInfo?.lastName}`,
-          receiverName: `${t.receiver?.userInfo?.firstName} ${t.receiver?.userInfo?.lastName}`, // Assuming you include receiver info in a similar way
-          percentage: Math.round(percentage).toString(),
-        };
-      });
-      return processedTransactions;
-    } catch (error) {
-      console.error("Error fetching transaction", error);
-      throw new Error("Failed to fetch transactions");
-    }
-  }
   public async getArchivedTransaction() {
     try {
       const response = await db.transaction.findMany({
@@ -373,8 +299,8 @@ export class TransactionService {
   }
   public async forwardTransactionService(
     data: z.infer<typeof transactionMutationSchema>,
-    createAttachment: z.infer<typeof filesMutationSchema>[],
-    updateAttachment: z.infer<typeof filesMutationSchema>[],
+
+    percentage: number,
     tx: Prisma.TransactionClient,
   ) {
     try {
@@ -384,17 +310,12 @@ export class TransactionService {
         },
         data: {
           ...data,
+          percentage: percentage,
           dateReceived: null,
           attachments: {
             createMany: {
-              data: createAttachment,
+              data: data.attachments,
             },
-            update: updateAttachment.map((attachment) => ({
-              where: {
-                id: attachment.id!,
-              },
-              data: attachment,
-            })),
           },
         },
         include: {
@@ -427,8 +348,55 @@ export class TransactionService {
         data: {
           dateReceived: dateReceived,
         },
+        select: {
+          id: true,
+          transactionId: true,
+          project: {
+            select: {
+              projectName: true,
+            },
+          },
+          company: {
+            select: {
+              companyName: true,
+            },
+          },
+          percentage: true,
+          documentType: true,
+          documentSubType: true,
+          subject: true,
+          dueDate: true,
+          forwarder: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          dateForwarded: true,
+          dateReceived: true,
+          receiverId: true,
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          status: true,
+          priority: true,
+        },
       });
-      return response;
+
+      const receiver = response.receiver?.userInfo ? `${response.receiver.userInfo.firstName} - ${response.receiver.userInfo.lastName}` : null;
+      const forwarder = response.forwarder?.userInfo ? `${response.forwarder.userInfo.firstName} - ${response.forwarder.userInfo.lastName}` : null;
+      return { ...response, receiver: receiver, forwarder: forwarder, dueDate: response.dueDate.toISOString() };
     } catch (error) {
       console.log(error);
       throw new Error("Error while receiving transaction .");
@@ -436,10 +404,6 @@ export class TransactionService {
   }
   public async receivedLogsService(transactionId: string, dateForwarded: Date, dateReceived: Date, userId: string) {
     try {
-      console.log(userId, "userId");
-      console.log(dateReceived, "dateRecieved");
-      console.log(dateForwarded, "date forwarded");
-      console.log(transactionId, "transaction ID");
       const response = await db.transactionLogs.update({
         where: {
           refId: {
@@ -522,6 +486,8 @@ export class TransactionService {
       throw new Error("Something went wrong while adding csw ! ");
     }
   }
+
+  //Unused function
   public async getDepartmentEntities() {
     try {
       const transactions = await db.$queryRaw`
@@ -654,31 +620,17 @@ export class TransactionService {
   }
   public async getDashboardPriority() {
     try {
-      const transactions = await db.$queryRaw`
-      SELECT 
-          t.id,
-          t."transactionId",
-          c."projectName",
-          COALESCE(
-              ROUND(
-                  (SUM(CASE WHEN a."fileStatus" = 'FINAL_ATTACHMENT' THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(a.id), 0)
-              ),
-              0
-          ) AS percentage
-      FROM "Transaction" t
-      LEFT JOIN "Attachment" a ON t.id = a."transactionId"
-      LEFT JOIN "UserAccounts" b ON b.id = t."forwarderId"
-      LEFT JOIN "CompanyProject" c ON c.id = t."projectId"
-      WHERE t.status <> 'ARCHIVED' AND t.priority = 'HIGH'
-      GROUP BY
-          t.id,
-          t."transactionId",
-          c."projectName"
-      ORDER BY 
-          t."createdAt" DESC
-      LIMIT 10;
-  `;
-
+      const transactions = await db.transaction.findMany({
+        take: 10,
+        select: {
+          id: true,
+          transactionId: true,
+          percentage: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
       return transactions;
     } catch (error) {
       console.error("Error fetching transaction", error);
@@ -746,17 +698,121 @@ export class TransactionService {
       throw new Error("Failed to fetch transactions");
     }
   }
-  public async searchTransaction(query: string, page: number, pageSize: number, status?: string) {
+
+  public async countTransactions(query: string, status?: string, userId?: string) {
+    var condition: any = {};
+
+    if (status === "INBOX") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          not: null,
+        },
+      };
+    } else if (status === "INCOMING") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          equals: null,
+        },
+      };
+    } else if (status === "ARCHIVED") {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          not: "ARCHIVED",
+        },
+      };
+    }
+    try {
+      const transactions = await db.transaction.count({
+        where: {
+          AND: [
+            condition,
+            {
+              OR: [
+                {
+                  company: {
+                    OR: [{ companyName: { contains: query, mode: "insensitive" } }, { companyId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                {
+                  project: {
+                    OR: [{ projectName: { contains: query, mode: "insensitive" } }, { projectId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                { team: { contains: query, mode: "insensitive" } },
+                { transactionId: { contains: query, mode: "insensitive" } },
+                { documentSubType: { contains: query, mode: "insensitive" } },
+                { targetDepartment: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } },
+              ],
+            },
+          ],
+        },
+      });
+      return transactions;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong while counting");
+    }
+  }
+
+  public async getTransactionsWithStatus(status?: string) {
+    try {
+      const transactionWith = await db.transaction.findMany({
+        where: {
+          status: {
+            equals: status || "ON-PROCESS",
+            mode: "insensitive",
+          },
+        },
+      });
+      return transactionWith;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Error fetching transactions");
+    }
+  }
+
+  public async getTransactionsService(query: string, page: number, pageSize: number, status?: string, userId?: string) {
     const skip = (page - 1) * pageSize;
+
+    var condition: any = {};
+
+    if (status === "INBOX") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          not: null,
+        },
+      };
+    } else if (status === "INCOMING") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          equals: null,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    }
     try {
       const transactions = await db.transaction.findMany({
         skip,
         take: pageSize,
         where: {
-          status: {
-            equals: status,
-          },
           AND: [
+            condition,
             {
               OR: [
                 {
@@ -789,6 +845,7 @@ export class TransactionService {
               userInfo: true,
             },
           },
+
           project: true,
           company: true,
           attachments: {
@@ -805,11 +862,6 @@ export class TransactionService {
       // Post-process to calculate percentage and combine names
       if (!transactions) return null;
       const processedTransactions = transactions.map((t) => {
-        const finalAttachmentCount = t.attachments.filter((a) => a.fileStatus === "FINAL_ATTACHMENT").length;
-        const totalAttachmentCount = t.attachments.length;
-
-        const percentage = totalAttachmentCount ? (finalAttachmentCount * 100) / totalAttachmentCount : 0;
-
         return {
           ...t,
           dueDate: t.dueDate.toISOString(),
@@ -818,13 +870,160 @@ export class TransactionService {
           dateReceived: t.dateReceived ? t.dateReceived.toISOString() : null,
           forwarderName: `${t.forwarder?.userInfo?.firstName} ${t.forwarder?.userInfo?.lastName}`,
           receiverName: `${t.receiver?.userInfo?.firstName} ${t.receiver?.userInfo?.lastName}`, // Assuming you include receiver info in a similar way
-          percentage: Math.round(percentage).toString(),
         };
       });
 
       return processedTransactions;
     } catch (error) {
       console.log(error);
+      throw new Error("something went wrong while searching");
+    }
+  }
+
+  public async getTransactionServiceV2(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+    const skip = (page - 1) * pageSize;
+    var condition: any = {};
+
+    if (status === "INBOX") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          not: null,
+        },
+      };
+    } else if (status === "INCOMING") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          equals: null,
+        },
+      };
+    } else if (status === "ARCHIVED") {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          not: "ARCHIVED",
+        },
+      };
+    }
+    try {
+      const transactions = await db.transaction.findMany({
+        skip,
+        take: pageSize,
+        where: {
+          AND: [
+            condition,
+            {
+              OR: [
+                {
+                  company: {
+                    OR: [{ companyName: { contains: query, mode: "insensitive" } }, { companyId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                {
+                  project: {
+                    OR: [{ projectName: { contains: query, mode: "insensitive" } }, { projectId: { contains: query, mode: "insensitive" } }],
+                  },
+                },
+                { team: { contains: query, mode: "insensitive" } },
+                { transactionId: { contains: query, mode: "insensitive" } },
+                { documentSubType: { contains: query, mode: "insensitive" } },
+                { targetDepartment: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } },
+              ],
+            },
+          ],
+        },
+        select: {
+          id: true,
+          transactionId: true,
+          project: {
+            select: {
+              projectName: true,
+            },
+          },
+          company: {
+            select: {
+              companyName: true,
+            },
+          },
+          percentage: true,
+          documentType: true,
+          documentSubType: true,
+          subject: true,
+          dueDate: true,
+          forwarder: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          status: true,
+          priority: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+      const newData = transactions.map((data) => {
+        const receiver = data.receiver?.userInfo ? `${data.receiver.userInfo.firstName} - ${data.receiver.userInfo.lastName}` : null;
+        const forwarder = data.forwarder?.userInfo ? `${data.forwarder.userInfo.firstName} - ${data.forwarder.userInfo.lastName}` : null;
+        return {
+          ...data,
+          dueDate: data.dueDate.toISOString(),
+          receiver: receiver,
+          forwarder: forwarder,
+        };
+      });
+
+      return newData;
+    } catch (error) {
+      console.log("Something went wrong while fetching transactions.", error);
+      throw new Error("something went wrong while searching");
+    }
+  }
+  public async fetchTransactionAttachments(id: string) {
+    try {
+      const result = await db.attachment.findMany({
+        where: {
+          transactionId: id,
+        },
+      });
+      return result;
+    } catch (error) {
+      console.log("Something went wrong while fetching transactions.", error);
+      throw new Error("something went wrong while searching");
+    }
+  }
+  public async deleteAttachmentByTransaction(id: string, tx: Prisma.TransactionClient) {
+    try {
+      if (!id) throw new Error("No ID provided ! ");
+      await tx.attachment.deleteMany({
+        where: {
+          transactionId: id,
+        },
+      });
+    } catch (error) {
+      console.log("Something went wrong while fetching transactions.", error);
       throw new Error("something went wrong while searching");
     }
   }

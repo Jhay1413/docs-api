@@ -76,7 +76,6 @@ const transactionRouter = s.router(contracts.transaction, {
     }
   },
   receivedTransaction: async ({ params, body }) => {
-    console.log(params.id);
     try {
       const result = await transactionController.receivedTransactionHandler(params.id, body.dateReceived);
       return {
@@ -92,30 +91,46 @@ const transactionRouter = s.router(contracts.transaction, {
       };
     }
   },
-  searchTransactions: async ({ query }) => {
+  fetchTransactions: async ({ query }) => {
     try {
-      console.log(query.pageSize);
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
 
-      if (query.query) {
-        const result = await transactionController.getSearchedTransation(query.query, page, pageSize, query.status);
-        return {
-          status: 201,
-          body: result || null,
-        };
-      } else {
-        const result = await transactionController.fetchAllTransactions(query.status!, page, pageSize);
-        return {
-          status: 201,
-          body: result || null,
-        };
-      }
+      const result = await transactionController.getTransactionsHandler(query.query, page, pageSize, query.status, query.userId);
+      return {
+        status: 201,
+        body: result!,
+      };
+
+      // const result = await transactionController.fetchAllTransactions(query.status!, page, pageSize, );
+      // return {
+      //   status: 201,
+      //   body: result || null,
+      // };
     } catch (error) {
       return {
         status: 500,
         body: {
           error: "something went wrongssss",
+        },
+      };
+    }
+  },
+  fetchTransactionsV2: async ({ query }) => {
+    try {
+      const page = parseInt(query.page, 10);
+      const pageSize = parseInt(query.pageSize, 10);
+
+      const result = await transactionController.getTransactionsV2(query.query, page, pageSize, query.status, query.userId);
+      return {
+        status: 201,
+        body: result!,
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong",
         },
       };
     }
@@ -162,7 +177,6 @@ const transactionRouter = s.router(contracts.transaction, {
   // },
   insertTransacitons: async ({ body }) => {
     try {
-      console.log(body);
       const result = await transactionController.insertTransactionHandler(body);
       return {
         status: 200,
@@ -178,9 +192,9 @@ const transactionRouter = s.router(contracts.transaction, {
     }
   },
 
-  updateTransaction: async ({ body }) => {
+  updateTransaction: async ({ body, params }) => {
     try {
-      await transactionController.forwardTransactionHandler(body);
+      await transactionController.forwardTransactionHandler(body, params.id);
 
       return {
         status: 200,

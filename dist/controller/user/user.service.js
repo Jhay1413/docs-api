@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserInfoByAccountId = exports.getAccountById = exports.checkUserIdExists = exports.insertUpdatedImageUrl = exports.insertUpdatedUserInfo = exports.insertUserInfo = void 0;
+exports.getUserInfoForForwardTransaction = exports.getUserInfoByAccountId = exports.getAccountById = exports.checkUserIdExists = exports.insertUpdatedImageUrl = exports.insertUpdatedUserInfo = exports.insertUserInfo = void 0;
 const prisma_1 = require("../../prisma");
 const insertUserInfo = (data) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -145,7 +145,31 @@ const getUserInfoByAccountId = (id) => __awaiter(void 0, void 0, void 0, functio
         return result;
     }
     catch (error) {
+        console.log(error);
         throw new Error("something went wrong fetching user");
     }
 });
 exports.getUserInfoByAccountId = getUserInfoByAccountId;
+const getUserInfoForForwardTransaction = (query) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const result = yield prisma_1.db.userInfo.findMany({
+            where: query,
+            select: {
+                accountId: true,
+                firstName: true,
+                lastName: true,
+                account: {
+                    select: {
+                        accountRole: true,
+                    },
+                },
+            },
+        });
+        return result;
+    }
+    catch (error) {
+        console.log(error);
+        throw new Error("something went wrong ! ");
+    }
+});
+exports.getUserInfoForForwardTransaction = getUserInfoForForwardTransaction;
