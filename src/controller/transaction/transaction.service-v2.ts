@@ -457,12 +457,12 @@ export class TransactionService {
               update: {
                 date: data.date,
                 remarks: data.remarks,
-                attachmentUrl: data.attachmentUrl!,
+                attachmentUrl: data.attachmentUrl,
               },
               create: {
                 date: data.date,
                 remarks: data.remarks,
-                attachmentUrl: data.attachmentUrl!,
+                attachmentUrl: data.attachmentUrl,
               },
             },
           },

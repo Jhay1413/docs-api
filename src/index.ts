@@ -19,6 +19,10 @@ import { registerFileRoutes } from "./controller/aws/aws.route";
 import { dsahboardRoutes } from "./controller/dashboard/dashboard.route";
 import { disableAfter5PM } from "./middleware/time-checker";
 
+// Import For testing of Ticketing
+import ticketingRoutes from "./controller/ticketing/ticketing.routes";
+
+
 const app = express();
 const corsOptions = {
   origin: [
@@ -46,6 +50,9 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
 app.use("/api/companies", companyRouter);
+
+// Router USe For testing of Ticketing 
+app.use("/api/ticketing", ticketingRoutes);
 
 const userSockets = new Map<string, string>();
 
