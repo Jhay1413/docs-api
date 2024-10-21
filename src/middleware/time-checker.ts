@@ -3,7 +3,7 @@ const disableAfter5PM = (req: Request, res: Response, next: NextFunction) => {
   const now = new Date();
   const currentHour = now.getHours();
 
-  if (currentHour >= 17) {
+  if (currentHour >= 8) {
     return res.status(403).json({ message: "Access Denied. " });
   }
   next();
