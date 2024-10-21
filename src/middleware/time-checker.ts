@@ -50,7 +50,7 @@ const disableAfter5PM = (req: Request, res: Response, next: NextFunction) => {
       return next();
     }
 
-    if (currentHour >= 12) {
+    if (currentHour >= 18) {
       console.log(decodedPayload.role);
       return res.status(403).json({ message: "Access Denied." });
     }

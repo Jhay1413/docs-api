@@ -403,6 +403,31 @@ export class TransactionService {
       throw new Error("Error while receiving transaction .");
     }
   }
+  // public async readNotification(id:string,receiverId:string){
+  //   try {
+  //     const response = await db.transaction.findFirst({
+  //       where:{
+  //         notifications:{
+  //           where:{
+  //             id:id
+  //           }
+  //         }
+  //       }
+  //     })
+  //     await db.notification.update({
+  //       where:{
+  //         transactionId:id,
+  //         receiverId:receiverId,
+  //         isRead:false
+  //       },
+  //       data:{
+  //         isRead:true
+  //       }
+  //     })
+  //   } catch (error) {
+
+  //   }
+  // }
   public async receivedLogsService(transactionId: string, dateForwarded: Date, dateReceived: Date, userId: string) {
     try {
       const response = await db.transactionLogs.update({

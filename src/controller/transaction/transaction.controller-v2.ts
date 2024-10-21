@@ -226,6 +226,7 @@ export class TransactionController {
       const result = await this.transactionService.receiveTransactionService(id, dateReceived);
       await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
 
+      // await this.transaction
       return result;
     } catch (error) {
       console.log(error);
