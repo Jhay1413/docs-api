@@ -3,6 +3,7 @@ import { processRequestBody } from "zod-express-middleware";
 import { loginSchema } from "./auth.schema";
 import { loginHander } from "./auth.controller";
 import { verifyUser } from "../../middleware/auth/verify_user";
+import { disableAfter5PM } from "../../middleware/time-checker";
 
 const router = express.Router();
 
@@ -66,7 +67,7 @@ router.get("/logout", (req, res) => {
   res.status(200).send("Logged out!");
 });
 
-router.post("/dashboardGateApi", verifyUser, (req: Request, res: Response) => {
+router.post("/dashboardGateApi", verifyUser, disableAfter5PM, (req: Request, res: Response) => {
   res.status(200).send("Verified User!");
 });
 

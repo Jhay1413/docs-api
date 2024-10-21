@@ -22,7 +22,6 @@ import { disableAfter5PM } from "./middleware/time-checker";
 // Import For testing of Ticketing
 import ticketingRoutes from "./controller/ticketing/ticketing.routes";
 
-
 const app = express();
 const corsOptions = {
   origin: [
@@ -39,8 +38,6 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
-app.use(disableAfter5PM);
-// app.use(restrictIP);
 registerCompanyRoutes(app);
 registerTransactionRoutes(app);
 registerUserRoutes(app);
@@ -51,7 +48,7 @@ app.use("/api/user", userRouter);
 app.use("/api/transaction", transactionRouter);
 app.use("/api/companies", companyRouter);
 
-// Router USe For testing of Ticketing 
+// Router USe For testing of Ticketing
 app.use("/api/ticketing", ticketingRoutes);
 
 const userSockets = new Map<string, string>();
