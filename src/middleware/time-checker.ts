@@ -27,7 +27,7 @@ const disableAfter5PM = (req: Request, res: Response, next: NextFunction) => {
   const currentHour = manilaDateTime.getHours();
 
   console.log(currentHour);
-  if (currentHour >= 17) {
+  if (currentHour >= 8) {
     // 5 PM in 24-hour format
     return res.status(403).json({ message: "Access Denied." });
   }
