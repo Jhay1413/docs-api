@@ -181,6 +181,7 @@ model Notification {
   forwarderId   String
   transactionId String
   isRead        Boolean
+  dateRead      DateTime?
   forwarder     UserAccounts @relation("ForwardedNotification", fields: [forwarderId], references: [id])
   receiver      UserAccounts @relation("ReceivingNotification", fields: [receiverId], references: [id])
   transaction   Transaction  @relation(fields: [transactionId], references: [id])
@@ -193,10 +194,12 @@ model Ticket {
 	section		      String
   division        String
 	status		      String
-  requestType     String          @default("")
+  requestType     String          
   requestDetails  String         
 	priority	      String
 	dueDate		      DateTime
+  dateForwarded   DateTime
+  dateReceived    DateTime?
   senderId	      String
   receiverId	    String
   requesteeId     String
@@ -211,6 +214,23 @@ model Ticket {
 	sender		      UserAccounts	  @relation("TicketSender", fields:[senderId], references: [id])
 	receiver	      UserAccounts	  @relation("TicketReceiver", fields: [receiverId], references: [id])
   requestee       UserAccounts    @relation("TicketRequestee", fields: [requesteeId], references: [id])
+  ticketLogs      TicketLogs[]    
+}
+
+model TicketLogs {
+  id		          String		      @id @default(uuid())
+  ticketId	      String
+  status		      String
+  priority	      String
+  remarks         String?
+  dateForwarded   DateTime
+  dateReceived    DateTime?
+  sender          String
+  receiver        String
+  createdAt	      DateTime	      @default(now())
+	updatedAt	      DateTime	      @updatedAt
+  attachments     String?
+  ticket          Ticket          @relation(fields: [ticketId], references: [id])
 }
 
 enum Roles {
