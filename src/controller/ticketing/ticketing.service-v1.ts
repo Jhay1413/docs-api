@@ -1,7 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import * as z from "zod";
 import { ticketingFormData } from "./ticketing.schema";
-import { ticketEditSchema, ticketingMutationSchema } from "shared-contract";
+import { ticketEditSchema, ticketingMutationSchema, ticketLogsSchema, transactionMutationSchema } from "shared-contract";
+import { db } from "../../prisma";
 
 
 export class TicketingService {
@@ -10,16 +11,87 @@ export class TicketingService {
     this.db = db;
   }
 
-  public async insertTicket(data: z.infer<typeof ticketingMutationSchema>) {
+  public async insertTicket(data: z.infer<typeof ticketingMutationSchema>, tx:Prisma.TransactionClient) {
 
     try {
-     await this.db.ticket.create({
+     const response = await tx.ticket.create({
         data: data,
+        select : {
+          id: true,
+          ticketId: true,
+          status: true,
+          priority: true,
+          remarks: true,
+          dateForwarded: true,
+          dateReceived: true,
+          sender: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                }
+              }
+            }
+          },
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                }
+              }
+            }
+          },
+          createdAt: true,
+          updatedAt: true,
+          attachments: true,
+        }
       });
+
+      const logs = {
+        ...response, 
+        ticketId:response.id,
+        sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
+        receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
+        dateForwarded: response.dateForwarded.toISOString(),
+        dateReceived: response.dateReceived?.toISOString() || null,
+        createdAt: response.createdAt.toISOString(),
+        updatedAt: response.updatedAt.toISOString(),
+      }
+      console.log(logs);
+      return logs;
     } catch (error) {
+      console.log(error);
       throw new Error("Something went wrong");
     }
   }
+
+  public async logPostTicket(data: z.infer<typeof ticketLogsSchema>) {
+    try {
+      const logEntry = await db.ticketLogs.create({
+        data: {
+          ticketId: data.ticketId,
+          status: data.status,
+          priority: data.priority,
+          remarks: data.remarks || null,
+          dateForwarded: new Date(data.dateForwarded),
+          dateReceived: data.dateReceived ? new Date(data.dateReceived) : null,
+          sender: data.sender,
+          receiver: data.receiver,
+          attachments: data.attachments || null,
+        },
+      });
+      console.log(`Log entry created successfully for ticket ID: ${data.ticketId}`);
+      return logEntry;
+  
+    } catch (error) {
+      console.error("Error creating log entry:", error);
+      throw new Error("Failed to log ticket update.");
+    }
+  }
+  
 
   public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
     console.log(pageSize);
@@ -148,13 +220,12 @@ export class TicketingService {
         }
       });
   
-      // Format the ticket and ensure nullable dates are properly handled
       const formattedTicket = {
         ...ticket,
         dueDate: ticket.dueDate.toISOString(),
         dateForwarded: ticket.dateForwarded.toISOString(),
         dateReceived: ticket.dateReceived ? ticket.dateReceived.toISOString() : null,
-        ticketLogs: formattedTicketLogs, // Add the formatted ticketLogs
+        ticketLogs: formattedTicketLogs,
       };
   
       return formattedTicket;
@@ -165,12 +236,56 @@ export class TicketingService {
   }
   
   
-  public async updateTicket(ticketId: string, data: z.infer<typeof ticketEditSchema>) {
+  public async updateTicket(id: string, data: z.infer<typeof ticketEditSchema>, tx:Prisma.TransactionClient) {
     try {
-       await this.db.ticket.update({
-        where: { id: ticketId },
+      const result = await tx.ticket.update({
+        where: { id: id },
         data:data,
+        select : {
+          id: true,
+          ticketId: true,
+          status: true,
+          priority: true,
+          remarks: true,
+          dateForwarded: true,
+          dateReceived: true,
+          sender: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                }
+              }
+            }
+          },
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                }
+              }
+            }
+          },
+          createdAt: true,
+          updatedAt: true,
+          attachments: true,
+        }
       });
+      const logs = {
+        ...result, 
+        ticketId:result.id,
+        sender: `${result.sender.userInfo?.firstName} ${result.sender.userInfo?.lastName}`,
+        receiver: `${result.receiver.userInfo?.firstName} ${result.receiver.userInfo?.lastName}`,
+        dateForwarded: result.dateForwarded.toISOString(),
+        dateReceived: result.dateReceived?.toISOString() || null,
+        createdAt: result.createdAt.toISOString(),
+        updatedAt: result.updatedAt.toISOString(),
+      }
+
+      return logs;
     } catch (error) {
       console.error("Failed to update ticket:", error);
       throw new Error("Failed to update ticket");

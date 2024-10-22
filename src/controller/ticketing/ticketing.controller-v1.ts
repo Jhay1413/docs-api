@@ -4,6 +4,7 @@ import { ticketingFormData } from './ticketing.schema';
 import { PrismaClient } from '@prisma/client';
 import { ticketEditSchema, ticketingMutationSchema } from 'shared-contract';
 import {z} from 'zod'
+import { db } from '../../prisma';
 const prisma = new PrismaClient();
 
 export class TicketingController {
@@ -15,9 +16,11 @@ export class TicketingController {
 
   public async createTicket(data: z.infer<typeof ticketingMutationSchema>) {
     try {
-      const result = await this.ticketingService.insertTicket(data);
-      return result;
-
+      await db.$transaction(async (tx) => {
+        const result = await this.ticketingService.insertTicket(data, tx);
+        await this.ticketingService.logPostTicket(result);
+        return result;
+      });
     } catch (err: unknown) {
       console.log(err);
       throw new Error("Something went wrong.");
@@ -44,12 +47,16 @@ export class TicketingController {
     }
   }
 
-  public async updateTicket(ticketId: string, data: z.infer<typeof ticketEditSchema>) {
+  public async updateTicket(id: string, data: z.infer<typeof ticketEditSchema>) {
     try {
-      const result = await this.ticketingService.updateTicket(ticketId, data);
-      return result;
+      await db.$transaction(async (tx) => {
+        const updatedTicket = await this.ticketingService.updateTicket(id, data, tx);
+        await this.ticketingService.logPostTicket(updatedTicket);
+
+        return updatedTicket;
+      });
     } catch (err: unknown) {
-        throw new Error('Failed to update ticket due to unknown error');
+        throw new Error("Failed to update ticket due to unknown error");
     }
   }
 }
