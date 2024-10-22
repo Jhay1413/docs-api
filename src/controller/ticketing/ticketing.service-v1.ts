@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import * as z from "zod";
 import { ticketingFormData } from "./ticketing.schema";
+import { ticketEditSchema, ticketingMutationSchema } from "shared-contract";
 
-type Ticket = z.infer<typeof ticketingFormData>;
 
 export class TicketingService {
   private db: PrismaClient;
@@ -10,39 +10,19 @@ export class TicketingService {
     this.db = db;
   }
 
-  public async insertTicket(data: Ticket) {
-    const { receiverId, status, attachments } = data;
-    let modifiedTicket;
+  public async insertTicket(data: z.infer<typeof ticketingMutationSchema>) {
+
     try {
-      const createdTicket = await this.db.ticket.create({
+     await this.db.ticket.create({
         data: data,
-        include: {
-          project: true,
-          transaction: true,
-        },
       });
-      modifiedTicket = {
-        ...createdTicket,
-        dueDate: createdTicket.dueDate.toISOString(),
-      };
-      const response = {
-        message: "Ticket created successfully",
-        ticket: modifiedTicket,
-      };
-      console.log(response);
-      // Throw an error to trigger rollback for testing
-      throw new Error("Rollback for test");
     } catch (error) {
-      console.error("Rollback triggered:", error);
-      return {
-        message: "Test completed, changes were not committed.",
-        details: error instanceof Error ? error.message : "Unknown error",
-        ticket: error instanceof Error && error.message === "Rollback for test" ? modifiedTicket : undefined,
-      };
+      throw new Error("Something went wrong");
     }
   }
 
   public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+    console.log(pageSize);
     const skip = (page - 1) * pageSize;
     let condition: any = {};
 
@@ -81,35 +61,29 @@ export class TicketingService {
             },
           ],
         },
-        select: {
-          id: true,
-          ticketId: true,
-          subject: true,
-          section: true,
-          status: true,
-          priority: true,
-          dueDate: true,
+        include: {
           receiver: {
-            select: {
+            include: {
               userInfo: {
                 select: {
                   firstName: true,
                   lastName: true,
                 },
-              },
+              }, // Fetch all fields of userInfo for receiver
             },
           },
           sender: {
-            select: {
+            include: {
               userInfo: {
                 select: {
                   firstName: true,
                   lastName: true,
                 },
-              },
+              }, // Fetch all fields of userInfo for sender
             },
           },
-          createdAt: true,
+          project: true, // Include related project
+          transaction: true, // Include related transaction
         },
         orderBy: {
           createdAt: "desc",
@@ -117,13 +91,13 @@ export class TicketingService {
       });
 
       const formattedTickets = tickets.map((ticket) => {
-        const receiver = ticket.receiver?.userInfo ? `${ticket.receiver.userInfo.firstName} - ${ticket.receiver.userInfo.lastName}` : null;
-        const sender = ticket.sender?.userInfo ? `${ticket.sender.userInfo.firstName} - ${ticket.sender.userInfo.lastName}` : null;
         return {
           ...ticket,
+          receiver:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
+          sender:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
           dueDate: ticket.dueDate.toISOString(),
-          receiver: receiver,
-          sender: sender,
+          createdAt: ticket.createdAt.toISOString(),
+          updatedAt: ticket.updatedAt.toISOString(),
         };
       });
 
@@ -134,27 +108,51 @@ export class TicketingService {
     }
   }
 
-  public async updateTicket(ticketId: string, data: Partial<Pick<Ticket, 'senderId' | 'receiverId' | 'remarks' | 'priority' | 'status'>>) {
+  public async fetchTicketByIdService(ticketId: string) {
     try {
-      const updatedTicket = await this.db.ticket.update({
+      const ticket = await this.db.ticket.findUnique({
         where: { ticketId },
-        data: {
-          senderId: data.senderId,
-          receiverId: data.receiverId,
-          remarks: data.remarks,
-          priority: data.priority,
-          status: data.status,
-        },
         include: {
-          project: true,
-          transaction: true,
+          receiver: {
+            include: {
+              userInfo: true, // Fetch all fields of userInfo for receiver
+            },
+          },
+          sender: {
+            include: {
+              userInfo: true, // Fetch all fields of userInfo for sender
+            },
+          },
+          project: true, // Include related project
+          transaction: true, // Include related transaction
         },
       });
 
-      return {
-        message: "Ticket updated successfully",
-        ticket: updatedTicket,
+      if (!ticket) {
+        throw new Error("Ticket not found");
+      }
+
+      const formattedTicket = {
+        ...ticket,
+        dueDate: ticket.dueDate.toISOString(),
+        receiver: ticket.receiver?.userInfo ? `${ticket.receiver.userInfo.firstName} ${ticket.receiver.userInfo.lastName}` : null,
+        sender: ticket.sender?.userInfo ? `${ticket.sender.userInfo.firstName} ${ticket.sender.userInfo.lastName}` : null,
       };
+
+      return formattedTicket;
+    } catch (error) {
+      console.error("Failed to fetch ticket:", error);
+      throw new Error("Failed to fetch ticket");
+    }
+  }
+  
+
+  public async updateTicket(ticketId: string, data: z.infer<typeof ticketEditSchema>) {
+    try {
+       await this.db.ticket.update({
+        where: { id: ticketId },
+        data:data,
+      });
     } catch (error) {
       console.error("Failed to update ticket:", error);
       throw new Error("Failed to update ticket");

@@ -197,6 +197,8 @@ model Ticket {
   requestDetails  String         
 	priority	      String
 	dueDate		      DateTime
+  dateForwarded   DateTime
+  dateReceived    DateTime?
   senderId	      String
   receiverId	    String
   requesteeId     String
@@ -211,6 +213,22 @@ model Ticket {
 	sender		      UserAccounts	  @relation("TicketSender", fields:[senderId], references: [id])
 	receiver	      UserAccounts	  @relation("TicketReceiver", fields: [receiverId], references: [id])
   requestee       UserAccounts    @relation("TicketRequestee", fields: [requesteeId], references: [id])
+  ticketLogs      TicketLogs[]    
+}
+
+model TicketLogs {
+  id		          String		      @id @default(uuid())
+  ticketId	      String
+  status		      String
+  priority	      String
+  dateForwarded   DateTime
+  dateReceived    DateTime?
+  sender          String
+  receiver        String
+  createdAt	      DateTime	      @default(now())
+	updatedAt	      DateTime	      @updatedAt
+  attachments     String?
+  ticket          Ticket          @relation(fields: [ticketId], references: [id])
 }
 
 enum Roles {

@@ -19,7 +19,8 @@ import { registerFileRoutes } from "./controller/aws/aws.route";
 import { dsahboardRoutes } from "./controller/dashboard/dashboard.route";
 
 // Import For testing of Ticketing
-import ticketingRoutes from "./controller/ticketing/ticketing.routes";
+import ticketingRoutes from "./controller/ticketing/ticketing.route";
+import { registerTicketingRoutes } from "./controller/ticketing/ticketing.routes";
 
 
 const app = express();
@@ -37,7 +38,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
-
+registerTicketingRoutes(app);
 registerCompanyRoutes(app);
 registerTransactionRoutes(app);
 registerUserRoutes(app);
