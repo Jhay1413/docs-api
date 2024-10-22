@@ -3,6 +3,7 @@ import { contracts } from "shared-contract";
 
 import { TransactionController } from "./transaction.controller-v2";
 import s from "../../utils/ts-rest-server";
+import { disableAfter5PM } from "../../middleware/time-checker";
 
 const transactionController = new TransactionController();
 const transactionRouter = s.router(contracts.transaction, {
@@ -183,6 +184,7 @@ const transactionRouter = s.router(contracts.transaction, {
         body: result,
       };
     } catch (error) {
+      console.log(error);
       return {
         status: 501,
         body: {
@@ -213,5 +215,7 @@ const transactionRouter = s.router(contracts.transaction, {
   },
 });
 export const registerTransactionRoutes = (app: any) => {
-  createExpressEndpoints(contracts.transaction, transactionRouter, app);
+  createExpressEndpoints(contracts.transaction, transactionRouter, app, {
+    globalMiddleware: [disableAfter5PM],
+  });
 };

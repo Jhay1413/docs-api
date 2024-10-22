@@ -6,10 +6,7 @@ import { signJwt } from "./auth.utils";
 import { checkUserAccountExists } from "./auth.service";
 import jwt from "jsonwebtoken";
 
-export const loginHander = async (
-  req: Request<{}, {}, LoginBody>,
-  res: Response
-) => {
+export const loginHander = async (req: Request<{}, {}, LoginBody>, res: Response) => {
   const { ...rest } = req.body;
 
   try {
@@ -22,16 +19,8 @@ export const loginHander = async (
       return res.status(StatusCodes.UNAUTHORIZED).send("Incorrect password !");
     }
 
-    const accessToken = jwt.sign(
-      { email: user.email },
-      process.env.JWT_ACCESS_TOKEN_SECRET!,
-      { expiresIn: "1d" }
-    );
-    const refreshToken = jwt.sign(
-      { email: user.email },
-      process.env.JWT_REFRESH_TOKEN_SECRET!,
-      { expiresIn: "7d" }
-    );
+    const accessToken = jwt.sign({ email: user.email, role: user.accountRole }, process.env.JWT_ACCESS_TOKEN_SECRET!, { expiresIn: "1d" });
+    const refreshToken = jwt.sign({ email: user.email, role: user.accountRole }, process.env.JWT_REFRESH_TOKEN_SECRET!, { expiresIn: "7d" });
     if (process.env.NODE_ENV == "PRODUCTION") {
       res.cookie("refreshToken", refreshToken, {
         path: "/",
@@ -49,9 +38,7 @@ export const loginHander = async (
         secure: true,
         sameSite: "none",
       });
-      
-    } 
-    else if(process.env.NODE_ENV == "DEVELOPMENT") {
+    } else if (process.env.NODE_ENV == "DEVELOPMENT") {
       res.cookie("refreshToken", refreshToken, {
         path: "/",
         domain: process.env.DEV_COOKIE_URL,
@@ -68,7 +55,7 @@ export const loginHander = async (
         secure: true,
         sameSite: "none",
       });
-    }else {
+    } else {
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -96,9 +83,7 @@ export const loginHander = async (
     res.status(StatusCodes.OK).send(payload);
   } catch (error) {
     console.log(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send("Something went wrong while logging in");
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).send("Something went wrong while logging in");
   }
 };
 

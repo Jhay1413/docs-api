@@ -193,7 +193,7 @@ model Ticket {
 	section		      String
   division        String
 	status		      String
-  requestType     String          @default("")
+  requestType     String          
   requestDetails  String         
 	priority	      String
 	dueDate		      DateTime

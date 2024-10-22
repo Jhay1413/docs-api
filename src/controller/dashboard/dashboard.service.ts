@@ -4,6 +4,11 @@ export class DashboardService {
   public async getDashboardPriority() {
     try {
       const transactions = await db.transaction.findMany({
+        where: {
+          status: {
+            not: "ARCHIVED",
+          },
+        },
         take: 10,
         select: {
           id: true,

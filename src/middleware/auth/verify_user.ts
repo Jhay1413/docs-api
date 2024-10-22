@@ -6,13 +6,10 @@ const decodedSchema = z.object({
   email: z.string(),
   iat: z.number(),
   exp: z.number(),
+  role: z.string(),
 });
 type TDecoded = z.infer<typeof decodedSchema>;
-export const verifyUser = async (
-  req: Request<{}, {}, TLoginBody>,
-  res: Response,
-  next: NextFunction
-) => {
+export const verifyUser = async (req: Request<{}, {}, TLoginBody>, res: Response, next: NextFunction) => {
   console.log("verifying");
   const accessToken = req.cookies.accessToken;
 
@@ -21,28 +18,21 @@ export const verifyUser = async (
       next();
     }
   } else {
-    jwt.verify(
-      accessToken,
-      process.env.JWT_ACCESS_TOKEN_SECRET!,
-      (err: VerifyErrors | null, decoded: any) => {
-        if (err) {
-          console.log(err);
-          return res.status(401).send("Unauthorized");
-        } else {
-          const decodedPayload = decoded as TDecoded;
+    jwt.verify(accessToken, process.env.JWT_ACCESS_TOKEN_SECRET!, (err: VerifyErrors | null, decoded: any) => {
+      if (err) {
+        console.log(err);
+        return res.status(401).send("Unauthorized");
+      } else {
+        const decodedPayload = decoded as TDecoded;
 
-          req.body.email = decodedPayload.email;
-          next();
-        }
+        req.body.email = decodedPayload.email;
+        next();
       }
-    );
+    });
   }
 };
 
-const renewToken = (
-  req: Request<{}, {}, TLoginBody>,
-  res: Response
-): Promise<boolean> => {
+const renewToken = (req: Request<{}, {}, TLoginBody>, res: Response): Promise<boolean> => {
   return new Promise((resolve, reject) => {
     const refreshToken = req.cookies.refreshToken;
 
@@ -50,20 +40,16 @@ const renewToken = (
       res.status(401).send("Unauthorized");
       resolve(false);
     } else {
-      jwt.verify(
-        refreshToken,
-        process.env.JWT_REFRESH_TOKEN_SECRET!,
-        (err: VerifyErrors | null, decoded: any) => {
-          if (err) {
-            res.status(401).send("Unauthorized");
-            resolve(false);
-          } else {
-            const decodedPayload = decoded as TDecoded;
-            req.body.email = decodedPayload.email;
-            resolve(true);
-          }
+      jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN_SECRET!, (err: VerifyErrors | null, decoded: any) => {
+        if (err) {
+          res.status(401).send("Unauthorized");
+          resolve(false);
+        } else {
+          const decodedPayload = decoded as TDecoded;
+          req.body.email = decodedPayload.email;
+          resolve(true);
         }
-      );
+      });
     }
   });
 };
