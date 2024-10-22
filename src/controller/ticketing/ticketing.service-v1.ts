@@ -132,27 +132,38 @@ export class TicketingService {
           transaction: true,
           ticketLogs: true,
         },
-
       });
-
+  
       if (!ticket) {
         throw new Error("Ticket not found");
       }
+  
+      const formattedTicketLogs = ticket.ticketLogs.map(log => {
+        return {...log, 
+          dateForwarded:log.dateForwarded.toISOString(),
+          dateReceived: log.dateReceived?.toISOString() || null,
+          createdAt: log.createdAt.toISOString(),
+          updatedAt: log.updatedAt.toISOString(),
 
+        }
+      });
+  
+      // Format the ticket and ensure nullable dates are properly handled
       const formattedTicket = {
         ...ticket,
         dueDate: ticket.dueDate.toISOString(),
         dateForwarded: ticket.dateForwarded.toISOString(),
         dateReceived: ticket.dateReceived ? ticket.dateReceived.toISOString() : null,
-        remarks: ticket.remarks ? ticket.remarks : null,
+        ticketLogs: formattedTicketLogs, // Add the formatted ticketLogs
       };
-
+  
       return formattedTicket;
     } catch (error) {
       console.error("Failed to fetch ticket:", error);
-      throw new Error("Failed to fetch ticket");
+      throw new Error("Something went wrong");
     }
   }
+  
   
   public async updateTicket(ticketId: string, data: z.infer<typeof ticketEditSchema>) {
     try {
