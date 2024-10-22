@@ -181,6 +181,7 @@ model Notification {
   forwarderId   String
   transactionId String
   isRead        Boolean
+  dateRead      DateTime?
   forwarder     UserAccounts @relation("ForwardedNotification", fields: [forwarderId], references: [id])
   receiver      UserAccounts @relation("ReceivingNotification", fields: [receiverId], references: [id])
   transaction   Transaction  @relation(fields: [transactionId], references: [id])
