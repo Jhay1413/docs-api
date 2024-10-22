@@ -10,9 +10,8 @@ const ticketingRouter = s.router(contracts.ticketing, {
  getTickets: async ({ query }) => {
     try {
       // Need to update page and pagesize data type in contract!
-      const page = parseInt(query.page);
-      const pageSize = parseInt(query.pageSize);
-      const result = await ticketingController.fetchTickets(query.query, page, pageSize);
+
+      const result = await ticketingController.fetchTickets(query.query, query.page, query.pageSize);
       return {
         status: 200,
         body: result,
@@ -22,6 +21,22 @@ const ticketingRouter = s.router(contracts.ticketing, {
         status: 500,
         body: {
           error: "Something went wrong while fetching tickets.",
+        },
+      };
+    }
+  },
+  getTicketsById: async({ params }) => {
+    try {
+      const result = await ticketingController.fetchTicketById(params.id);
+      return {
+        status: 200,
+        body: result,
+      }
+    } catch (err) {
+      return {
+        status: 500,
+        body: {
+          error: "Failed to update ticket.",
         },
       };
     }
@@ -48,7 +63,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
 
   editTickets: async ({ params, body }) => {
     try {
-      await ticketingController.updateTicket(params.ticketId, body);
+      await ticketingController.updateTicket(params.id, body);
       return {
         status: 200,
         body: {
@@ -64,6 +79,24 @@ const ticketingRouter = s.router(contracts.ticketing, {
       };
     }
   },
+  forwardTickets: async({params, body}) => {
+    try {
+      await ticketingController.updateTicket(params.id, body);
+      return {
+        status: 200,
+        body: {
+          message: "Ticket updated successfully",
+        },
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Failed to update ticket.",
+        },
+      };
+    }
+  }
 });
 
 export const registerTicketingRoutes = (app: any) => {

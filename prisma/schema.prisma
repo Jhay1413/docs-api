@@ -221,6 +221,7 @@ model TicketLogs {
   ticketId	      String
   status		      String
   priority	      String
+  remarks         String?
   dateForwarded   DateTime
   dateReceived    DateTime?
   sender          String

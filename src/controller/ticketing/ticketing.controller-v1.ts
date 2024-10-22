@@ -34,20 +34,13 @@ export class TicketingController {
     }
   }
 
-  public async fetchTicketById(req: Request, res: Response){
-    const { ticketId } = req.params;
-
+  public async fetchTicketById(id: string){
     try {
-      const ticket = await this.ticketingService.fetchTicketByIdService(ticketId);
-      res.status(200).json(ticket);
+      const ticket = await this.ticketingService.fetchTicketByIdService(id);
+      return ticket;
     } catch (error: unknown) {
       console.error("Failed to fetch ticket by ID:", error);
-
-      if (error instanceof Error) {
-        res.status(500).json({ error: "Failed to fetch ticket", details: error.message });
-      } else {
-        res.status(500).json({ error: "Failed to fetch ticket due to unknown error" });
-      }
+      throw new Error("Something went wrong");
     }
   }
 

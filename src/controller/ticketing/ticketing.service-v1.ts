@@ -69,7 +69,7 @@ export class TicketingService {
                   firstName: true,
                   lastName: true,
                 },
-              }, // Fetch all fields of userInfo for receiver
+              },
             },
           },
           sender: {
@@ -79,11 +79,11 @@ export class TicketingService {
                   firstName: true,
                   lastName: true,
                 },
-              }, // Fetch all fields of userInfo for sender
+              },
             },
           },
-          project: true, // Include related project
-          transaction: true, // Include related transaction
+          project: true,
+          transaction: true,
         },
         orderBy: {
           createdAt: "desc",
@@ -111,21 +111,28 @@ export class TicketingService {
   public async fetchTicketByIdService(ticketId: string) {
     try {
       const ticket = await this.db.ticket.findUnique({
-        where: { ticketId },
+        where: { id: ticketId },
         include: {
           receiver: {
             include: {
-              userInfo: true, // Fetch all fields of userInfo for receiver
+              userInfo: true,
             },
           },
           sender: {
             include: {
-              userInfo: true, // Fetch all fields of userInfo for sender
+              userInfo: true,
             },
           },
-          project: true, // Include related project
-          transaction: true, // Include related transaction
+          requestee: {
+            include: {
+              userInfo: true,
+            },
+          },
+          project: true,
+          transaction: true,
+          ticketLogs: true,
         },
+
       });
 
       if (!ticket) {
@@ -135,8 +142,9 @@ export class TicketingService {
       const formattedTicket = {
         ...ticket,
         dueDate: ticket.dueDate.toISOString(),
-        receiver: ticket.receiver?.userInfo ? `${ticket.receiver.userInfo.firstName} ${ticket.receiver.userInfo.lastName}` : null,
-        sender: ticket.sender?.userInfo ? `${ticket.sender.userInfo.firstName} ${ticket.sender.userInfo.lastName}` : null,
+        dateForwarded: ticket.dateForwarded.toISOString(),
+        dateReceived: ticket.dateReceived ? ticket.dateReceived.toISOString() : null,
+        remarks: ticket.remarks ? ticket.remarks : null,
       };
 
       return formattedTicket;
@@ -146,7 +154,6 @@ export class TicketingService {
     }
   }
   
-
   public async updateTicket(ticketId: string, data: z.infer<typeof ticketEditSchema>) {
     try {
        await this.db.ticket.update({
