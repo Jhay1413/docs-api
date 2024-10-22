@@ -569,6 +569,7 @@ export class TransactionService {
       throw new Error("Error fetching user info on service .");
     }
   }
+  
   public async addNotificationService(data: z.infer<typeof notification>, tx?: Prisma.TransactionClient) {
     try {
       let response;

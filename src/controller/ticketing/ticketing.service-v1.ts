@@ -60,7 +60,6 @@ export class TicketingService {
         createdAt: response.createdAt.toISOString(),
         updatedAt: response.updatedAt.toISOString(),
       }
-      console.log(logs);
       return logs;
     } catch (error) {
       console.log(error);
@@ -68,9 +67,10 @@ export class TicketingService {
     }
   }
 
-  public async logPostTicket(data: z.infer<typeof ticketLogsSchema>) {
+  public async logPostTicket(data: z.infer<typeof ticketLogsSchema>, tx: Prisma.TransactionClient) {
+    console.log(data);
     try {
-      const logEntry = await db.ticketLogs.create({
+      const logEntry = await tx.ticketLogs.create({
         data: {
           ticketId: data.ticketId,
           status: data.status,

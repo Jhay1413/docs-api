@@ -18,7 +18,7 @@ export class TicketingController {
     try {
       await db.$transaction(async (tx) => {
         const result = await this.ticketingService.insertTicket(data, tx);
-        await this.ticketingService.logPostTicket(result);
+        await this.ticketingService.logPostTicket(result, tx);
         return result;
       });
     } catch (err: unknown) {
@@ -30,7 +30,7 @@ export class TicketingController {
   public async fetchTickets(status: string, page: number, pageSize: number) {
     try {
       const tickets = await this.ticketingService.fetchTickets(status, page, pageSize);
-      return tickets; // Return tickets
+      return tickets;
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
       throw new Error("Failed to fetch tickets");
@@ -51,7 +51,7 @@ export class TicketingController {
     try {
       await db.$transaction(async (tx) => {
         const updatedTicket = await this.ticketingService.updateTicket(id, data, tx);
-        await this.ticketingService.logPostTicket(updatedTicket);
+        await this.ticketingService.logPostTicket(updatedTicket, tx);
 
         return updatedTicket;
       });
