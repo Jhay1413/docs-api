@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import {
   deleteCompany,
+  fetchProjectsForTicketingForm,
   getCompanies,
   getCompanyById,
   getCompanyRelationsById,
@@ -82,5 +83,14 @@ export const getCompanyDetailsHandler = async (req: Request, res: Response) => {
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json(error);
+  }
+};
+
+export const fetchProjectsForTicketForm = async (query: string) => {
+  try {
+    const projects = await fetchProjectsForTicketingForm(query);
+    return projects;
+  } catch (error) {
+    throw new Error("Something went wrong");
   }
 };

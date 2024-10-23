@@ -209,3 +209,23 @@ export const getProjectById = async (id: string) => {
     throw new Error("Error while getting company project");
   }
 };
+
+export const fetchProjectsForTicketingForm = async (query: string) => {
+  console.log(query);
+  try {
+    const projects = await db.companyProject.findMany({
+      where: { projectName: {
+        contains: query,
+        mode: "insensitive",
+      } 
+    },
+      select: {
+        id: true,
+        projectName: true,
+      }
+    });
+    return projects;
+  } catch (error) { 
+    throw new Error("Something went wrong!");
+  }
+};
