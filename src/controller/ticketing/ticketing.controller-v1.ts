@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
-import { TicketingService } from './ticketing.service-v1';
-import { ticketingFormData } from './ticketing.schema';
-import { PrismaClient } from '@prisma/client';
-import { ticketEditSchema, ticketingMutationSchema } from 'shared-contract';
-import {z} from 'zod'
+import { Request, Response } from "express";
+import { TicketingService } from "./ticketing.service-v1";
+import { ticketingFormData } from "./ticketing.schema";
+import { PrismaClient } from "@prisma/client";
+import { ticketEditSchema, ticketingMutationSchema } from "shared-contract";
+import { z } from "zod";
 const prisma = new PrismaClient();
 
 export class TicketingController {
@@ -17,7 +17,6 @@ export class TicketingController {
     try {
       const result = await this.ticketingService.insertTicket(data);
       return result;
-
     } catch (err: unknown) {
       console.log(err);
       throw new Error("Something went wrong.");
@@ -34,7 +33,7 @@ export class TicketingController {
     }
   }
 
-  public async fetchTicketById(id: string){
+  public async fetchTicketById(id: string) {
     try {
       const ticket = await this.ticketingService.fetchTicketByIdService(id);
       return ticket;
@@ -49,7 +48,7 @@ export class TicketingController {
       const result = await this.ticketingService.updateTicket(ticketId, data);
       return result;
     } catch (err: unknown) {
-        throw new Error('Failed to update ticket due to unknown error');
+      throw new Error("Failed to update ticket due to unknown error");
     }
   }
 }

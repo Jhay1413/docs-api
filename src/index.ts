@@ -22,6 +22,8 @@ import { disableAfter5PM } from "./middleware/time-checker";
 // Import For testing of Ticketing
 import ticketingRoutes from "./controller/ticketing/ticketing.route";
 import { registerTicketingRoutes } from "./controller/ticketing/ticketing.routes";
+import { registerNotificationRoutes } from "./controller/notifications/notification.route";
+import { NotificationService } from "./controller/notifications/notification.service";
 
 const app = express();
 const corsOptions = {
@@ -38,6 +40,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+registerNotificationRoutes(app);
 registerTicketingRoutes(app);
 registerCompanyRoutes(app);
 registerTransactionRoutes(app);
@@ -57,6 +60,7 @@ const userSockets = new Map<string, string>();
 const server = http.createServer(app);
 
 const userService = new TransactionService();
+const notificationService = new NotificationService();
 //SOCKET SETUP
 const io = new Server(server, {
   cors: {
@@ -69,33 +73,17 @@ io.on("connection", (socket) => {
   console.log("New client connected", userSockets);
   socket.on("register", async (userId) => {
     userSockets.set(userId, socket.id);
-    console.log(`User ${userId} registered with socket ID ${socket.id}`);
     const receiverSocketId = userSockets.get(userId);
 
     try {
-      const notifications = await userService.fetchAllNotificationById(userId);
-
-      const modified_message = notifications.map((data) => {
-        const userInfo = data.forwarder as z.infer<typeof AccountQuerySchema>;
-        return { ...data, message: ` ${userInfo.userInfo?.firstName} ${userInfo.userInfo?.lastName} ${data.message}` };
-      });
       const tracker = await userService.getIncomingTransaction(userId);
-      let message = null;
-      const countUnreadNotif = notifications.filter((data) => data.isRead === false).length;
       const quantityTracker = { incoming: tracker.incoming, inbox: tracker.outgoing };
-
-      if (countUnreadNotif !== 0) {
-        message = `You have ${countUnreadNotif} unread notifications `;
-      } else {
-        message = null;
-      }
-
-      io.to(receiverSocketId!).emit("notification", message, modified_message, quantityTracker);
+      const numOfUnreadNotif = await notificationService.getNumberOfUnreadNotif(userId);
+      io.to(receiverSocketId!).emit("notification", numOfUnreadNotif, quantityTracker);
     } catch (error) {
-      const message = "Something went wrong !";
-      const notifications = null,
-        quantityTracker = null;
-      io.to(receiverSocketId!).emit("notification", message, notifications, quantityTracker);
+      const numOfUnreadNotif = 0;
+      const quantityTracker = { incoming: 0, inbox: 0 };
+      io.to(receiverSocketId!).emit("notification", numOfUnreadNotif, quantityTracker);
     }
   });
   socket.on("disconnect", () => {
