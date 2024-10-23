@@ -1,6 +1,6 @@
 import { createExpressEndpoints, initServer } from "@ts-rest/express";
 import { companyContract, contracts } from "shared-contract";
-import { deleteCompany, getCompanies, getCompanyById, insertCompany, updateCompany } from "./company.service";
+import { deleteCompany, fetchProjectsForTicketingForm, getCompanies, getCompanyById, insertCompany, updateCompany } from "./company.service";
 import { s } from "../..";
 
 
@@ -91,9 +91,23 @@ const companyRouters = s.router(contracts.company, {
           },
         };
       }
-    }
-      
-    
+    },
+    fetchCompanyProjectsBySearch: async({query}) => {
+      try {
+        const result = await fetchProjectsForTicketingForm(query.projectName);
+        return {
+          status: 200,
+          body: result,
+        };
+      } catch(error) {
+        return {
+          status: 500,
+          body: {
+            error: "something went wrwong",
+          },
+        }
+      }
+    }    
   });
   
   export const registerCompanyRoutes = (app: any) => {
