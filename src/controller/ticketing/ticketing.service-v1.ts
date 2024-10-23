@@ -3,7 +3,6 @@ import * as z from "zod";
 import { ticketingFormData } from "./ticketing.schema";
 import { ticketEditSchema, ticketingMutationSchema } from "shared-contract";
 
-
 export class TicketingService {
   private db: PrismaClient;
   constructor(db: PrismaClient) {
@@ -11,9 +10,8 @@ export class TicketingService {
   }
 
   public async insertTicket(data: z.infer<typeof ticketingMutationSchema>) {
-
     try {
-     await this.db.ticket.create({
+      await this.db.ticket.create({
         data: data,
       });
     } catch (error) {
@@ -93,8 +91,10 @@ export class TicketingService {
       const formattedTickets = tickets.map((ticket) => {
         return {
           ...ticket,
-          receiver:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
-          sender:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
+          dateForwarded: ticket.dateForwarded.toISOString(),
+          dateReceived: ticket.dateReceived?.toISOString() || null,
+          receiver: { firstName: ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName },
+          sender: { firstName: ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName },
           dueDate: ticket.dueDate.toISOString(),
           createdAt: ticket.createdAt.toISOString(),
           updatedAt: ticket.updatedAt.toISOString(),
@@ -133,21 +133,21 @@ export class TicketingService {
           ticketLogs: true,
         },
       });
-  
+
       if (!ticket) {
         throw new Error("Ticket not found");
       }
-  
-      const formattedTicketLogs = ticket.ticketLogs.map(log => {
-        return {...log, 
-          dateForwarded:log.dateForwarded.toISOString(),
+
+      const formattedTicketLogs = ticket.ticketLogs.map((log) => {
+        return {
+          ...log,
+          dateForwarded: log.dateForwarded.toISOString(),
           dateReceived: log.dateReceived?.toISOString() || null,
           createdAt: log.createdAt.toISOString(),
           updatedAt: log.updatedAt.toISOString(),
-
-        }
+        };
       });
-  
+
       // Format the ticket and ensure nullable dates are properly handled
       const formattedTicket = {
         ...ticket,
@@ -156,20 +156,19 @@ export class TicketingService {
         dateReceived: ticket.dateReceived ? ticket.dateReceived.toISOString() : null,
         ticketLogs: formattedTicketLogs, // Add the formatted ticketLogs
       };
-  
+
       return formattedTicket;
     } catch (error) {
       console.error("Failed to fetch ticket:", error);
       throw new Error("Something went wrong");
     }
   }
-  
-  
+
   public async updateTicket(ticketId: string, data: z.infer<typeof ticketEditSchema>) {
     try {
-       await this.db.ticket.update({
+      await this.db.ticket.update({
         where: { id: ticketId },
-        data:data,
+        data: data,
       });
     } catch (error) {
       console.error("Failed to update ticket:", error);
