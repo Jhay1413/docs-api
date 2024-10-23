@@ -2,16 +2,17 @@ import { createExpressEndpoints } from "@ts-rest/express";
 import { contracts } from "shared-contract";
 
 import { TicketingController } from "./ticketing.controller-v1";
-import s from "../../utils/ts-rest-server"; 
+import s from "../../utils/ts-rest-server";
 
 const ticketingController = new TicketingController();
 
 const ticketingRouter = s.router(contracts.ticketing, {
- getTickets: async ({ query }) => {
+  getTickets: async ({ query }) => {
     try {
       // Need to update page and pagesize data type in contract!
-
-      const result = await ticketingController.fetchTickets(query.query, query.page, query.pageSize);
+      const page = parseInt(query.page, 10);
+      const pageSize = parseInt(query.pageSize, 10);
+      const result = await ticketingController.fetchTickets(query.query, page, pageSize);
       return {
         status: 200,
         body: result,
@@ -25,13 +26,13 @@ const ticketingRouter = s.router(contracts.ticketing, {
       };
     }
   },
-  getTicketsById: async({ params }) => {
+  getTicketsById: async ({ params }) => {
     try {
       const result = await ticketingController.fetchTicketById(params.id);
       return {
         status: 200,
         body: result,
-      }
+      };
     } catch (err) {
       return {
         status: 500,
@@ -41,7 +42,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
       };
     }
   },
-  
+
   createTickets: async ({ body }) => {
     try {
       await ticketingController.createTicket(body);
@@ -79,7 +80,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
       };
     }
   },
-  forwardTickets: async({params, body}) => {
+  forwardTickets: async ({ params, body }) => {
     try {
       await ticketingController.updateTicket(params.id, body);
       return {
@@ -96,7 +97,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
         },
       };
     }
-  }
+  },
 });
 
 export const registerTicketingRoutes = (app: any) => {
