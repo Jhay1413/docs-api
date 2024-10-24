@@ -168,6 +168,7 @@ model CompleteStaffWork {
   remarks       String
   attachmentUrl String?
   transactionId String?
+  attachments   String[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   transaction   Transaction? @relation(fields: [transactionId], references: [id])
