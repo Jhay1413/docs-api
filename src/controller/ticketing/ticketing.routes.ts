@@ -9,7 +9,6 @@ const ticketingController = new TicketingController();
 const ticketingRouter = s.router(contracts.ticketing, {
   getTickets: async ({ query }) => {
     try {
-      // Need to update page and pagesize data type in contract!
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
       const result = await ticketingController.fetchTickets(query.query, page, pageSize);
