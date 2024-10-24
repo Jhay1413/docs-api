@@ -54,6 +54,7 @@ const companyRouters = s.router(contracts.company, {
       };
     }
   },
+
   fetchCompany: async ({ params: { id } }) => {
     try {
       console.log("asdsa");

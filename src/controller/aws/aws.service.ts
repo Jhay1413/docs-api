@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client, S3, CopyObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, S3Client, S3, CopyObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { generateFileName } from "../../utils/utils";
 import AWS from "aws-sdk";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -16,6 +16,7 @@ const s3 = new AWS.S3({
   },
 });
 
+export const s3SignedUrl = new S3Client(config);
 export const uploadFileService = async (company: string, fileName: string, contentType: string, file: Express.Multer.File): Promise<string> => {
   try {
     const generatedFilename = generateFileName();
@@ -40,6 +41,22 @@ export const uploadFileService = async (company: string, fileName: string, conte
   } catch (error) {
     console.log(error);
     throw new Error("Something went wrong while uploading .");
+  }
+};
+
+export const getViewSignedUrlService = async (key: string) => {
+  try {
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: process.env.BUCKET_NAME!,
+      Key: key,
+    });
+    console.log(getObjectCommand);
+    const signedURL = await getSignedUrl(s3SignedUrl, getObjectCommand, {
+      expiresIn: 60 * 60,
+    });
+    return signedURL;
+  } catch (error) {
+    throw new Error("Error getting signed url from S3");
   }
 };
 export const getUploadSignedUrlV2 = async (company: string, fileName: string, contentType: string) => {
