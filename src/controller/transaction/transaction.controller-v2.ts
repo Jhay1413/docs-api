@@ -161,14 +161,20 @@ export class TransactionController {
       const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
       const old_attachments = await this.transactionService.fetchTransactionAttachments(data.id!);
 
+      /**
+       *
+       *
+       */
       const updatedAttachments = data.attachments.filter((newAttachment) => {
         if (!newAttachment.fileUrl) return false;
-        const oldAttachment = old_attachments.find((oldAttachment) => oldAttachment.fileName === newAttachment.fileName);
+        const oldAttachment = old_attachments.find(
+          (oldAttachment) => oldAttachment.fileName.trim().toLocaleLowerCase() === newAttachment.fileName.trim().toLocaleLowerCase(),
+        );
 
         // Check if the old attachment exists
         if (oldAttachment) {
           // If it exists, check if the URLs are different
-          return newAttachment.fileUrl !== oldAttachment.fileUrl;
+          return newAttachment.fileUrl.trim().toLocaleLowerCase() !== oldAttachment.fileUrl?.trim().toLocaleLowerCase();
         } else {
           return true;
         }
