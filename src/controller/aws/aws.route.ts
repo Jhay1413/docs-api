@@ -1,10 +1,26 @@
 import s from "../../utils/ts-rest-server";
 import { contracts } from "shared-contract";
-import { transactionSignedUrlV2, uploadSingleFile } from "./aws.controller";
+import { getViewSignedUrls, transactionSignedUrlV2, uploadSingleFile } from "./aws.controller";
 import { createExpressEndpoints } from "@ts-rest/express";
 import multer from "multer";
 const upload = multer();
 const fileRouter = s.router(contracts.awsContract, {
+  getViewSignedUrl: async ({ query }) => {
+    try {
+      const response = await getViewSignedUrls(query.data);
+      return {
+        status: 200,
+        body: response,
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong ",
+        },
+      };
+    }
+  },
   getSignedUrl: async ({ query }) => {
     try {
       const response = await transactionSignedUrlV2(query.company, query.fileName, query.fileType);
