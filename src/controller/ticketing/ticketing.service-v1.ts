@@ -293,4 +293,24 @@ export class TicketingService {
       throw new Error("Failed to update ticket");
     }
   }
+
+  public async getLastId() {
+    try {
+      const response = await db.ticket.findFirst({
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+        select: {
+          ticketId: true,
+        },
+      });
+      if (!response) {
+        return null;
+      }
+      return response?.ticketId;
+    } catch (error) {
+      throw new Error("Error fetching last ID");
+    }
+  }
 }
