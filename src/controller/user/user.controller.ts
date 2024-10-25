@@ -7,11 +7,14 @@ import {
   checkUserIdExists,
   getAccountById,
   getUserInfoForForwardTransaction,
+  getUsersForTicketForwarding,
   insertUpdatedImageUrl,
   insertUpdatedUserInfo,
   insertUserInfo,
 } from "./user.service";
-import { createQueryForRole } from "../../utils/query-for-role";
+import { createQueryForRole, queryBuilderForTickets } from "../../utils/query-for-role";
+import { Roles } from "@prisma/client";
+import { String } from "aws-sdk/clients/acm";
 
 export const changeProfile = async (req: Request, res: Response) => {
   const file = req.file;
@@ -170,5 +173,15 @@ export const fetchUserByRoleAccess = async (id: string, targetDivision: string, 
   } catch (error) {
     console.log(error);
     throw new Error("something went wrong");
+  }
+};
+export const fetchUsersForTicketForwarding = async (division: string, section: string, role: String, mode: string) => {
+  try {
+    const query = queryBuilderForTickets(division, section, role, mode);
+    const usersBySectionOrRole = await getUsersForTicketForwarding(query);
+    console.log("Users for this secion || role: ", usersBySectionOrRole);
+    return usersBySectionOrRole;
+  } catch (error) {
+    throw new Error("Something went wrong");
   }
 };
