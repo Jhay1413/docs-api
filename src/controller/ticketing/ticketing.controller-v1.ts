@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { ticketEditSchema, ticketingMutationSchema } from "shared-contract";
 import { z } from "zod";
 import { db } from "../../prisma";
+import { GenerateId } from "../../utils/generate-id";
 
 const prisma = new PrismaClient();
 
@@ -16,8 +17,11 @@ export class TicketingController {
 
   public async createTicket(data: z.infer<typeof ticketingMutationSchema>) {
     try {
+      const lastId = await this.ticketingService.getLastId();
+      const generatedId = GenerateId(lastId, "ticket");
+      const data_payload = { ...data, ticketId: generatedId };
       const response = await db.$transaction(async (tx) => {
-        const result = await this.ticketingService.insertTicket(data, tx);
+        const result = await this.ticketingService.insertTicket(data_payload, tx);
         await this.ticketingService.logPostTicket(result, tx);
         return result;
       })} catch (err: unknown) {
