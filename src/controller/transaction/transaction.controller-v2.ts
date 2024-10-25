@@ -6,8 +6,7 @@ import { cleanedDataUtils, getAttachmentsPercentage } from "./transaction.utils"
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
-import { filesQuerySchema, transactionMutationSchema, userInfoQuerySchema } from "shared-contract";
-import { completeStaffWorkMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
+import { completeStaffWorkMutationSchema, filesQuerySchema, transactionMutationSchema, userInfoQuerySchema } from "shared-contract";
 import { getUserInfoByAccountId } from "../user/user.service";
 import { transferFile } from "../aws/aws.service";
 export class TransactionController {

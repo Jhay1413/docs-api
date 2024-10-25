@@ -170,3 +170,28 @@ export const getUserInfoForForwardTransaction = async (query: any) => {
     throw new Error("something went wrong ! ");
   }
 };
+
+export const getUsersForTicketForwarding = async (query: any) => {
+  try {
+    const result = await db.userAccounts.findMany({
+      where: query,
+      select: {
+        id: true,
+        userInfo: {
+          select: {
+            firstName: true,
+            lastName: true,
+          }
+        },
+        accountRole: true,
+      },
+    });
+
+    const newResult = result.map(data => {
+      return {...data, userInfo: data.userInfo!}
+    })
+    return newResult;
+  } catch (error) {
+    throw new Error("Something went wrong");
+  }
+};
