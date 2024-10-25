@@ -20,7 +20,7 @@ export const s3SignedUrl = new S3Client(config);
 export const uploadFileService = async (company: string, fileName: string, contentType: string, file: Express.Multer.File): Promise<string> => {
   try {
     const generatedFilename = generateFileName();
-    const key = `${company}/${fileName}${generatedFilename}`;
+    const key = `${company}/${generatedFilename}.${fileName}`;
     const params = {
       Bucket: process.env.TEMP_BUCKET_NAME!,
       Key: key,
