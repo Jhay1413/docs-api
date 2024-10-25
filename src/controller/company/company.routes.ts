@@ -1,5 +1,5 @@
 import { createExpressEndpoints, initServer } from "@ts-rest/express";
-import { companyContract, contracts } from "shared-contract";
+import { contracts } from "shared-contract";
 import { deleteCompany, fetchProjectsForTicketingForm, getCompanies, getCompanyById, insertCompany, updateCompany } from "./company.service";
 import { s } from "../..";
 
@@ -111,5 +111,5 @@ const companyRouters = s.router(contracts.company, {
 });
 
 export const registerCompanyRoutes = (app: any) => {
-  createExpressEndpoints(companyContract, companyRouters, app);
+  createExpressEndpoints(contracts.company, companyRouters, app);
 };

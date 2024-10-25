@@ -21,6 +21,7 @@ import { transactionData } from "./transaction.schema";
 import { TransactionController } from "./transaction.controller-v2";
 import { transactionGetSignedUrl, transactionSignedUrl } from "../aws/aws.controller";
 import { restoreEndpoint } from "../../scripts/transaferattachments";
+import { transaferUrl } from "../../scripts/transfer_url";
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ const transactionController = new TransactionController();
 //transactions v2
 // router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
 
-router.get("/v2/restorePoint", restoreEndpoint);
+router.get("/v2/scripts", transaferUrl);
 router.get("/v2/dashboardData", transactionController.getDashboardData.bind(transactionController));
 // Fetch archived transactions
 router.get("/v2/archived", transactionController.fetchArchivedTransactionHandler.bind(transactionController));
