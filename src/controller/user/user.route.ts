@@ -1,9 +1,29 @@
 import { contracts } from "shared-contract";
 import { s } from "../..";
 import { createExpressEndpoints } from "@ts-rest/express";
-import { fetchUserByRoleAccess } from "./user.controller";
+import { fetchUserByRoleAccess, fetchUsersForTicketForwarding } from "./user.controller";
 
 const userInfoRouter = s.router(contracts.userAccounts, {
+  getUsersForTickets: async({ query }) => {
+    try {
+      const division = query.division;
+      const section = query.section;
+      const role = query.role;
+      const mode = query.mode;
+      const result = await fetchUsersForTicketForwarding(division, section, role, mode);
+      return  {
+        status: 200,
+        body: result,
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "something went wrong ! ",
+        },
+      };
+    }
+  },
   getUserByRoleAccess: async ({ query }) => {
     try {
       console.log(query);

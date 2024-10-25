@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { ticketEditSchema, ticketingMutationSchema } from "shared-contract";
 import { z } from "zod";
 import { db } from "../../prisma";
+
 const prisma = new PrismaClient();
 
 export class TicketingController {
@@ -28,7 +29,7 @@ export class TicketingController {
   public async fetchTickets(status: string, page: number, pageSize: number) {
     try {
       const tickets = await this.ticketingService.fetchTickets(status, page, pageSize);
-      return tickets; // Return tickets
+      return tickets;
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
       throw new Error("Failed to fetch tickets");
