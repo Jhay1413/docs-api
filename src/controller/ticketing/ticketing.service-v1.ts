@@ -15,8 +15,12 @@ export class TicketingService {
   public async insertTicket(data: z.infer<typeof ticketingMutationSchema>, tx:Prisma.TransactionClient) {
 
     try {
+      const dataToInsert = {
+        ...data,
+        attachments: JSON.stringify(data.attachments),
+      };
      const response = await tx.ticket.create({
-        data: data,
+        data: dataToInsert,
         select : {
           id: true,
           ticketId: true,
@@ -50,7 +54,7 @@ export class TicketingService {
           attachments: true,
         }
       });
-
+      const parsedAttachments = response.attachments ? JSON.parse(response.attachments) : [];
       const logs = {
         ...response, 
         ticketId:response.id,
@@ -60,6 +64,7 @@ export class TicketingService {
         dateReceived: response.dateReceived?.toISOString() || null,
         createdAt: response.createdAt.toISOString(),
         updatedAt: response.updatedAt.toISOString(),
+        attachments: parsedAttachments,
       }
       return logs;
     } catch (error) {
@@ -81,7 +86,7 @@ export class TicketingService {
           dateReceived: data.dateReceived ? new Date(data.dateReceived) : null,
           sender: data.sender,
           receiver: data.receiver,
-          attachments: data.attachments || null,
+          attachments: JSON.stringify(data.attachments || [null]),
         },
       });
       console.log(`Log entry created successfully for ticket ID: ${data.ticketId}`);
@@ -296,9 +301,13 @@ export class TicketingService {
   
   public async updateTicket(id: string, data: z.infer<typeof ticketEditSchema>, tx:Prisma.TransactionClient) {
     try {
+      const dataToInsert = {
+        ...data,
+        attachments: JSON.stringify(data.attachments), // Convert array to JSON string
+      };
       const result = await tx.ticket.update({
         where: { id: id },
-        data:data,
+        data:dataToInsert,
         select : {
           id: true,
           ticketId: true,
@@ -332,6 +341,7 @@ export class TicketingService {
           attachments: true,
         }
       });
+      const parsedAttachments = result.attachments ? JSON.parse(result.attachments) : [];
       const logs = {
         ...result, 
         ticketId:result.id,
@@ -341,6 +351,7 @@ export class TicketingService {
         dateReceived: result.dateReceived?.toISOString() || null,
         createdAt: result.createdAt.toISOString(),
         updatedAt: result.updatedAt.toISOString(),
+        attachments: parsedAttachments,
       }
 
       return logs;
