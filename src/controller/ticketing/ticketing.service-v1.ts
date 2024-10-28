@@ -3,6 +3,7 @@ import * as z from "zod";
 import { ticketingFormData } from "./ticketing.schema";
 import { ticketEditSchema, ticketingMutationSchema, ticketLogsSchema, transactionMutationSchema } from "shared-contract";
 import { db } from "../../prisma";
+import { StatusCheckerForQueries } from "../../utils/utils";
 
 
 export class TicketingService {
@@ -85,7 +86,7 @@ export class TicketingService {
       });
       console.log(`Log entry created successfully for ticket ID: ${data.ticketId}`);
       return logEntry;
-  
+ 
     } catch (error) {
       console.error("Error creating log entry:", error);
       throw new Error("Failed to log ticket update.");
@@ -94,7 +95,6 @@ export class TicketingService {
   
 
   public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
-    console.log(pageSize);
     const skip = (page - 1) * pageSize;
     let condition: any = {};
 
@@ -174,7 +174,6 @@ export class TicketingService {
           dateReceived: ticket.dateReceived?.toISOString() || null,
         };
       });
-
       return formattedTickets;
     } catch (error) {
       console.log("Something went wrong while fetching tickets.", error);
@@ -236,6 +235,63 @@ export class TicketingService {
       throw new Error("Something went wrong");
     }
   }
+
+  public async getTicketsForUserByStatusService(userId: string, status: string, page: number, pageSize: number){
+    const skip = (page - 1) * pageSize;
+    const whereCondition = StatusCheckerForQueries(userId, status);
+    console.log(whereCondition);
+    try {
+      const tickets = await db.ticket.findMany({
+        skip,
+        take: pageSize,
+        where: whereCondition,
+        include: {
+          receiver: {
+            include: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          sender: {
+            include: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          project: true,
+          transaction: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+      // const formattedTickets = tickets.map((ticket) => {
+      //   return {
+      //     ...ticket,
+      //     receiver:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
+      //     sender:{firstName:ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName},
+      //     dueDate: ticket.dueDate.toISOString(),
+      //     createdAt: ticket.createdAt.toISOString(),
+      //     updatedAt: ticket.updatedAt.toISOString(),
+      //     dateForwarded: ticket.dateForwarded.toISOString(),
+      //     dateReceived: ticket.dateReceived?.toISOString() || null,
+      //   };
+      // });
+      console.log(tickets);
+      return tickets;
+    } catch (error) {
+      console.error("Failed to fetch ticket:", error);
+      throw new Error("Something went wrong");
+    }
+  }
   
   
   public async updateTicket(id: string, data: z.infer<typeof ticketEditSchema>, tx:Prisma.TransactionClient) {
@@ -291,6 +347,26 @@ export class TicketingService {
     } catch (error) {
       console.error("Failed to update ticket:", error);
       throw new Error("Failed to update ticket");
+    }
+  }
+
+  public async getLastId() {
+    try {
+      const response = await db.ticket.findFirst({
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+        select: {
+          ticketId: true,
+        },
+      });
+      if (!response) {
+        return null;
+      }
+      return response?.ticketId;
+    } catch (error) {
+      throw new Error("Error fetching last ID");
     }
   }
 }
