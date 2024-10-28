@@ -1057,7 +1057,7 @@ export class TransactionService {
 
   public async searchTransactionByIdService(query: string){
     try {
-      const transaction = await db.transaction.findMany({
+      const transactions = await db.transaction.findMany({
         where: { 
           transactionId: {
             contains: query,
@@ -1068,11 +1068,13 @@ export class TransactionService {
           id: true,
           transactionId: true,
           documentSubType: true,
-        },
+          }
+        }
       });
-      return transaction;
+      return transactions;
     } catch (error) {
-
+      console.log("Something went wrong while fetching transactions.", error);
+      throw new Error("something went wrong while searching");
     }
   }
 }
