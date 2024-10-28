@@ -92,6 +92,20 @@ router.post("/transactionSignedUrl", transactionSignedUrl);
 // router.get("/temp/:id",getTransactionByParams);
 // router.put("/:id",forwardTransactionHandler)
 
+// router.get('/transaction/:transactionId', async (req, res) => {
+//     const { transactionId } = req.params;
+    
+//     try {
+//       const transaction = await transactionController.getTransactionByIdHandler(transactionId);
+//       if (transaction) {
+//         res.status(200).json(transaction);
+//       } else {
+//         res.status(404).json({ error: "Transaction not found" });
+//       }
+//     } catch (error) {
+//       res.status(500).json({ error: "Failed to fetch transaction" });
+//     }
+//   });
 // //CSW ROUTES
 // router.get('/csw/:id',getCswHandler);
 // router.put("/:id/csw",updateCswHandler);
