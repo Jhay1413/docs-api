@@ -40,6 +40,17 @@ export class TicketingController {
     }
   }
 
+  public async getTicketsForUserByStatusHandler(userId: string, status: string, page: number, pageSize: number) {
+    try {
+      const tickets = await this.ticketingService.getTicketsForUserByStatusService(userId, status, page, pageSize);
+      
+      return tickets;
+    } catch (error) {
+      console.error("Failed to fetch tickets:", error);
+      throw new Error("Failed to fetch tickets");
+    }
+  }
+
   public async fetchTicketById(id: string) {
     try {
       const ticket = await this.ticketingService.fetchTicketByIdService(id);
