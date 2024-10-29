@@ -13,21 +13,9 @@ export class TicketingService {
 
   public async insertTicket(data: z.infer<typeof ticketingMutationSchema>, tx: Prisma.TransactionClient) {
     try {
-<<<<<<< HEAD
-      const dataToInsert = {
-        ...data,
-        attachments: JSON.stringify(data.attachments),
-      };
       const response = await tx.ticket.create({
-        data: dataToInsert,
-        select: {
-          id: true,
-          ticketId: true,
-          status: true,
-          priority: true,
-          remarks: true,
-          dateForwarded: true,
-          dateReceived: true,
+        data: data,
+        include: {
           sender: {
             select: {
               userInfo: {
@@ -48,12 +36,9 @@ export class TicketingService {
               },
             },
           },
-          createdAt: true,
-          updatedAt: true,
-          attachments: true,
         },
       });
-      const parsedAttachments = response.attachments ? JSON.parse(response.attachments) : [];
+
       const logs = {
         ...response,
         ticketId: response.id,
@@ -63,56 +48,15 @@ export class TicketingService {
         dateReceived: response.dateReceived?.toISOString() || null,
         createdAt: response.createdAt.toISOString(),
         updatedAt: response.updatedAt.toISOString(),
-        attachments: parsedAttachments,
+        attachments: response.attachments,
       };
+
       return logs;
-=======
-        const response = await tx.ticket.create({
-            data: data,
-            include: {
-                sender: {
-                    select: {
-                        userInfo: {
-                            select: {
-                                firstName: true,
-                                lastName: true,
-                            },
-                        },
-                    },
-                },
-                receiver: {
-                    select: {
-                        userInfo: {
-                            select: {
-                                firstName: true,
-                                lastName: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
-
-        const logs = {
-            ...response, 
-            ticketId: response.id,
-            sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
-            receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
-            dateForwarded: response.dateForwarded.toISOString(),
-            dateReceived: response.dateReceived?.toISOString() || null,
-            createdAt: response.createdAt.toISOString(),
-            updatedAt: response.updatedAt.toISOString(),
-            attachments: response.attachments,
-        };
-
-        return logs;
->>>>>>> base-dts-api
     } catch (error) {
-        console.log(error);
-        throw new Error("Something went wrong");
+      console.log(error);
+      throw new Error("Something went wrong");
     }
-}
-
+  }
 
   public async logPostTicket(data: z.infer<typeof ticketLogsSchema>, tx: Prisma.TransactionClient) {
     console.log(data);
@@ -321,8 +265,8 @@ export class TicketingService {
       const formattedTickets = tickets.map((ticket) => {
         return {
           ...ticket,
-          receiver:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
-          sender:{firstName:ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName},
+          receiver: { firstName: ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName },
+          sender: { firstName: ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName },
           dueDate: ticket.dueDate.toISOString(),
           createdAt: ticket.createdAt.toISOString(),
           updatedAt: ticket.updatedAt.toISOString(),
@@ -342,13 +286,8 @@ export class TicketingService {
     try {
       const result = await tx.ticket.update({
         where: { id: id },
-<<<<<<< HEAD
-        data: dataToInsert,
+        data: data,
         select: {
-=======
-        data:data,
-        select : {
->>>>>>> base-dts-api
           id: true,
           ticketId: true,
           status: true,
@@ -390,12 +329,7 @@ export class TicketingService {
         dateReceived: result.dateReceived?.toISOString() || null,
         createdAt: result.createdAt.toISOString(),
         updatedAt: result.updatedAt.toISOString(),
-<<<<<<< HEAD
-        attachments: parsedAttachments,
       };
-=======
-      }
->>>>>>> base-dts-api
 
       return logs;
     } catch (error) {
