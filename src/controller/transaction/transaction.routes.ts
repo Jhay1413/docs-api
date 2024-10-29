@@ -165,7 +165,7 @@ const transactionRouter = s.router(contracts.transaction, {
       return {
         status: 200,
         body: result,
-      }
+      };
     } catch (error) {
       return {
         status: 500,
