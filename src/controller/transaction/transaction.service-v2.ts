@@ -1070,7 +1070,7 @@ export class TransactionService {
           documentSubType: true,
           }
         }
-      });
+      );
       return transactions;
     } catch (error) {
       console.log("Something went wrong while fetching transactions.", error);
