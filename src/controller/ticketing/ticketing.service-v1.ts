@@ -318,20 +318,20 @@ export class TicketingService {
           createdAt: "desc",
         },
       });
-      // const formattedTickets = tickets.map((ticket) => {
-      //   return {
-      //     ...ticket,
-      //     receiver:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
-      //     sender:{firstName:ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName},
-      //     dueDate: ticket.dueDate.toISOString(),
-      //     createdAt: ticket.createdAt.toISOString(),
-      //     updatedAt: ticket.updatedAt.toISOString(),
-      //     dateForwarded: ticket.dateForwarded.toISOString(),
-      //     dateReceived: ticket.dateReceived?.toISOString() || null,
-      //   };
-      // });
+      const formattedTickets = tickets.map((ticket) => {
+        return {
+          ...ticket,
+          receiver:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
+          sender:{firstName:ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName},
+          dueDate: ticket.dueDate.toISOString(),
+          createdAt: ticket.createdAt.toISOString(),
+          updatedAt: ticket.updatedAt.toISOString(),
+          dateForwarded: ticket.dateForwarded.toISOString(),
+          dateReceived: ticket.dateReceived?.toISOString() || null,
+        };
+      });
       console.log(tickets);
-      return tickets;
+      return formattedTickets;
     } catch (error) {
       console.error("Failed to fetch ticket:", error);
       throw new Error("Something went wrong");
