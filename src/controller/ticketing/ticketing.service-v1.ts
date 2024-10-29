@@ -339,6 +339,30 @@ export class TicketingService {
     }
   }
 
+  public async receiveTicketService(id: string, dateReceived: string, tx: Prisma.TransactionClient) {
+    try {
+      const response = await db.ticket.update({
+        where: {
+          id: id,
+        },
+        data: {
+          dateReceived: dateReceived,
+        },
+        select : {
+          ticketId: true,
+          dateForwarded: true,
+          dateReceived: true,
+          senderId: true,
+          receiverId: true,
+        },
+      });
+      return response;
+    } catch (error){
+      console.error("Failed to receive ticket:", error);
+      throw new Error("Something went wrong");
+    }
+  }
+
   public async getLastId() {
     try {
       const response = await db.ticket.findFirst({
