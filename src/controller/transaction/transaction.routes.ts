@@ -7,21 +7,6 @@ import { contracts } from "shared-contract";
 
 const transactionController = new TransactionController();
 const transactionRouter = s.router(contracts.transaction, {
-  searchTransactionById: async ({ params, body }) => {
-    try {
-      return {
-        status: 200,
-        body: [],
-      };
-    } catch (error) {
-      return {
-        status: 500,
-        body: {
-          error: "Something went wrong ",
-        },
-      };
-    }
-  },
   archivedTransation: async ({ params, body }) => {
     try {
       await transactionController.archivedTransactionHandler(params.id, body.userId);
@@ -180,7 +165,7 @@ const transactionRouter = s.router(contracts.transaction, {
       return {
         status: 200,
         body: result,
-      }
+      };
     } catch (error) {
       return {
         status: 500,

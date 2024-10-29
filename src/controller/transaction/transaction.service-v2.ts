@@ -1055,21 +1055,20 @@ export class TransactionService {
     }
   }
 
-  public async searchTransactionByIdService(query: string){
+  public async searchTransactionByIdService(query: string) {
     try {
       const transactions = await db.transaction.findMany({
-        where: { 
+        where: {
           transactionId: {
             contains: query,
             mode: "insensitive",
-          }
+          },
         },
         select: {
           id: true,
           transactionId: true,
           documentSubType: true,
-          }
-        }
+        },
       });
       return transactions;
     } catch (error) {
