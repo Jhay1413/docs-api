@@ -49,7 +49,22 @@ const fileRouter = s.router(contracts.awsContract, {
       };
     },
   },
+  getMultipleSignedUrl: async ({ query }) => {
+    return {
+      status: 200,
+      body: [
+        {
+          id: "placeholder-id", // example ID
+          data: query.data.map((item: any) => ({
+            url: item.fileUrl, // or provide a default URL for each item
+            signedUrl: item.signedUrl || "placeholder-signed-url", // placeholder signed URL if needed
+          })),
+        },
+      ],
+    };
+  },
 });
+
 export const registerFileRoutes = (app: any) => {
   createExpressEndpoints(contracts.awsContract, fileRouter, app);
 };
