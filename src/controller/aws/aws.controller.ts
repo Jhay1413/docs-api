@@ -5,6 +5,7 @@ import { paramsRequestData } from "../transaction/transaction.schema";
 import { getUploadSignedUrlV2, getViewSignedUrlService, uploadFileService } from "./aws.service";
 import { getViewSignedUrlsSchema } from "./aws.schema";
 import { z } from "zod";
+import { getMultipleSignedUrlSchema } from "shared-contract";
 const transactionGetSignedUrl = async (req: Request, res: Response) => {
   const { key } = req.query;
   try {
@@ -51,6 +52,27 @@ const uploadSingleFile = async (company: string, fileName: string, file: Express
     throw new Error("Something went wrong on calliung service");
   }
 };
+
+const getMultipleSignedUrlController = async (datas: z.infer<typeof getMultipleSignedUrlSchema>[]) => {
+  try {
+    const results = await Promise.all(
+      datas.map(async (item) => {
+        const signedUrls = await Promise.all(
+          item.data.map(async (url) => {
+            const signedUrl = await getViewSignedUrlService(url.url);
+
+            return { ...url, signedUrl: signedUrl };
+          }),
+        );
+        return { ...item, data: signedUrls };
+      }),
+    );
+    return results;
+  } catch (error) {
+    console.error(error);
+    throw new Error("Something went wrong on calliung service");
+  }
+};
 const getViewSignedUrls = async (data: z.infer<typeof getViewSignedUrlsSchema>[]) => {
   try {
     const results = await Promise.all(
@@ -76,4 +98,4 @@ const transactionSignedUrlV2 = async (company: string, fileName: string, content
     throw new Error("something went wrong requesting signedUrl");
   }
 };
-export { transactionGetSignedUrl, transactionSignedUrl, uploadSingleFile, transactionSignedUrlV2, getViewSignedUrls };
+export { getMultipleSignedUrlController, transactionGetSignedUrl, transactionSignedUrl, uploadSingleFile, transactionSignedUrlV2, getViewSignedUrls };

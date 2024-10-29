@@ -5,7 +5,6 @@ import { ticketEditSchema, ticketingMutationSchema, ticketLogsSchema, transactio
 import { db } from "../../prisma";
 import { StatusCheckerForQueries } from "../../utils/utils";
 
-
 export class TicketingService {
   private db: PrismaClient;
   constructor(db: PrismaClient) {
@@ -14,6 +13,60 @@ export class TicketingService {
 
   public async insertTicket(data: z.infer<typeof ticketingMutationSchema>, tx: Prisma.TransactionClient) {
     try {
+<<<<<<< HEAD
+      const dataToInsert = {
+        ...data,
+        attachments: JSON.stringify(data.attachments),
+      };
+      const response = await tx.ticket.create({
+        data: dataToInsert,
+        select: {
+          id: true,
+          ticketId: true,
+          status: true,
+          priority: true,
+          remarks: true,
+          dateForwarded: true,
+          dateReceived: true,
+          sender: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+          attachments: true,
+        },
+      });
+      const parsedAttachments = response.attachments ? JSON.parse(response.attachments) : [];
+      const logs = {
+        ...response,
+        ticketId: response.id,
+        sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
+        receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
+        dateForwarded: response.dateForwarded.toISOString(),
+        dateReceived: response.dateReceived?.toISOString() || null,
+        createdAt: response.createdAt.toISOString(),
+        updatedAt: response.updatedAt.toISOString(),
+        attachments: parsedAttachments,
+      };
+      return logs;
+=======
         const response = await tx.ticket.create({
             data: data,
             include: {
@@ -53,6 +106,7 @@ export class TicketingService {
         };
 
         return logs;
+>>>>>>> base-dts-api
     } catch (error) {
         console.log(error);
         throw new Error("Something went wrong");
@@ -78,13 +132,11 @@ export class TicketingService {
       });
       console.log(`Log entry created successfully for ticket ID: ${data.ticketId}`);
       return logEntry;
- 
     } catch (error) {
       console.error("Error creating log entry:", error);
       throw new Error("Failed to log ticket update.");
     }
   }
-  
 
   public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
     const skip = (page - 1) * pageSize;
@@ -157,8 +209,8 @@ export class TicketingService {
       const formattedTickets = tickets.map((ticket) => {
         return {
           ...ticket,
-          receiver:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
-          sender:{firstName:ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName},
+          receiver: { firstName: ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName },
+          sender: { firstName: ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName },
           dueDate: ticket.dueDate.toISOString(),
           createdAt: ticket.createdAt.toISOString(),
           updatedAt: ticket.updatedAt.toISOString(),
@@ -193,26 +245,27 @@ export class TicketingService {
               userInfo: true,
             },
           },
+
           project: true,
           transaction: true,
           ticketLogs: true,
         },
       });
-  
+
       if (!ticket) {
         throw new Error("Ticket not found");
       }
-  
-      const formattedTicketLogs = ticket.ticketLogs.map(log => {
-        return {...log, 
-          dateForwarded:log.dateForwarded.toISOString(),
+
+      const formattedTicketLogs = ticket.ticketLogs.map((log) => {
+        return {
+          ...log,
+          dateForwarded: log.dateForwarded.toISOString(),
           dateReceived: log.dateReceived?.toISOString() || null,
           createdAt: log.createdAt.toISOString(),
           updatedAt: log.updatedAt.toISOString(),
-
-        }
+        };
       });
-  
+
       const formattedTicket = {
         ...ticket,
         dueDate: ticket.dueDate.toISOString(),
@@ -220,7 +273,7 @@ export class TicketingService {
         dateReceived: ticket.dateReceived ? ticket.dateReceived.toISOString() : null,
         ticketLogs: formattedTicketLogs,
       };
-  
+
       return formattedTicket;
     } catch (error) {
       console.error("Failed to fetch ticket:", error);
@@ -228,7 +281,7 @@ export class TicketingService {
     }
   }
 
-  public async getTicketsForUserByStatusService(userId: string, status: string, page: number, pageSize: number){
+  public async getTicketsForUserByStatusService(userId: string, status: string, page: number, pageSize: number) {
     const skip = (page - 1) * pageSize;
     const whereCondition = StatusCheckerForQueries(userId, status);
     console.log(whereCondition);
@@ -284,14 +337,18 @@ export class TicketingService {
       throw new Error("Something went wrong");
     }
   }
-  
-  
-  public async updateTicket(id: string, data: z.infer<typeof ticketEditSchema>, tx:Prisma.TransactionClient) {
+
+  public async updateTicket(id: string, data: z.infer<typeof ticketEditSchema>, tx: Prisma.TransactionClient) {
     try {
       const result = await tx.ticket.update({
         where: { id: id },
+<<<<<<< HEAD
+        data: dataToInsert,
+        select: {
+=======
         data:data,
         select : {
+>>>>>>> base-dts-api
           id: true,
           ticketId: true,
           status: true,
@@ -305,9 +362,9 @@ export class TicketingService {
                 select: {
                   firstName: true,
                   lastName: true,
-                }
-              }
-            }
+                },
+              },
+            },
           },
           receiver: {
             select: {
@@ -315,25 +372,30 @@ export class TicketingService {
                 select: {
                   firstName: true,
                   lastName: true,
-                }
-              }
-            }
+                },
+              },
+            },
           },
           createdAt: true,
           updatedAt: true,
           attachments: true,
-        }
+        },
       });
       const logs = {
-        ...result, 
-        ticketId:result.id,
+        ...result,
+        ticketId: result.id,
         sender: `${result.sender.userInfo?.firstName} ${result.sender.userInfo?.lastName}`,
         receiver: `${result.receiver.userInfo?.firstName} ${result.receiver.userInfo?.lastName}`,
         dateForwarded: result.dateForwarded.toISOString(),
         dateReceived: result.dateReceived?.toISOString() || null,
         createdAt: result.createdAt.toISOString(),
         updatedAt: result.updatedAt.toISOString(),
+<<<<<<< HEAD
+        attachments: parsedAttachments,
+      };
+=======
       }
+>>>>>>> base-dts-api
 
       return logs;
     } catch (error) {

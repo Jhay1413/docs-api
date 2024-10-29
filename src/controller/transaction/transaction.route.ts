@@ -1,8 +1,6 @@
 import express from "express";
 import multer from "multer";
 
-import { validateData } from "../../middleware/zodValidation";
-import { transactionData } from "./transaction.schema";
 // import {
 //   forwardTransactionHandler,
 //   getCswHandler,
@@ -60,12 +58,6 @@ router.get("/v2/:id/notification", transactionController.countIncomingAndInboxTr
 
 // Fetch transactions by specific parameters for a particular ID
 // router.get("/v2/:id/transactions", transactionController.fetchTransactionsByParamsHandler.bind(transactionController));
-
-// Fetch notifications related to a specific transaction ID
-router.get("/v2/:id/notifications", transactionController.fetchNotificationsHandler.bind(transactionController));
-
-//read all notification
-router.put("/v2/:id/readNotification", transactionController.readAllNotificationHandler.bind(transactionController));
 
 //get dashboard data
 
