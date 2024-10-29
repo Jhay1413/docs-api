@@ -1054,4 +1054,27 @@ export class TransactionService {
       throw new Error("something went wrong while searching");
     }
   }
+
+  public async searchTransactionByIdService(query: string){
+    try {
+      const transactions = await db.transaction.findMany({
+        where: { 
+          transactionId: {
+            contains: query,
+            mode: "insensitive",
+          }
+        },
+        select: {
+          id: true,
+          transactionId: true,
+          documentSubType: true,
+          }
+        }
+      });
+      return transactions;
+    } catch (error) {
+      console.log("Something went wrong while fetching transactions.", error);
+      throw new Error("something went wrong while searching");
+    }
+  }
 }

@@ -1,9 +1,9 @@
 import { createExpressEndpoints } from "@ts-rest/express";
-import { contracts } from "shared-contract";
 
 import { TransactionController } from "./transaction.controller-v2";
 import s from "../../utils/ts-rest-server";
 import { disableAfter5PM } from "../../middleware/time-checker";
+import { contracts } from "shared-contract";
 
 const transactionController = new TransactionController();
 const transactionRouter = s.router(contracts.transaction, {
@@ -170,6 +170,22 @@ const transactionRouter = s.router(contracts.transaction, {
         status: 500,
         body: {
           error: "something went wrong",
+        },
+      };
+    }
+  },
+  searchTransactionById: async ({ query }) => {
+    try {
+      const result = await transactionController.getTransactionByIdHandler(query);
+      return {
+        status: 200,
+        body: result,
+      }
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong",
         },
       };
     }

@@ -338,4 +338,13 @@ export class TransactionController {
       throw new Error("Something went wrong searching transactions");
     }
   }
+
+  public async getTransactionByIdHandler(transactionId: string){
+    try {
+      const transaction = await this.transactionService.searchTransactionByIdService(transactionId);
+      return transaction;
+    } catch (error) {
+      throw new Error("Something went wrong!");
+    }
+  }
 }
