@@ -7,7 +7,7 @@ import { contracts } from "shared-contract";
 
 const transactionController = new TransactionController();
 const transactionRouter = s.router(contracts.transaction, {
-  archivedTransation: async ({ params, body }) => {
+  archivedTransaction: async ({ params, body }) => {
     try {
       await transactionController.archivedTransactionHandler(params.id, body.userId);
 
@@ -92,31 +92,7 @@ const transactionRouter = s.router(contracts.transaction, {
       };
     }
   },
-  fetchTransactions: async ({ query }) => {
-    try {
-      const page = parseInt(query.page, 10);
-      const pageSize = parseInt(query.pageSize, 10);
 
-      const result = await transactionController.getTransactionsHandler(query.query, page, pageSize, query.status, query.userId);
-      return {
-        status: 201,
-        body: result!,
-      };
-
-      // const result = await transactionController.fetchAllTransactions(query.status!, page, pageSize, );
-      // return {
-      //   status: 201,
-      //   body: result || null,
-      // };
-    } catch (error) {
-      return {
-        status: 500,
-        body: {
-          error: "something went wrongssss",
-        },
-      };
-    }
-  },
   fetchTransactionsV2: async ({ query }) => {
     try {
       const page = parseInt(query.page, 10);
@@ -192,7 +168,7 @@ const transactionRouter = s.router(contracts.transaction, {
   //     };
   //   }
   // },
-  insertTransacitons: async ({ body }) => {
+  insertTransactions: async ({ body }) => {
     try {
       const result = await transactionController.insertTransactionHandler(body);
       return {
