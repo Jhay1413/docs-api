@@ -41,7 +41,31 @@ const ticketingRouter = s.router(contracts.ticketing, {
       };
     }
   },
+  getTicketsForUserByStatus: async ({ params, query }) => {
+    try {
+      const userId = params.id;
+      const page = parseInt(query.page, 10);
+      const pageSize = parseInt(query.pageSize, 10);
+      const tickets = await ticketingController.getTicketsForUserByStatusHandler(
+        userId,
+        query.status,
+        page,
+        pageSize
+      );
 
+      return {
+        status: 200,
+        body: tickets,
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong while fetching tickets.",
+        },
+      };
+    }
+  },
   createTickets: async ({ body }) => {
     try {
       await ticketingController.createTicket(body);
@@ -75,6 +99,24 @@ const ticketingRouter = s.router(contracts.ticketing, {
         status: 500,
         body: {
           error: "Failed to update ticket.",
+        },
+      };
+    }
+  },
+  receiveTickets: async ({ params, body }) => {
+    try {
+      const response = await ticketingController.receiveTicketHandler(params.id, body.dateReceived);
+      return {
+        status: 201,
+        body: {
+          message: response.message,
+        },
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Failed to receive ticket.",
         },
       };
     }
