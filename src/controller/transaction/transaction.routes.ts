@@ -92,7 +92,6 @@ const transactionRouter = s.router(contracts.transaction, {
       };
     }
   },
-
   fetchTransactionsV2: async ({ query }) => {
     try {
       const page = parseInt(query.page, 10);
@@ -102,6 +101,22 @@ const transactionRouter = s.router(contracts.transaction, {
       return {
         status: 201,
         body: result!,
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong",
+        },
+      };
+    }
+  },
+  searchTransactionById: async ({ query }) => {
+    try {
+      const result = await transactionController.getTransactionByIdHandler(query.transactionId);
+      return {
+        status: 200,
+        body: result,
       };
     } catch (error) {
       return {
@@ -131,22 +146,6 @@ const transactionRouter = s.router(contracts.transaction, {
         status: 500,
         body: {
           error: "something went wrong",
-        },
-      };
-    }
-  },
-  searchTransactionById: async ({ query }) => {
-    try {
-      const result = await transactionController.getTransactionByIdHandler(query.transactionId);
-      return {
-        status: 200,
-        body: result,
-      };
-    } catch (error) {
-      return {
-        status: 500,
-        body: {
-          error: "Something went wrong",
         },
       };
     }

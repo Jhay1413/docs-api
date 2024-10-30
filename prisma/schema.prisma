@@ -122,6 +122,7 @@ model Transaction {
   receiverId        String?
   forwarderId       String
   category          String            @default("")
+  dateExpiry        DateTime?
   attachments       Attachment[]
   completeStaffWork CompleteStaffWork[]
   notifications     Notification[]
@@ -227,10 +228,13 @@ model TicketLogs {
   dateReceived    DateTime?
   sender          String
   receiver        String
+  senderId	      String
+  receiverId	    String
   createdAt	      DateTime	      @default(now())
 	updatedAt	      DateTime	      @updatedAt
   attachments     String[]
   ticket          Ticket          @relation(fields: [ticketId], references: [id])
+  @@unique([ticketId, receiverId, senderId, dateForwarded], name: "refId")
 }
 
 enum Roles {

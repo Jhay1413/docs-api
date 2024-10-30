@@ -44,6 +44,8 @@ export class TicketingService {
         ticketId: response.id,
         sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
         receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
+        senderId: response.senderId,
+        receiverId: response.receiverId,
         dateForwarded: response.dateForwarded.toISOString(),
         dateReceived: response.dateReceived?.toISOString() || null,
         createdAt: response.createdAt.toISOString(),
@@ -55,6 +57,27 @@ export class TicketingService {
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong");
+    }
+  }
+  public async receiveTicketLog(ticketId: string, receiverId: string, senderId: string, dateForwarded: string, datReceived: string) {
+    try {
+      const response = await db.ticketLogs.update({
+        where: {
+          refId: {
+            ticketId: ticketId,
+            receiverId: receiverId,
+            senderId: senderId,
+            dateForwarded: dateForwarded,
+          },
+        },
+        data: {
+          dateReceived: datReceived,
+        },
+      });
+      return response;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong!");
     }
   }
 
@@ -71,6 +94,8 @@ export class TicketingService {
           dateReceived: data.dateReceived ? new Date(data.dateReceived) : null,
           sender: data.sender,
           receiver: data.receiver,
+          senderId: data.senderId,
+          receiverId: data.receiverId,
           attachments: data.attachments,
         },
       });
@@ -315,6 +340,8 @@ export class TicketingService {
               },
             },
           },
+          receiverId: true,
+          senderId: true,
           createdAt: true,
           updatedAt: true,
           attachments: true,
@@ -325,6 +352,8 @@ export class TicketingService {
         ticketId: result.id,
         sender: `${result.sender.userInfo?.firstName} ${result.sender.userInfo?.lastName}`,
         receiver: `${result.receiver.userInfo?.firstName} ${result.receiver.userInfo?.lastName}`,
+        senderId: result.senderId,
+        receiverId: result.receiverId,
         dateForwarded: result.dateForwarded.toISOString(),
         dateReceived: result.dateReceived?.toISOString() || null,
         createdAt: result.createdAt.toISOString(),
@@ -335,6 +364,66 @@ export class TicketingService {
     } catch (error) {
       console.error("Failed to update ticket:", error);
       throw new Error("Failed to update ticket");
+    }
+  }
+
+  public async receiveTicketService(id: string, dateReceived: string, tx: Prisma.TransactionClient) {
+    try {
+      const response = await db.ticket.update({
+        where: {
+          id: id,
+        },
+        data: {
+          dateReceived: dateReceived,
+        },
+        select: {
+          id: true,
+          ticketId: true,
+          status: true,
+          priority: true,
+          remarks: true,
+          dateForwarded: true,
+          dateReceived: true,
+          sender: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          receiverId: true,
+          senderId: true,
+          createdAt: true,
+          updatedAt: true,
+          attachments: true,
+        },
+      });
+      const logs = {
+        ...response,
+        sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
+        receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
+        dateForwarded: response.dateForwarded.toISOString(),
+        dateReceived: response.dateReceived?.toISOString() || null,
+        createdAt: response.createdAt.toISOString(),
+        updatedAt: response.updatedAt.toISOString(),
+      };
+      return logs;
+    } catch (error) {
+      console.error("Failed to receive ticket:", error);
+      throw new Error("Something went wrong");
     }
   }
 
