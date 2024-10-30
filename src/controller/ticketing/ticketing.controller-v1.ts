@@ -72,4 +72,19 @@ export class TicketingController {
       throw new Error("Something went wrong.");
     }
   }
+
+  public async receiveTicketHandler(ticketId: string,  dateReceived: string) {
+
+    try {
+      const response = await db.$transaction(async (tx) => {
+        const result = await this.ticketingService.receiveTicketService(ticketId, dateReceived, tx);
+        await this.ticketingService.logPostTicket(result, tx)});
+        return {
+          message: "Ticket Received!"
+        }
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong.");
+    }
+  }
 }
