@@ -2,8 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "../../prisma";
 import { completeStaffWork, notification } from "./transaction.schema";
 import * as z from "zod";
-import { filesQuerySchema, transactionLogsData, transactionMutationSchema } from "shared-contract";
-import { completeStaffWorkMutationSchema, filesMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
+import { completeStaffWorkMutationSchema, filesQuerySchema, transactionLogsData, transactionMutationSchema } from "shared-contract";
 
 export class TransactionService {
   public async insertTransaction(data: z.infer<typeof transactionMutationSchema>, percentage: number, tx: Prisma.TransactionClient) {
@@ -482,12 +481,14 @@ export class TransactionService {
               update: {
                 date: data.date,
                 remarks: data.remarks,
-                attachmentUrl: data.attachmentUrl,
+
+                attachments: data.attachments,
               },
               create: {
                 date: data.date,
                 remarks: data.remarks,
-                attachmentUrl: data.attachmentUrl,
+
+                attachments: data.attachments,
               },
             },
           },
@@ -1048,6 +1049,28 @@ export class TransactionService {
           transactionId: id,
         },
       });
+    } catch (error) {
+      console.log("Something went wrong while fetching transactions.", error);
+      throw new Error("something went wrong while searching");
+    }
+  }
+
+  public async searchTransactionByIdService(query: string) {
+    try {
+      const transactions = await db.transaction.findMany({
+        where: {
+          transactionId: {
+            contains: query,
+            mode: "insensitive",
+          },
+        },
+        select: {
+          id: true,
+          transactionId: true,
+          documentSubType: true,
+        },
+      });
+      return transactions;
     } catch (error) {
       console.log("Something went wrong while fetching transactions.", error);
       throw new Error("something went wrong while searching");

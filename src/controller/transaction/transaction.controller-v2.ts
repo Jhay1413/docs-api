@@ -6,8 +6,7 @@ import { cleanedDataUtils, getAttachmentsPercentage } from "./transaction.utils"
 import { db } from "../../prisma";
 import z from "zod";
 import { io, userSockets } from "../..";
-import { filesQuerySchema, transactionMutationSchema, userInfoQuerySchema } from "shared-contract";
-import { completeStaffWorkMutationSchema } from "shared-contract/dist/schema/transactions/mutation-schema";
+import { completeStaffWorkMutationSchema, filesQuerySchema, transactionMutationSchema, userInfoQuerySchema } from "shared-contract";
 import { getUserInfoByAccountId } from "../user/user.service";
 import { transferFile } from "../aws/aws.service";
 export class TransactionController {
@@ -239,26 +238,6 @@ export class TransactionController {
       throw new Error("Something went wrong while receiving transactions");
     }
   }
-  public async fetchNotificationsHandler(req: Request, res: Response) {
-    const { id } = req.params;
-    try {
-      const notifications = await this.transactionService.fetchAllNotificationById(id);
-      res.status(StatusCodes.OK).json(notifications);
-    } catch (error) {
-      return res.status(StatusCodes.BAD_GATEWAY).json("Something went wrong ! ");
-    }
-  }
-  public async readAllNotificationHandler(req: Request, res: Response) {
-    const { id } = req.params;
-    try {
-      await this.transactionService.readAllNotificationService(id);
-      const notifications = await this.transactionService.fetchAllNotificationById(id);
-      res.status(StatusCodes.OK).json(notifications);
-    } catch (error) {
-      console.log(error);
-      return res.status(StatusCodes.BAD_GATEWAY).json("Something went wrong ! ");
-    }
-  }
   public async countIncomingAndInboxTransactions(req: Request, res: Response) {
     const { id } = req.params;
     try {
@@ -273,6 +252,22 @@ export class TransactionController {
   public async updateCswById(id: string, data: z.infer<typeof completeStaffWorkMutationSchema>) {
     try {
       const result = await this.transactionService.updateTransactionCswById(id, data);
+
+      if (!data.attachments || data.attachments.length === 0) return result;
+      await Promise.all(
+        data.attachments.map(async (attachment) => {
+          if (!attachment) {
+            throw new Error("Attachment does not have a valid file URL");
+          }
+          try {
+            const result = await transferFile(attachment);
+            return result;
+          } catch (error) {
+            console.error(`Failed to transfer file ${attachment}:`, error);
+            throw new Error(`Failed to transfer file: ${attachment}`);
+          }
+        }),
+      );
 
       return result;
     } catch (error) {
@@ -341,6 +336,15 @@ export class TransactionController {
       return { data: transactionsFetched, numOfTransactions: numOfTransactions, totalPages: numOfPages };
     } catch (error) {
       throw new Error("Something went wrong searching transactions");
+    }
+  }
+
+  public async getTransactionByIdHandler(transactionId: string){
+    try {
+      const transaction = await this.transactionService.searchTransactionByIdService(transactionId);
+      return transaction;
+    } catch (error) {
+      throw new Error("Something went wrong!");
     }
   }
 }

@@ -1,3 +1,5 @@
+import { Roles } from "@prisma/client";
+
 const createQueryForRole = (role: string, targetDivision: string, team: string | null, assignedDivision: string, assignedSection: string) => {
   switch (role) {
     case "RECORDS":
@@ -84,6 +86,39 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
 
     default:
       return null;
+  }
+};
+
+export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string) => {
+  switch(mode){
+    case "insert":
+      return {
+        OR: [
+          {
+            AND: [
+              {
+                userInfo: {
+                  assignedDivision: division,
+                }
+               },
+               {
+                  accountRole: "MANAGER",
+               }
+            ]
+          }, {
+            AND: [
+              {
+                userInfo: {
+                  assignedSection: section,
+                }
+               },
+               {
+                  accountRole: "TL",
+               }
+            ]
+          },
+        ]
+      };    
   }
 };
 

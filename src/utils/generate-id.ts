@@ -1,6 +1,11 @@
-export const GenerateId = (lastId: string | null | undefined) => {
+export const GenerateId = (lastId: string | null | undefined,type?:string) => {
   const year = new Date().getFullYear();
-
+  var id= "";
+  if(type === "ticket"){
+    if(!lastId) {
+      lastId = `TKT-${year}-0000`  
+    }  
+  }
   if (!lastId) {
     lastId = `ECC-${year}-0000`
   }
@@ -11,7 +16,11 @@ export const GenerateId = (lastId: string | null | undefined) => {
   const incremented_value = converted_value + 1;
 
   const number = String(incremented_value).padStart(4, "0");
-  const id = `ECC-${year}-${number}`;
-
+  if(type ==="ticket"){
+    id = `TKT-${year}-${number}`;
+  }
+  else{
+    id = `ECC-${year}-${number}`;
+  }
   return id;
 };
