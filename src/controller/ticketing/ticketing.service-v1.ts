@@ -13,60 +13,6 @@ export class TicketingService {
 
   public async insertTicket(data: z.infer<typeof ticketingMutationSchema>, tx: Prisma.TransactionClient) {
     try {
-<<<<<<< HEAD
-      const dataToInsert = {
-        ...data,
-        attachments: JSON.stringify(data.attachments),
-      };
-      const response = await tx.ticket.create({
-        data: dataToInsert,
-        select: {
-          id: true,
-          ticketId: true,
-          status: true,
-          priority: true,
-          remarks: true,
-          dateForwarded: true,
-          dateReceived: true,
-          sender: {
-            select: {
-              userInfo: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                },
-              },
-            },
-          },
-          receiver: {
-            select: {
-              userInfo: {
-                select: {
-                  firstName: true,
-                  lastName: true,
-                },
-              },
-            },
-          },
-          createdAt: true,
-          updatedAt: true,
-          attachments: true,
-        },
-      });
-      const parsedAttachments = response.attachments ? JSON.parse(response.attachments) : [];
-      const logs = {
-        ...response,
-        ticketId: response.id,
-        sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
-        receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
-        dateForwarded: response.dateForwarded.toISOString(),
-        dateReceived: response.dateReceived?.toISOString() || null,
-        createdAt: response.createdAt.toISOString(),
-        updatedAt: response.updatedAt.toISOString(),
-        attachments: parsedAttachments,
-      };
-      return logs;
-=======
         const response = await tx.ticket.create({
             data: data,
             include: {
@@ -106,7 +52,6 @@ export class TicketingService {
         };
 
         return logs;
->>>>>>> base-dts-api
     } catch (error) {
         console.log(error);
         throw new Error("Something went wrong");
@@ -342,13 +287,8 @@ export class TicketingService {
     try {
       const result = await tx.ticket.update({
         where: { id: id },
-<<<<<<< HEAD
-        data: dataToInsert,
-        select: {
-=======
         data:data,
         select : {
->>>>>>> base-dts-api
           id: true,
           ticketId: true,
           status: true,
@@ -390,17 +330,36 @@ export class TicketingService {
         dateReceived: result.dateReceived?.toISOString() || null,
         createdAt: result.createdAt.toISOString(),
         updatedAt: result.updatedAt.toISOString(),
-<<<<<<< HEAD
-        attachments: parsedAttachments,
-      };
-=======
       }
->>>>>>> base-dts-api
 
       return logs;
     } catch (error) {
       console.error("Failed to update ticket:", error);
       throw new Error("Failed to update ticket");
+    }
+  }
+
+  public async receiveTicketService(id: string, dateReceived: string, tx: Prisma.TransactionClient) {
+    try {
+      const response = await db.ticket.update({
+        where: {
+          id: id,
+        },
+        data: {
+          dateReceived: dateReceived,
+        },
+        select : {
+          ticketId: true,
+          dateForwarded: true,
+          dateReceived: true,
+          senderId: true,
+          receiverId: true,
+        },
+      });
+      return response;
+    } catch (error){
+      console.error("Failed to receive ticket:", error);
+      throw new Error("Something went wrong");
     }
   }
 
