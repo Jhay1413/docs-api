@@ -72,6 +72,8 @@ export class TicketingService {
           dateReceived: data.dateReceived ? new Date(data.dateReceived) : null,
           sender: data.sender,
           receiver: data.receiver,
+          senderId: data.senderId,
+          receiverId: data.receiverId,
           attachments: data.attachments,
         },
       });
@@ -316,6 +318,8 @@ export class TicketingService {
               },
             },
           },
+          receiverId: true,
+          senderId: true,
           createdAt: true,
           updatedAt: true,
           attachments: true,
@@ -326,6 +330,8 @@ export class TicketingService {
         ticketId: result.id,
         sender: `${result.sender.userInfo?.firstName} ${result.sender.userInfo?.lastName}`,
         receiver: `${result.receiver.userInfo?.firstName} ${result.receiver.userInfo?.lastName}`,
+        senderId:  result.senderId,
+        receiverId: result.receiverId,
         dateForwarded: result.dateForwarded.toISOString(),
         dateReceived: result.dateReceived?.toISOString() || null,
         createdAt: result.createdAt.toISOString(),
@@ -349,14 +355,50 @@ export class TicketingService {
           dateReceived: dateReceived,
         },
         select : {
+          id: true,
           ticketId: true,
+          status: true,
+          priority: true,
+          remarks: true,
           dateForwarded: true,
           dateReceived: true,
-          senderId: true,
+          sender: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
           receiverId: true,
+          senderId: true,
+          createdAt: true,
+          updatedAt: true,
+          attachments: true,
         },
       });
-      return response;
+      const logs = {
+        ...response,
+        sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
+        receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
+        dateForwarded: response.dateForwarded.toISOString(),
+        dateReceived: response.dateReceived?.toISOString() || null,
+        createdAt: response.createdAt.toISOString(),
+        updatedAt: response.updatedAt.toISOString(),
+      }
+      return logs;
     } catch (error){
       console.error("Failed to receive ticket:", error);
       throw new Error("Something went wrong");
