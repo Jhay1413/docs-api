@@ -10,9 +10,13 @@ const userInfoRouter = s.router(contracts.userAccounts, {
       const section = query.section;
       const role = query.role;
       const mode = query.mode;
-      const result = await fetchUsersForTicketForwarding(division, section, role, mode);
+      const type = query.type;
+      const requesteeId = query.requesteedId;
+
+      console.log(query)
+      const result = await fetchUsersForTicketForwarding(type, division, section, role, mode, requesteeId);
       return  {
-        status: 200,
+        status: 201,
         body: result,
       };
     } catch (error) {
@@ -43,7 +47,6 @@ const userInfoRouter = s.router(contracts.userAccounts, {
     }
   },
   getUserInfoForSelect: async ({ query }) => {
-    console.log("fethching");
     try {
       const result: any = {};
       return {

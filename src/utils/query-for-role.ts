@@ -89,37 +89,72 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
   }
 };
 
-export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string) => {
+export const queryBuilderForTickets = (type: string, division: string, section: string, role: string, mode: string, requesteeId?: string) => {
   switch(mode){
     case "insert":
-      return {
-        OR: [
-          {
-            AND: [
-              {
-                userInfo: {
-                  assignedDivision: division,
+      if ( type === "EPD" ) {
+        return {
+          accountRole:"TL",
+          userInfo:{
+            assignedSection : "EPD"
+          }
+        }
+      
+      } 
+      else if(type === "IT" ) {
+        return {
+          accountRole: "TL",
+            userInfo: {
+              assignedSection: "ITOP",
+            },
+         
+        }
+      }
+      else if ( type === "Marketing" ) {
+        return {
+          userInfo: {
+            assignedDivision: "Marketing Department",
+          }
+        }
+      }
+      break;
+    case "forward":
+      if(role === "TL") {
+        return { 
+          OR: [
+            {
+              id: requesteeId
+            },
+            {
+              AND: [
+                {
+                  userInfo: {
+                    assignedDivision: division,
+                  }
+                },
+                {
+                  accountRole: "Manager",
+                },
+              ]
+          
+            },
+            {
+              AND: [
+                {
+                  accountRole: "CH",
+                },
+                {
+                  userInfo: {
+                    assignedSection: section
+                  }
                 }
-               },
-               {
-                  accountRole: "MANAGER",
-               }
-            ]
-          }, {
-            AND: [
-              {
-                userInfo: {
-                  assignedSection: section,
-                }
-               },
-               {
-                  accountRole: "TL",
-               }
-            ]
-          },
+              ]
+            }
         ]
-      };    
+        }
+      }
   }
+
 };
 
 export { createQueryForRole };
