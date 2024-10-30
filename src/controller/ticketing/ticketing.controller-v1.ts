@@ -73,7 +73,7 @@ export class TicketingController {
     }
   }
 
-  public async receiveTicketHandler(ticketId: string, dateForwarded: string,  dateReceived: string, senderId: string, recieverId: string) {
+  public async receiveTicketHandler(ticketId: string,  dateReceived: string) {
 
     try {
       const response = await db.$transaction(async (tx) => {

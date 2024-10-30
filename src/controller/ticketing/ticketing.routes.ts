@@ -103,6 +103,24 @@ const ticketingRouter = s.router(contracts.ticketing, {
       };
     }
   },
+  receiveTickets: async ({ params, body }) => {
+    try {
+      const response = await ticketingController.receiveTicketHandler(params.id, body.dateReceived);
+      return {
+        status: 201,
+        body: {
+          message: response.message,
+        },
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Failed to receive ticket.",
+        },
+      };
+    }
+  },
   forwardTickets: async ({ params, body }) => {
     try {
       await ticketingController.updateTicket(params.id, body);
