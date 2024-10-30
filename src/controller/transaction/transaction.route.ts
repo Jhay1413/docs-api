@@ -1,8 +1,6 @@
 import express from "express";
 import multer from "multer";
 
-import { validateData } from "../../middleware/zodValidation";
-import { transactionData } from "./transaction.schema";
 // import {
 //   forwardTransactionHandler,
 //   getCswHandler,
@@ -20,6 +18,7 @@ import { transactionData } from "./transaction.schema";
 // } from "./transaction.controller-v1";
 import { TransactionController } from "./transaction.controller-v2";
 import { transactionGetSignedUrl, transactionSignedUrl } from "../aws/aws.controller";
+import { removePdf } from "../../scripts/remove_pdf";
 // import { restoreEndpoint } from "../../scripts/transaferattachments";
 // import { transaferUrl } from "../../scripts/transfer_url";
 
@@ -32,7 +31,7 @@ const transactionController = new TransactionController();
 //transactions v2
 // router.get("/v2/", transactionController.fetchAllTransactions.bind(transactionController));
 
-// router.get("/v2/scripts", transaferUrl);
+// router.put("/v2/scripts", removePdf);
 router.get("/v2/dashboardData", transactionController.getDashboardData.bind(transactionController));
 // Fetch archived transactions
 router.get("/v2/archived", transactionController.fetchArchivedTransactionHandler.bind(transactionController));
@@ -61,12 +60,6 @@ router.get("/v2/:id/notification", transactionController.countIncomingAndInboxTr
 // Fetch transactions by specific parameters for a particular ID
 // router.get("/v2/:id/transactions", transactionController.fetchTransactionsByParamsHandler.bind(transactionController));
 
-// Fetch notifications related to a specific transaction ID
-router.get("/v2/:id/notifications", transactionController.fetchNotificationsHandler.bind(transactionController));
-
-//read all notification
-router.put("/v2/:id/readNotification", transactionController.readAllNotificationHandler.bind(transactionController));
-
 //get dashboard data
 
 //Aws endpoint
@@ -92,6 +85,20 @@ router.post("/transactionSignedUrl", transactionSignedUrl);
 // router.get("/temp/:id",getTransactionByParams);
 // router.put("/:id",forwardTransactionHandler)
 
+// router.get('/transaction/:transactionId', async (req, res) => {
+//     const { transactionId } = req.params;
+
+//     try {
+//       const transaction = await transactionController.getTransactionByIdHandler(transactionId);
+//       if (transaction) {
+//         res.status(200).json(transaction);
+//       } else {
+//         res.status(404).json({ error: "Transaction not found" });
+//       }
+//     } catch (error) {
+//       res.status(500).json({ error: "Failed to fetch transaction" });
+//     }
+//   });
 // //CSW ROUTES
 // router.get('/csw/:id',getCswHandler);
 // router.put("/:id/csw",updateCswHandler);
