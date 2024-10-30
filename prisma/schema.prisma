@@ -122,6 +122,7 @@ model Transaction {
   receiverId        String?
   forwarderId       String
   category          String            @default("")
+  dateExpiry        DateTime?
   attachments       Attachment[]
   completeStaffWork CompleteStaffWork[]
   notifications     Notification[]
