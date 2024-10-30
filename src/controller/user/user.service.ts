@@ -186,7 +186,6 @@ export const getUsersForTicketForwarding = async (query: any) => {
         accountRole: true,
       },
     });
-
     const newResult = result.map(data => {
       return {...data, userInfo: data.userInfo!}
     })

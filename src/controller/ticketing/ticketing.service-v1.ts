@@ -99,7 +99,6 @@ export class TicketingService {
           attachments: data.attachments,
         },
       });
-      console.log(`Log entry created successfully for ticket ID: ${data.ticketId}`);
       return logEntry;
     } catch (error) {
       console.error("Error creating log entry:", error);
@@ -214,9 +213,16 @@ export class TicketingService {
               userInfo: true,
             },
           },
-
           project: true,
-          transaction: true,
+          transaction: {
+            select: {
+              transactionId: true,
+              documentSubType: true,
+              status: true,
+              priority: true,
+              dueDate: true,
+            }
+          },
           ticketLogs: true,
         },
       });
@@ -241,6 +247,11 @@ export class TicketingService {
         dateForwarded: ticket.dateForwarded.toISOString(),
         dateReceived: ticket.dateReceived ? ticket.dateReceived.toISOString() : null,
         ticketLogs: formattedTicketLogs,
+        transaction: ticket.transaction ?  {
+          ...ticket.transaction,
+          dueDate: ticket.transaction?.dueDate.toISOString(),
+        } : null
+
       };
 
       return formattedTicket;
