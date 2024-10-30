@@ -44,6 +44,8 @@ export class TicketingService {
             ticketId: response.id,
             sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
             receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
+            senderId:  response.senderId,
+            receiverId: response.receiverId,
             dateForwarded: response.dateForwarded.toISOString(),
             dateReceived: response.dateReceived?.toISOString() || null,
             createdAt: response.createdAt.toISOString(),
@@ -57,7 +59,27 @@ export class TicketingService {
         throw new Error("Something went wrong");
     }
 }
-
+  public async receiveTicketLog(ticketId: string, receiverId: string, senderId: string, dateForwarded: string, datReceived: string){
+    try {
+      const response = await db.ticketLogs.update({
+        where: {
+          refId: {
+            ticketId: ticketId,
+            receiverId: receiverId,
+            senderId: senderId,
+            dateForwarded: dateForwarded,
+          }
+        },
+        data: {
+          dateReceived: datReceived,
+        }
+      });
+      return response;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong!");
+    }
+  }
 
   public async logPostTicket(data: z.infer<typeof ticketLogsSchema>, tx: Prisma.TransactionClient) {
     console.log(data);

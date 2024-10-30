@@ -78,7 +78,7 @@ export class TicketingController {
     try {
       const response = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.receiveTicketService(ticketId, dateReceived, tx);
-        await this.ticketingService.logPostTicket(result, tx)});
+        await this.ticketingService.receiveTicketLog(result.id, result.receiverId, result.senderId, result.dateForwarded, dateReceived)});
         return {
           message: "Ticket Received!"
         }
