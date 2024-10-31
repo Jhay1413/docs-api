@@ -175,11 +175,11 @@ export const fetchUserByRoleAccess = async (id: string, targetDivision: string, 
     throw new Error("something went wrong");
   }
 };
-export const fetchUsersForTicketForwarding = async (division: string, section: string, role: String, mode: string) => {
+export const fetchUsersForTicketForwarding = async (type: string, division: string, section: string, role: String, mode: string, requesteeId?: string) => {
   try {
-    const query = queryBuilderForTickets(division, section, role, mode);
+    const query = queryBuilderForTickets(type,  division, section, role, mode, requesteeId);
     const usersBySectionOrRole = await getUsersForTicketForwarding(query);
-    console.log("Users for this secion || role: ", usersBySectionOrRole);
+   
     return usersBySectionOrRole;
   } catch (error) {
     throw new Error("Something went wrong");

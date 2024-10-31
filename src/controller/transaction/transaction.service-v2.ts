@@ -71,9 +71,8 @@ export class TransactionService {
           },
           attachments: true,
           completeStaffWork: {
-            omit: {
-              updatedAt: true,
-              createdAt: true,
+            orderBy: {
+              date: "asc",
             },
           },
         },
@@ -86,7 +85,13 @@ export class TransactionService {
         };
       });
       const new_csw = transaction.completeStaffWork.map((data) => {
-        return { ...data, date: data.date.toISOString(), transactionId: data.transactionId! };
+        return {
+          ...data,
+          createdAt: data.createdAt.toISOString(),
+          updatedAt: data.updatedAt.toISOString(),
+          date: data.date.toISOString(),
+          transactionId: data.transactionId!,
+        };
       });
       const parseTransactionLogs = transaction?.transactionLogs.map((respo) => {
         const parseAttachments = JSON.parse(respo.attachments) as z.infer<typeof filesQuerySchema>[];
