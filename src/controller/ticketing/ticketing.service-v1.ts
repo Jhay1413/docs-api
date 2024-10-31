@@ -13,53 +13,53 @@ export class TicketingService {
 
   public async insertTicket(data: z.infer<typeof ticketingMutationSchema>, tx: Prisma.TransactionClient) {
     try {
-        const response = await tx.ticket.create({
-            data: data,
-            include: {
-                sender: {
-                    select: {
-                        userInfo: {
-                            select: {
-                                firstName: true,
-                                lastName: true,
-                            },
-                        },
-                    },
+      const response = await tx.ticket.create({
+        data: data,
+        include: {
+          sender: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
                 },
-                receiver: {
-                    select: {
-                        userInfo: {
-                            select: {
-                                firstName: true,
-                                lastName: true,
-                            },
-                        },
-                    },
-                },
+              },
             },
-        });
+          },
+          receiver: {
+            select: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+        },
+      });
 
-        const logs = {
-            ...response, 
-            ticketId: response.id,
-            sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
-            receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
-            senderId:  response.senderId,
-            receiverId: response.receiverId,
-            dateForwarded: response.dateForwarded.toISOString(),
-            dateReceived: response.dateReceived?.toISOString() || null,
-            createdAt: response.createdAt.toISOString(),
-            updatedAt: response.updatedAt.toISOString(),
-            attachments: response.attachments,
-        };
+      const logs = {
+        ...response,
+        ticketId: response.id,
+        sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
+        receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
+        senderId: response.senderId,
+        receiverId: response.receiverId,
+        dateForwarded: response.dateForwarded.toISOString(),
+        dateReceived: response.dateReceived?.toISOString() || null,
+        createdAt: response.createdAt.toISOString(),
+        updatedAt: response.updatedAt.toISOString(),
+        attachments: response.attachments,
+      };
 
-        return logs;
+      return logs;
     } catch (error) {
-        console.log(error);
-        throw new Error("Something went wrong");
+      console.log(error);
+      throw new Error("Something went wrong");
     }
-}
-  public async receiveTicketLog(ticketId: string, receiverId: string, senderId: string, dateForwarded: string, datReceived: string){
+  }
+  public async receiveTicketLog(ticketId: string, receiverId: string, senderId: string, dateForwarded: string, datReceived: string) {
     try {
       const response = await db.ticketLogs.update({
         where: {
@@ -68,11 +68,11 @@ export class TicketingService {
             receiverId: receiverId,
             senderId: senderId,
             dateForwarded: dateForwarded,
-          }
+          },
         },
         data: {
           dateReceived: datReceived,
-        }
+        },
       });
       return response;
     } catch (error) {
@@ -301,8 +301,8 @@ export class TicketingService {
       const formattedTickets = tickets.map((ticket) => {
         return {
           ...ticket,
-          receiver:{firstName:ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName},
-          sender:{firstName:ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName},
+          receiver: { firstName: ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName },
+          sender: { firstName: ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName },
           dueDate: ticket.dueDate.toISOString(),
           createdAt: ticket.createdAt.toISOString(),
           updatedAt: ticket.updatedAt.toISOString(),
@@ -322,8 +322,8 @@ export class TicketingService {
     try {
       const result = await tx.ticket.update({
         where: { id: id },
-        data:data,
-        select : {
+        data: data,
+        select: {
           id: true,
           ticketId: true,
           status: true,
@@ -363,13 +363,13 @@ export class TicketingService {
         ticketId: result.id,
         sender: `${result.sender.userInfo?.firstName} ${result.sender.userInfo?.lastName}`,
         receiver: `${result.receiver.userInfo?.firstName} ${result.receiver.userInfo?.lastName}`,
-        senderId:  result.senderId,
+        senderId: result.senderId,
         receiverId: result.receiverId,
         dateForwarded: result.dateForwarded.toISOString(),
         dateReceived: result.dateReceived?.toISOString() || null,
         createdAt: result.createdAt.toISOString(),
         updatedAt: result.updatedAt.toISOString(),
-      }
+      };
 
       return logs;
     } catch (error) {
@@ -387,7 +387,7 @@ export class TicketingService {
         data: {
           dateReceived: dateReceived,
         },
-        select : {
+        select: {
           id: true,
           ticketId: true,
           status: true,
@@ -430,9 +430,9 @@ export class TicketingService {
         dateReceived: response.dateReceived?.toISOString() || null,
         createdAt: response.createdAt.toISOString(),
         updatedAt: response.updatedAt.toISOString(),
-      }
+      };
       return logs;
-    } catch (error){
+    } catch (error) {
       console.error("Failed to receive ticket:", error);
       throw new Error("Something went wrong");
     }
