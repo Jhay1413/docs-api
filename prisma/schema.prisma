@@ -159,7 +159,6 @@ model TransactionLogs {
   dateReceived     DateTime?
   attachments      String      @default("")
   percentage       Int         @default(0)
-  dateExpiry       DateTime?
   transaction      Transaction @relation(fields: [transactionId], references: [id])
 
   @@unique([transactionId, receiverId, dateForwarded], name: "refId")
