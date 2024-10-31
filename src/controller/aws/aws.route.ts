@@ -5,9 +5,9 @@ import { createExpressEndpoints } from "@ts-rest/express";
 import multer from "multer";
 const upload = multer();
 const fileRouter = s.router(contracts.awsContract, {
-  getMultipleSignedUrl: async ({ query }) => {
+  getMultipleSignedUrl: async ({ body }) => {
     try {
-      const data = await getMultipleSignedUrlController(query.data);
+      const data = await getMultipleSignedUrlController(body);
       return {
         status: 200,
         body: data,
