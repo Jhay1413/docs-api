@@ -87,4 +87,20 @@ export class TicketingController {
       throw new Error("Something went wrong.");
     }
   }
+
+  public async updateTicketHandler( id: string, data: z.infer<typeof ticketEditSchema>) {
+    try {
+      await db.$transaction(async (tx) => {
+        const result = await this.ticketingService.updateTicket(id, data, tx);
+        await this.ticketingService.logPostTicket(result, tx)
+      });
+  
+      return { 
+        message: "Ticket updated successfully" 
+      };
+    } catch (error) {
+      console.error("Error in updateTicketHandler:", error);
+      throw new Error("Something went wrong while updating the ticket");
+    }
+  }
 }
