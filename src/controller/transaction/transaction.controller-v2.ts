@@ -16,7 +16,8 @@ export class TransactionController {
     this.transactionService = new TransactionService();
   }
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
-    const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
+    const filteredAttachments = data.attachments.filter((data) => data.fileStatus !== "NOT_APPLICABLE");
+    const attachmentsPercentage = getAttachmentsPercentage(filteredAttachments);
 
     try {
       let receiverInfo: z.infer<typeof userInfoQuerySchema> | null = null;
@@ -157,7 +158,8 @@ export class TransactionController {
       const receiverInfo = await getUserInfoByAccountId(data.receiverId!);
       const forwarder = await getUserInfoByAccountId(data.forwarderId);
 
-      const attachmentsPercentage = getAttachmentsPercentage(data.attachments);
+      const filteredAttachments = data.attachments.filter((data) => data.fileStatus !== "NOT_APPLICABLE");
+      const attachmentsPercentage = getAttachmentsPercentage(filteredAttachments);
       const old_attachments = await this.transactionService.fetchTransactionAttachments(data.id!);
 
       /**
@@ -251,9 +253,9 @@ export class TransactionController {
   }
   public async updateCswById(id: string, data: z.infer<typeof completeStaffWorkMutationSchema>) {
     try {
-      const result = await this.transactionService.updateTransactionCswById(id, data);
+      await this.transactionService.updateTransactionCswById(id, data);
 
-      if (!data.attachments || data.attachments.length === 0) return result;
+      if (!data.attachments || data.attachments.length === 0) return;
       await Promise.all(
         data.attachments.map(async (attachment) => {
           if (!attachment) {
@@ -269,7 +271,7 @@ export class TransactionController {
         }),
       );
 
-      return result;
+      return;
     } catch (error) {
       console.log(error);
       throw new Error("something went wrong calling the services");
@@ -339,7 +341,7 @@ export class TransactionController {
     }
   }
 
-  public async getTransactionByIdHandler(transactionId: string){
+  public async getTransactionByIdHandler(transactionId: string) {
     try {
       const transaction = await this.transactionService.searchTransactionByIdService(transactionId);
       return transaction;

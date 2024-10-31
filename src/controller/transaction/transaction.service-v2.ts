@@ -33,6 +33,7 @@ export class TransactionService {
         ...createdTransaction,
         dueDate: createdTransaction.dueDate.toISOString(),
         dateForwarded: createdTransaction.dateForwarded.toISOString(),
+        dateExpiry: createdTransaction.dateExpiry ? createdTransaction.dateExpiry.toISOString() : undefined,
         attachments: createdTransaction.attachments.map((data) => {
           return { ...data, createdAt: data.createdAt.toISOString() };
         }),
@@ -104,6 +105,7 @@ export class TransactionService {
           createdAt: respo.createdAt.toISOString(),
           updatedAt: respo.updatedAt.toISOString(),
           dateForwarded: respo.dateForwarded.toISOString(),
+
           dueDate: respo.dueDate.toISOString(),
           dateReceived: respo.dateReceived ? respo.dateReceived.toISOString() : null,
         };
@@ -115,6 +117,7 @@ export class TransactionService {
         dueDate: transaction.dueDate.toISOString(),
         dateForwarded: transaction.dateForwarded.toISOString(),
         dateReceived: transaction.dateReceived ? transaction.dateReceived.toISOString() : null,
+        dateExpiry: transaction.dateExpiry ? transaction.dateExpiry.toISOString() : undefined,
         transactionLogs: parseTransactionLogs,
         completeStaffWork: new_csw,
         attachments: new_attachments,
@@ -163,6 +166,7 @@ export class TransactionService {
           dueDate: data.dueDate.toISOString(),
           dateForwarded: data.dateForwarded.toISOString(),
           dateReceived: data.dateReceived ? data.dateReceived.toISOString() : null,
+          dateExpiry: data.dateExpiry ? data.dateExpiry.toISOString() : undefined,
         };
       });
       return returned_data;
@@ -197,6 +201,7 @@ export class TransactionService {
           dueDate: data.dueDate.toISOString(),
           dateForwarded: data.dateForwarded.toISOString(),
           dateReceived: data.dateReceived ? data.dateReceived.toISOString() : null,
+          dateExpiry: data.dateExpiry ? data.dateExpiry.toISOString() : undefined,
         };
       });
       return returned_data;
@@ -291,6 +296,7 @@ export class TransactionService {
         dueDate: result.dueDate.toISOString(),
         dateForwarded: result.dateForwarded.toISOString(),
         dateReceived: null,
+        dateExpiry: result.dateExpiry ? result.dateExpiry.toISOString() : undefined,
         attachments: result.attachments.map((data) => {
           return { ...data, createdAt: data.createdAt.toDateString() };
         }),
@@ -334,6 +340,8 @@ export class TransactionService {
         dueDate: response.dueDate.toISOString(),
         dateForwarded: response.dateForwarded.toISOString(),
         dateReceived: null,
+        dateExpiry: response.dateExpiry ? response.dateExpiry.toISOString() : undefined,
+
         attachments: response.attachments.map((data) => {
           return { ...data, createdAt: data.createdAt.toDateString() };
         }),
@@ -473,7 +481,7 @@ export class TransactionService {
   }
   public async updateTransactionCswById(transactionId: string, data: z.infer<typeof completeStaffWorkMutationSchema>) {
     try {
-      const response = await db.transaction.update({
+      await db.transaction.update({
         where: {
           id: transactionId,
         },
@@ -498,21 +506,8 @@ export class TransactionService {
             },
           },
         },
-        include: {
-          attachments: {
-            omit: {
-              createdAt: true,
-            },
-          },
-          forwarder: true,
-          receiver: true,
-          company: true,
-          project: true,
-          completeStaffWork: true,
-        },
       });
-
-      return response;
+      return;
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong while adding csw ! ");

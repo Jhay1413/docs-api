@@ -148,6 +148,7 @@ model TransactionLogs {
   priority         String
   company          String
   project          String
+  dateExpiry       DateTime?
   receiver         String?
   receiverId       String?
   remarks          String
@@ -259,4 +260,5 @@ enum Status {
 enum FileType {
   INITIAL_DOC
   FOLLOWED_UP
+  APPROVE
 }
