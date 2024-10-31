@@ -29,27 +29,13 @@ const transactionRouter = s.router(contracts.transaction, {
   },
   addCompleteStaffWork: async ({ params, body }) => {
     try {
-      const result = await transactionController.updateCswById(params.id, body);
-      const new_csw = result.completeStaffWork.map((data) => {
-        return {
-          ...data,
-          date: data.date.toISOString(),
-          transactionId: data.transactionId!,
-          createdAt: data.createdAt.toISOString(),
-          updatedAt: data.updatedAt.toISOString(),
-        };
-      });
-      const data = {
-        ...result,
-        dueDate: new Date(result.dueDate).toISOString(),
-        dateForwarded: new Date(result.dateForwarded).toISOString(),
-        transactionId: result.transactionId!,
-        dateReceived: result.dateReceived ? new Date(result.dateReceived).toISOString() : null,
-        completeStaffWork: new_csw,
-      };
+      await transactionController.updateCswById(params.id, body);
+
       return {
         status: 201,
-        body: data,
+        body: {
+          message: "Data Added ! ",
+        },
       };
     } catch (error) {
       return {
