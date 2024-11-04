@@ -89,7 +89,7 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
   }
 };
 
-export const queryBuilderForTickets = (type: string, division: string, section: string, role: string, mode: string, requesteeId?: string) => {
+export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string, requesteeId?: string,type?: string) => {
   switch(mode){
     case "insert":
       if ( type === "EPD" ) {
