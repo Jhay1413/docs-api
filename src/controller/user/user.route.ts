@@ -14,7 +14,7 @@ const userInfoRouter = s.router(contracts.userAccounts, {
       const requesteeId = query.requesteedId;
 
       console.log(query)
-      const result = await fetchUsersForTicketForwarding(type, division, section, role, mode, requesteeId);
+      const result = await fetchUsersForTicketForwarding( division, section, role, mode, requesteeId,type);
       return  {
         status: 201,
         body: result,
