@@ -43,7 +43,7 @@ export class TicketingService {
         ...response,
         ticketId: response.id,
         sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
-        receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
+        receiver: `${response.receiver?.userInfo?.firstName} ${response.receiver?.userInfo?.lastName}`,
         senderId: response.senderId,
         receiverId: response.receiverId,
         dateForwarded: response.dateForwarded.toISOString(),
@@ -177,7 +177,7 @@ export class TicketingService {
       const formattedTickets = tickets.map((ticket) => {
         return {
           ...ticket,
-          receiver: { firstName: ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName },
+          receiver: ticket.receiver ? { firstName: ticket.receiver?.userInfo!.firstName, lastName: ticket.receiver?.userInfo!.lastName } : null,
           sender: { firstName: ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName },
           dueDate: ticket.dueDate.toISOString(),
           createdAt: ticket.createdAt.toISOString(),
@@ -234,6 +234,7 @@ export class TicketingService {
       const formattedTicketLogs = ticket.ticketLogs.map((log) => {
         return {
           ...log,
+          receiver : log.receiver,
           dateForwarded: log.dateForwarded.toISOString(),
           dateReceived: log.dateReceived?.toISOString() || null,
           createdAt: log.createdAt.toISOString(),
@@ -242,16 +243,20 @@ export class TicketingService {
       });
 
       const formattedTicket = {
-        ...ticket,
+      ...ticket,
         dueDate: ticket.dueDate.toISOString(),
         dateForwarded: ticket.dateForwarded.toISOString(),
-        dateReceived: ticket.dateReceived ? ticket.dateReceived.toISOString() : null,
-        ticketLogs: formattedTicketLogs,
-        transaction: ticket.transaction ?  {
-          ...ticket.transaction,
-          dueDate: ticket.transaction?.dueDate.toISOString(),
-        } : null
-
+        dateReceived: ticket.dateReceived?.toISOString() || null,
+        transaction: ticket.transaction
+          ? {
+              transactionId: ticket.transaction.transactionId,
+              documentSubType: ticket.transaction.documentSubType,
+              status: ticket.transaction.status,
+              priority: ticket.transaction.priority,
+              dueDate: ticket.transaction.dueDate.toISOString(),
+            }
+          : null,
+        ticketLogs: formattedTicketLogs
       };
 
       return formattedTicket;
@@ -300,8 +305,17 @@ export class TicketingService {
       const formattedTickets = tickets.map((ticket) => {
         return {
           ...ticket,
-          receiver: { firstName: ticket.receiver.userInfo!.firstName, lastName: ticket.receiver.userInfo!.lastName },
-          sender: { firstName: ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName },
+          receiverId: ticket.receiverId || null,
+          receiver: ticket.receiver
+            ? {
+                firstName: ticket.receiver.userInfo!.firstName,
+                lastName: ticket.receiver.userInfo!.lastName,
+              }
+            : null,
+          sender: {
+            firstName: ticket.sender.userInfo!.firstName,
+            lastName: ticket.sender.userInfo!.lastName,
+          },
           dueDate: ticket.dueDate.toISOString(),
           createdAt: ticket.createdAt.toISOString(),
           updatedAt: ticket.updatedAt.toISOString(),
@@ -317,11 +331,13 @@ export class TicketingService {
     }
   }
 
-  public async updateTicket(id: string, data: z.infer<typeof ticketEditSchema>, tx: Prisma.TransactionClient) {
+  public async updateTicket(ticketId: string, data: z.infer<typeof ticketingMutationSchema>, tx: Prisma.TransactionClient) {
+
+    const {id, ...new_data} = data
     try {
       const result = await tx.ticket.update({
-        where: { id: id },
-        data: data,
+        where: { id: ticketId },
+        data: new_data,
         select: {
           id: true,
           ticketId: true,
@@ -361,9 +377,9 @@ export class TicketingService {
         ...result,
         ticketId: result.id,
         sender: `${result.sender.userInfo?.firstName} ${result.sender.userInfo?.lastName}`,
-        receiver: `${result.receiver.userInfo?.firstName} ${result.receiver.userInfo?.lastName}`,
+        receiver: `${result.receiver?.userInfo?.firstName} ${result.receiver?.userInfo?.lastName} || null`,
         senderId: result.senderId,
-        receiverId: result.receiverId,
+        receiverId: result.receiverId || null,
         dateForwarded: result.dateForwarded.toISOString(),
         dateReceived: result.dateReceived?.toISOString() || null,
         createdAt: result.createdAt.toISOString(),
@@ -424,7 +440,7 @@ export class TicketingService {
       const logs = {
         ...response,
         sender: `${response.sender.userInfo?.firstName} ${response.sender.userInfo?.lastName}`,
-        receiver: `${response.receiver.userInfo?.firstName} ${response.receiver.userInfo?.lastName}`,
+        receiver: `${response.receiver?.userInfo?.firstName} ${response.receiver?.userInfo?.lastName}` || null,
         dateForwarded: response.dateForwarded.toISOString(),
         dateReceived: response.dateReceived?.toISOString() || null,
         createdAt: response.createdAt.toISOString(),
@@ -433,6 +449,95 @@ export class TicketingService {
       return logs;
     } catch (error) {
       console.error("Failed to receive ticket:", error);
+      throw new Error("Something went wrong");
+    }
+  }
+
+  public async resolveTicketService(id: string, userId: string) {
+    try {
+      const resolvedTicket = await db.ticket.update({
+        where: {
+          id: id,
+        },
+        data: {
+          senderId: userId,
+          receiverId: null,
+          dateReceived: null,
+          status: "ARCHIVED",
+        },
+        include: {
+          project: true,
+          transaction: true,
+          sender: {
+            include: {
+              userInfo: true,
+            },
+          },
+          receiver: {
+            include: {
+              userInfo: true,
+            },
+          },
+        },
+      });
+      const formattedData = {
+        ...resolvedTicket,
+        ticketId: resolvedTicket.id,
+        sender: `${resolvedTicket.sender.userInfo?.firstName} ${resolvedTicket.sender.userInfo?.lastName}`,
+        senderId: resolvedTicket.senderId,
+        receiver: `${resolvedTicket.receiver?.userInfo?.firstName} ${resolvedTicket.receiver?.userInfo?.lastName}`,
+        receiverId: null,
+        dateForwarded: resolvedTicket.dateForwarded.toISOString(),
+        dateReceived: null,
+        createdAt: resolvedTicket.createdAt.toISOString(),
+        updatedAt: resolvedTicket.updatedAt.toISOString(),
+        attachments: resolvedTicket.attachments,
+      };
+      return  formattedData;
+    } catch (error) {
+      console.log(error);
+      throw new Error ("Something went wrong");
+    }
+  }
+
+  public async reopenTicketService(id: string, userId: string){
+    try {
+      const reopenTicket = await db.ticket.update({
+        where: {
+          id: id,
+        },
+        data: {
+          status: "REOPENED",
+        },
+        include: {
+          project: true,
+          transaction: true,
+          sender: {
+            include: {
+              userInfo: true,
+            },
+          },
+          receiver: {
+            include: {
+              userInfo: true,
+            },
+          },
+        },
+      });
+      const formattedData = {
+        ...reopenTicket,
+        ticketId: reopenTicket.id,
+        sender: `${reopenTicket.sender.userInfo?.firstName} ${reopenTicket.sender.userInfo?.lastName}`,
+        receiver: `${reopenTicket.receiver?.userInfo?.firstName} ${reopenTicket.receiver?.userInfo?.lastName} || null`,
+        dateForwarded: reopenTicket.dateForwarded.toISOString(),
+        dateReceived: null,
+        createdAt: reopenTicket.createdAt.toISOString(),
+        updatedAt: reopenTicket.updatedAt.toISOString(),
+        attachments: reopenTicket.attachments,
+      };
+      return formattedData;
+    } catch (error) {
+      console.log(error);
       throw new Error("Something went wrong");
     }
   }
