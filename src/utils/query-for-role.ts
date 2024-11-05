@@ -59,6 +59,9 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
       return {
         OR: [
           {
+            AND: [{ assignedDivision: assignedDivision }, { account: { accountRole: "TL" } }],
+          },
+          {
             AND: [{ assignedDivision: assignedDivision }, { account: { accountRole: "MANAGER" } }],
           },
           {
@@ -90,106 +93,94 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
   }
 };
 
-export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string, requesteeId?: string,type?: string) => {
-  switch(mode){
+export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string, requesteeId?: string, type?: string) => {
+  switch (mode) {
     case "insert":
-      if ( type === "EPD" ) {
+      if (type === "EPD") {
         return {
-          accountRole:"TL",
-          userInfo:{
-            assignedSection : "EPD"
-          }
-        }
-      
-      } 
-      else if(type === "IT" ) {
-        
-          return {
-            accountRole: "TL",
-              userInfo: {
-                assignedSection: "ITOP",
-              },
-          
-          }
-      }
-
-      else if ( type === "Marketing" ) {
+          accountRole: "TL",
+          userInfo: {
+            assignedSection: "EPD",
+          },
+        };
+      } else if (type === "IT") {
+        return {
+          accountRole: "TL",
+          userInfo: {
+            assignedSection: "ITOP",
+          },
+        };
+      } else if (type === "Marketing") {
         return {
           userInfo: {
             assignedDivision: "Marketing Department",
-          }
-        }
+          },
+        };
       }
       break;
-      case "forward":
-        if (role === "TL") {
-          
-          console.log("requesteeId: ", requesteeId);
-          return { 
-            OR: [
-              {
-                id: requesteeId
-              },
-              {
-                AND: [
-                  {
-                    userInfo: {
-                      assignedDivision: division,
-                    }
-                  },
-                  {
-                    accountRole: "MANAGER",
-                  },
-                ]
-              },
-              {
-                AND: [
-                  {
-                    accountRole: "CH",
-                  },
-                  {
-                    userInfo: {
-                      assignedSection: section
-                    }
-                  }
-                ]
-              }
-            ]
-          };
-        }
-        else if (role === "CH") {
-          return {
+    case "forward":
+      if (role === "TL") {
+        console.log("requesteeId: ", requesteeId);
+        return {
+          OR: [
+            {
+              id: requesteeId,
+            },
+            {
               AND: [
                 {
                   userInfo: {
+                    assignedDivision: division,
+                  },
+                },
+                {
+                  accountRole: "MANAGER",
+                },
+              ],
+            },
+            {
+              AND: [
+                {
+                  accountRole: "CH",
+                },
+                {
+                  userInfo: {
                     assignedSection: section,
-                  }
+                  },
                 },
-                {
-                  accountRole: "TL",
-                }
-            ]
-          }
-        }
-
-        else if (role==="MANAGER") {
-          return {
-            AND : [
-              {
-                userInfo: 
-                {
-                  assignedDivision: division,
-                },
+              ],
+            },
+          ],
+        };
+      } else if (role === "CH") {
+        return {
+          AND: [
+            {
+              userInfo: {
+                assignedSection: section,
               },
-              {
-                accountRole: "TL",
-              }
-            ]
-          }
-        }
+            },
+            {
+              accountRole: "TL",
+            },
+          ],
+        };
+      } else if (role === "MANAGER") {
+        return {
+          AND: [
+            {
+              userInfo: {
+                assignedDivision: division,
+              },
+            },
+            {
+              accountRole: "TL",
+            },
+          ],
+        };
+      }
       break;
   }
-
 };
 
 export { createQueryForRole };
