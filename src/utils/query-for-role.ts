@@ -90,7 +90,7 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
   }
 };
 
-export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string, requesteeId?: string,type?: string) => {
+export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string, requesteeId?: string, type?: string) => {
   switch(mode){
     case "insert":
       if ( type === "EPD" ) {
@@ -121,6 +121,7 @@ export const queryBuilderForTickets = (division: string, section: string, role: 
         }
       }
       break;
+
       case "forward":
         if (role === "TL") {
           
@@ -187,6 +188,7 @@ export const queryBuilderForTickets = (division: string, section: string, role: 
             ]
           }
         }
+
       break;
   }
 
