@@ -203,7 +203,7 @@ model Ticket {
   transactionId  String?
   projectId      String?
   senderId       String
-  receiverId     String
+  receiverId     String?
   requestDetails String
   division       String
   requesteeId    String
@@ -212,7 +212,7 @@ model Ticket {
   dateReceived   DateTime?
   attachments    String[]
   project        CompanyProject? @relation(fields: [projectId], references: [id])
-  receiver       UserAccounts    @relation("TicketReceiver", fields: [receiverId], references: [id])
+  receiver       UserAccounts?    @relation("TicketReceiver", fields: [receiverId], references: [id])
   requestee      UserAccounts    @relation("TicketRequestee", fields: [requesteeId], references: [id])
   sender         UserAccounts    @relation("TicketSender", fields: [senderId], references: [id])
   transaction    Transaction?    @relation(fields: [transactionId], references: [id])
@@ -227,12 +227,12 @@ model TicketLogs {
   dateForwarded DateTime
   dateReceived  DateTime?
   sender        String
-  receiver      String
+  receiver      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   remarks       String?
   attachments   String[]
-  receiverId    String
+  receiverId    String?
   senderId      String
   ticket        Ticket    @relation(fields: [ticketId], references: [id])
 

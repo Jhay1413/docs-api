@@ -139,6 +139,43 @@ const ticketingRouter = s.router(contracts.ticketing, {
       };
     }
   },
+  resolveTickets: async ({ params, body }) => {
+    try {
+      await ticketingController.resolveTicketHandler(params.id, body.userId);
+      return {
+        status: 200,
+        body: {
+          message: "Ticket resolved",
+        },
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Failed to update ticket.",
+        },
+      };
+    }
+  },
+  reopenTickets: async ({ params, body }) => {
+    try {
+      await ticketingController.reopenTicketHandler(params.id, body.requestee);
+      return {
+        status: 200,
+        body: {
+          message: "Ticket reopened",
+        },
+      };
+    }
+    catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Failed to update ticket.",
+        },
+      };
+    }
+  }
 });
 
 export const registerTicketingRoutes = (app: any) => {
