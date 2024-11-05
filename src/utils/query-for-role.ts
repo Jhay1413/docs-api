@@ -58,6 +58,9 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
       return {
         OR: [
           {
+            AND: [{ assignedDivision: assignedDivision }, { account: { accountRole: "TL" } }],
+          },
+          {
             AND: [{ assignedDivision: assignedDivision }, { account: { accountRole: "MANAGER" } }],
           },
           {
@@ -90,53 +93,48 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
 };
 
 export const queryBuilderForTickets = (type: string, division: string, section: string, role: string, mode: string, requesteeId?: string) => {
-  switch(mode){
+  switch (mode) {
     case "insert":
-      if ( type === "EPD" ) {
-        return {
-          accountRole:"TL",
-          userInfo:{
-            assignedSection : "EPD"
-          }
-        }
-      
-      } 
-      else if(type === "IT" ) {
+      if (type === "EPD") {
         return {
           accountRole: "TL",
-            userInfo: {
-              assignedSection: "ITOP",
-            },
-         
-        }
-      }
-      else if ( type === "Marketing" ) {
+          userInfo: {
+            assignedSection: "EPD",
+          },
+        };
+      } else if (type === "IT") {
+        return {
+          accountRole: "TL",
+          userInfo: {
+            assignedSection: "ITOP",
+          },
+        };
+      } else if (type === "Marketing") {
         return {
           userInfo: {
             assignedDivision: "Marketing Department",
-          }
-        }
+          },
+        };
       }
       break;
     case "forward":
-      if(role === "TL") {
-        return { 
+      if (role === "TL") {
+        return {
           OR: [
             {
-              id: requesteeId
+              id: requesteeId,
             },
             {
               AND: [
                 {
                   userInfo: {
                     assignedDivision: division,
-                  }
+                  },
                 },
                 {
                   accountRole: "Manager",
                 },
-              ]
-          
+              ],
             },
             {
               AND: [
@@ -145,16 +143,15 @@ export const queryBuilderForTickets = (type: string, division: string, section: 
                 },
                 {
                   userInfo: {
-                    assignedSection: section
-                  }
-                }
-              ]
-            }
-        ]
-        }
+                    assignedSection: section,
+                  },
+                },
+              ],
+            },
+          ],
+        };
       }
   }
-
 };
 
 export { createQueryForRole };
