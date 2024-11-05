@@ -264,7 +264,6 @@ export class TicketingService {
   public async getTicketsForUserByStatusService(userId: string, status: string, page: number, pageSize: number) {
     const skip = (page - 1) * pageSize;
     const whereCondition = StatusCheckerForQueries(userId, status);
-    console.log(whereCondition);
     try {
       const tickets = await db.ticket.findMany({
         skip,

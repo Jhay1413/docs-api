@@ -55,7 +55,6 @@ export const getUser = async (req: Request<{ id: string }, {}, {}>, res: Respons
         },
       },
     });
-    console.log(user + "adasdsadassda");
     if (!user) return res.status(StatusCodes.NOT_FOUND).send("User not found");
 
     if (user.imageUrl) {
@@ -165,7 +164,7 @@ export const fetchUserByRoleAccess = async (id: string, targetDivision: string, 
       account?.userInfo?.assignedDivision!,
       account.userInfo?.assignedSection!,
     );
-    console.log(query);
+
     const response = await getUserInfoForForwardTransaction(query);
 
     return response;
@@ -178,6 +177,8 @@ export const fetchUserByRoleAccess = async (id: string, targetDivision: string, 
 export const fetchUsersForTicketForwarding = async (division: string, section: string, role: String, mode: string, requesteeId?: string,type?: string, ) => {
   try {
     const query = queryBuilderForTickets( division, section, role, mode, requesteeId,type);
+
+    console.log(query)
     const usersBySectionOrRole = await getUsersForTicketForwarding(query);
    
     return usersBySectionOrRole;

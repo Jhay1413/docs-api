@@ -1,4 +1,5 @@
 import { Roles } from "@prisma/client";
+import { isAssertionExpression } from "typescript";
 
 const createQueryForRole = (role: string, targetDivision: string, team: string | null, assignedDivision: string, assignedSection: string) => {
   switch (role) {
@@ -102,14 +103,16 @@ export const queryBuilderForTickets = (division: string, section: string, role: 
       
       } 
       else if(type === "IT" ) {
-        return {
-          accountRole: "TL",
-            userInfo: {
-              assignedSection: "ITOP",
-            },
-         
-        }
+        
+          return {
+            accountRole: "TL",
+              userInfo: {
+                assignedSection: "ITOP",
+              },
+          
+          }
       }
+
       else if ( type === "Marketing" ) {
         return {
           userInfo: {
@@ -118,41 +121,73 @@ export const queryBuilderForTickets = (division: string, section: string, role: 
         }
       }
       break;
-    case "forward":
-      if(role === "TL") {
-        return { 
-          OR: [
-            {
-              id: requesteeId
-            },
-            {
-              AND: [
-                {
-                  userInfo: {
-                    assignedDivision: division,
-                  }
-                },
-                {
-                  accountRole: "Manager",
-                },
-              ]
+      case "forward":
+        if (role === "TL") {
           
-            },
-            {
+          console.log("requesteeId: ", requesteeId);
+          return { 
+            OR: [
+              {
+                id: requesteeId
+              },
+              {
+                AND: [
+                  {
+                    userInfo: {
+                      assignedDivision: division,
+                    }
+                  },
+                  {
+                    accountRole: "MANAGER",
+                  },
+                ]
+              },
+              {
+                AND: [
+                  {
+                    accountRole: "CH",
+                  },
+                  {
+                    userInfo: {
+                      assignedSection: section
+                    }
+                  }
+                ]
+              }
+            ]
+          };
+        }
+        else if (role === "CH") {
+          return {
               AND: [
                 {
-                  accountRole: "CH",
+                  userInfo: {
+                    assignedSection: section,
+                  }
                 },
                 {
-                  userInfo: {
-                    assignedSection: section
-                  }
+                  accountRole: "TL",
                 }
-              ]
-            }
-        ]
+            ]
+          }
         }
-      }
+
+        else if (role==="MANAGER") {
+          return {
+            AND : [
+              {
+                userInfo: 
+                {
+                  assignedDivision: division,
+                },
+              },
+              {
+                accountRole: "TL",
+              }
+            ]
+          }
+        }
+      break;
   }
 
 };
