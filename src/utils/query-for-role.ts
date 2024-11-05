@@ -1,4 +1,5 @@
 import { Roles } from "@prisma/client";
+import { isAssertionExpression } from "typescript";
 
 const createQueryForRole = (role: string, targetDivision: string, team: string | null, assignedDivision: string, assignedSection: string) => {
   switch (role) {
@@ -92,7 +93,7 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
   }
 };
 
-export const queryBuilderForTickets = (type: string, division: string, section: string, role: string, mode: string, requesteeId?: string) => {
+export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string, requesteeId?: string, type?: string) => {
   switch (mode) {
     case "insert":
       if (type === "EPD") {
@@ -119,6 +120,7 @@ export const queryBuilderForTickets = (type: string, division: string, section: 
       break;
     case "forward":
       if (role === "TL") {
+        console.log("requesteeId: ", requesteeId);
         return {
           OR: [
             {
@@ -132,7 +134,7 @@ export const queryBuilderForTickets = (type: string, division: string, section: 
                   },
                 },
                 {
-                  accountRole: "Manager",
+                  accountRole: "MANAGER",
                 },
               ],
             },
@@ -150,7 +152,34 @@ export const queryBuilderForTickets = (type: string, division: string, section: 
             },
           ],
         };
+      } else if (role === "CH") {
+        return {
+          AND: [
+            {
+              userInfo: {
+                assignedSection: section,
+              },
+            },
+            {
+              accountRole: "TL",
+            },
+          ],
+        };
+      } else if (role === "MANAGER") {
+        return {
+          AND: [
+            {
+              userInfo: {
+                assignedDivision: division,
+              },
+            },
+            {
+              accountRole: "TL",
+            },
+          ],
+        };
       }
+      break;
   }
 };
 
