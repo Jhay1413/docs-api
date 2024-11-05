@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { TicketingService } from "./ticketing.service-v1";
 import { PrismaClient } from "@prisma/client";
-import { ticketEditSchema, ticketingMutationSchema } from "shared-contract";
+import { ticketEditSchema, ticketingMutationSchema,  } from "shared-contract";
 import { z } from "zod";
 import { db } from "../../prisma";
 import { GenerateId } from "../../utils/generate-id";
@@ -61,9 +61,9 @@ export class TicketingController {
     }
   }
 
-  public async updateTicket(ticketId: string, data: z.infer<typeof ticketEditSchema>) {
+  public async updateTicket(ticketId: string, data: z.infer<typeof ticketingMutationSchema>) {
     try {
-      const response = await db.$transaction(async (tx) => {
+      await db.$transaction(async (tx) => {
         const result = await this.ticketingService.updateTicket(ticketId, data, tx);
         await this.ticketingService.logPostTicket(result, tx);
         return result;
@@ -78,13 +78,59 @@ export class TicketingController {
     try {
       const response = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.receiveTicketService(ticketId, dateReceived, tx);
-        await this.ticketingService.receiveTicketLog(result.id, result.receiverId, result.senderId, result.dateForwarded, dateReceived)});
+        await this.ticketingService.receiveTicketLog(result.id, result.receiverId!, result.senderId, result.dateForwarded, dateReceived)});
         return {
           message: "Ticket Received!"
         }
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong.");
+    }
+  }
+
+  public async updateTicketHandler( id: string, data: z.infer<typeof ticketEditSchema>) {
+    try {
+      await db.$transaction(async (tx) => {
+        const result = await this.ticketingService.updateTicket(id, data, tx);
+        await this.ticketingService.logPostTicket(result, tx)
+      });
+  
+      return { 
+        message: "Ticket updated successfully" 
+      };
+    } catch (error) {
+      console.error("Error in updateTicketHandler:", error);
+      throw new Error("Something went wrong while updating the ticket");
+    }
+  }
+
+  public async resolveTicketHandler(id: string, userId: string) {
+    try {
+      const response = await db.$transaction(async (tx) => {
+        const result = await this.ticketingService.resolveTicketService(id, userId);
+        await this.ticketingService.logPostTicket(result, tx);
+        return { 
+          message: "Ticket resolved successfully" 
+        };
+      });
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong");
+    }
+  }
+
+  public async reopenTicketHandler(id: string, userId: string) {
+    try {
+      const response = await db.$transaction(async (tx) => {
+        const result = await this.ticketingService.reopenTicketService(id, userId);
+        await this.ticketingService.logPostTicket(result, tx);
+        return { 
+          message: "Ticket reopened successfully" 
+        }; 
+      });
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong");
     }
   }
 }

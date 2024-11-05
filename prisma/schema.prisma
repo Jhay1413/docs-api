@@ -39,12 +39,12 @@ model UserAccounts {
   accountStatus         Status         @default(ACTIVE)
   forwardedNotification Notification[] @relation("ForwardedNotification")
   receiveNotification   Notification[] @relation("ReceivingNotification")
+  ticketsReceived       Ticket[]       @relation("TicketReceiver")
+  ticketsRequestee      Ticket[]       @relation("TicketRequestee")
+  ticketsSent           Ticket[]       @relation("TicketSender")
   forwarded             Transaction[]  @relation("ForwardedTransactions")
   ReceivingTransaction  Transaction[]  @relation("ReceivingTransactions")
   userInfo              UserInfo?
-  ticketsSent           Ticket[]       @relation("TicketSender")
-  ticketsReceived       Ticket[]       @relation("TicketReceiver")
-  ticketsRequestee      Ticket[]       @relation("TicketRequestee")
 }
 
 model Attachment {
@@ -85,8 +85,8 @@ model CompanyProject {
   contactPersonId String?        @unique
   company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contactPersons  ContactPerson? @relation(fields: [contactPersonId], references: [id])
-  transaction     Transaction[]
   tickets         Ticket[]
+  transaction     Transaction[]
 }
 
 model ContactPerson {
@@ -115,23 +115,23 @@ model Transaction {
   projectId         String
   remarks           String
   dateForwarded     DateTime
-  percentage        Int               @default(0)
   dateReceived      DateTime?
   originDepartment  String
   targetDepartment  String
   receiverId        String?
   forwarderId       String
-  category          String            @default("")
+  percentage        Int                 @default(0)
+  category          String              @default("")
   dateExpiry        DateTime?
   attachments       Attachment[]
   completeStaffWork CompleteStaffWork[]
   notifications     Notification[]
+  tickets           Ticket[]
   company           Company             @relation(fields: [companyId], references: [id])
   forwarder         UserAccounts        @relation("ForwardedTransactions", fields: [forwarderId], references: [id])
   project           CompanyProject      @relation(fields: [projectId], references: [id])
   receiver          UserAccounts?       @relation("ReceivingTransactions", fields: [receiverId], references: [id])
   transactionLogs   TransactionLogs[]
-  tickets           Ticket[]
 }
 
 model TransactionLogs {
@@ -155,10 +155,10 @@ model TransactionLogs {
   forwarder        String
   originDepartment String
   targetDepartment String
-  percentage        Int          @default(0)
   dateForwarded    DateTime
   dateReceived     DateTime?
   attachments      String      @default("")
+  percentage       Int         @default(0)
   transaction      Transaction @relation(fields: [transactionId], references: [id])
 
   @@unique([transactionId, receiverId, dateForwarded], name: "refId")
@@ -169,9 +169,9 @@ model CompleteStaffWork {
   date          DateTime
   remarks       String
   transactionId String?
-  attachments   String[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  attachments   String[]
   transaction   Transaction? @relation(fields: [transactionId], references: [id])
 }
 
@@ -190,51 +190,52 @@ model Notification {
 }
 
 model Ticket {
-	id		          String		      @id @default(uuid())
-	ticketId	      String 		      @unique
-	subject		      String
-	section		      String
-  division        String
-	status		      String
-  requestType     String          
-  requestDetails  String         
-	priority	      String
-	dueDate		      DateTime
-  dateForwarded   DateTime
-  dateReceived    DateTime?
-  senderId	      String
-  receiverId	    String
-  requesteeId     String
-  remarks		      String?
-  projectId	      String?
-  transactionId	  String?
-  attachments     String[]
-	createdAt	      DateTime	      @default(now())
-	updatedAt	      DateTime	      @updatedAt
-	transaction	    Transaction?	  @relation(fields: [transactionId], references: [id])
-	project		      CompanyProject?	@relation(fields: [projectId], references: [id])
-	sender		      UserAccounts	  @relation("TicketSender", fields:[senderId], references: [id])
-	receiver	      UserAccounts	  @relation("TicketReceiver", fields: [receiverId], references: [id])
-  requestee       UserAccounts    @relation("TicketRequestee", fields: [requesteeId], references: [id])
-  ticketLogs      TicketLogs[]    
+  id             String          @id @default(uuid())
+  ticketId       String          @unique
+  subject        String
+  section        String
+  status         String
+  remarks        String?
+  priority       String
+  dueDate        DateTime
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  transactionId  String?
+  projectId      String?
+  senderId       String
+  receiverId     String?
+  requestDetails String
+  division       String
+  requesteeId    String
+  requestType    String
+  dateForwarded  DateTime
+  dateReceived   DateTime?
+  attachments    String[]
+  project        CompanyProject? @relation(fields: [projectId], references: [id])
+  receiver       UserAccounts?    @relation("TicketReceiver", fields: [receiverId], references: [id])
+  requestee      UserAccounts    @relation("TicketRequestee", fields: [requesteeId], references: [id])
+  sender         UserAccounts    @relation("TicketSender", fields: [senderId], references: [id])
+  transaction    Transaction?    @relation(fields: [transactionId], references: [id])
+  ticketLogs     TicketLogs[]
 }
 
 model TicketLogs {
-  id		          String		      @id @default(uuid())
-  ticketId	      String
-  status		      String
-  priority	      String
-  remarks         String?
-  dateForwarded   DateTime
-  dateReceived    DateTime?
-  sender          String
-  receiver        String
-  senderId	      String
-  receiverId	    String
-  createdAt	      DateTime	      @default(now())
-	updatedAt	      DateTime	      @updatedAt
-  attachments     String[]
-  ticket          Ticket          @relation(fields: [ticketId], references: [id])
+  id            String    @id @default(uuid())
+  ticketId      String
+  status        String
+  priority      String
+  dateForwarded DateTime
+  dateReceived  DateTime?
+  sender        String
+  receiver      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  remarks       String?
+  attachments   String[]
+  receiverId    String?
+  senderId      String
+  ticket        Ticket    @relation(fields: [ticketId], references: [id])
+
   @@unique([ticketId, receiverId, senderId, dateForwarded], name: "refId")
 }
 
