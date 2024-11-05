@@ -150,6 +150,7 @@ export const getUserInfoByAccountId = async (id: string) => {
 };
 export const getUserInfoForForwardTransaction = async (query: any) => {
   try {
+    // console.log(query)
     const result = await db.userInfo.findMany({
       where: query,
       select: {
@@ -186,11 +187,14 @@ export const getUsersForTicketForwarding = async (query: any) => {
         accountRole: true,
       },
     });
+
+    console.log("result from user service:", result)
     const newResult = result.map(data => {
       return {...data, userInfo: data.userInfo!}
-    })
+    });
     return newResult;
   } catch (error) {
+    console.log(error)
     throw new Error("Something went wrong");
   }
 };
