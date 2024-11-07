@@ -463,7 +463,7 @@ export class TicketingService {
           senderId: userId,
           receiverId: null,
           dateReceived: null,
-          status: "ARCHIVED",
+          status: "RESOLVED",
         },
         include: {
           project: true,
