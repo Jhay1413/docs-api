@@ -5,6 +5,7 @@ import { ticketEditSchema, ticketingMutationSchema,  } from "shared-contract";
 import { z } from "zod";
 import { db } from "../../prisma";
 import { GenerateId } from "../../utils/generate-id";
+import { transferFile } from "../aws/aws.service";
 
 const prisma = new PrismaClient();
 
@@ -24,7 +25,24 @@ export class TicketingController {
         const result = await this.ticketingService.insertTicket(data_payload, tx);
         await this.ticketingService.logPostTicket(result, tx);
         return result;
-      })} catch (err: unknown) {
+      })
+      if (!response.attachments || response.attachments.length === 0) return
+      await Promise.all(
+        data.attachments.map(async (attachment) => {
+          if (!attachment) {
+            throw new Error("Attachment does not have a valid file URL");
+          }
+          try {
+            const result = await transferFile(attachment);
+            return result;
+          } catch (error) {
+            console.error(`Failed to transfer file ${attachment}:`, error);
+            throw new Error(`Failed to transfer file: ${attachment}`);
+          }
+        }),
+      );
+      return ;
+    } catch (err: unknown) {
       console.log(err);
       throw new Error("Something went wrong.");
     }
