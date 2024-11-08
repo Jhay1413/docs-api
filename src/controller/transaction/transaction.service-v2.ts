@@ -655,7 +655,7 @@ export class TransactionService {
           percentage: true,
         },
         orderBy: {
-          createdAt: "desc",
+          percentage: "desc",
         },
       });
       return transactions;
