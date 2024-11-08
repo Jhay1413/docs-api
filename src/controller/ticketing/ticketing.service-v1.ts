@@ -485,7 +485,7 @@ export class TicketingService {
         ticketId: resolvedTicket.id,
         sender: `${resolvedTicket.sender.userInfo?.firstName} ${resolvedTicket.sender.userInfo?.lastName}`,
         senderId: resolvedTicket.senderId,
-        receiver: `${resolvedTicket.receiver?.userInfo?.firstName} ${resolvedTicket.receiver?.userInfo?.lastName}`,
+        receiver: resolvedTicket.receiver ? `${resolvedTicket.receiver?.userInfo?.firstName} ${resolvedTicket.receiver?.userInfo?.lastName}` : null,
         receiverId: null,
         dateForwarded: resolvedTicket.dateForwarded.toISOString(),
         dateReceived: null,
@@ -559,6 +559,82 @@ export class TicketingService {
       return response?.ticketId;
     } catch (error) {
       throw new Error("Error fetching last ID");
+    }
+  }
+
+  public async getNumOfTicketsService(query: string, status?: string, userId?: string) {
+    var condition: any = {};
+    if (status === "INBOX") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          not: null,
+        },
+      };
+    } else if (status === "INCOMING") {
+      condition = {
+        receiverId: userId,
+        dateReceived: {
+          equals: null,
+        },
+      };
+    } else if (status === "RESOLVED") {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    } else if (status === "ON_PROCESS") {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    } else if (status === "COMPLETED") {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    } else if (status === "APPROVED") {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    } else if (status === "SIGN_AND_SEAL") {
+      condition = {
+        status: {
+          equals: status,
+        },
+      };
+    } else {
+      condition = {
+        status: {
+          not: "RESOLVED",
+        },
+      };
+      try {
+        const ticketCount = await db.ticket.count({
+          where: {
+            AND: [
+              condition,
+              {
+                OR: [
+                  { ticketId: { contains: query, mode: "insensitive" } },
+                  { subject: { contains: query, mode: "insensitive" } },
+                  { section: { contains: query, mode: "insensitive" } },
+                  { division: { contains: query, mode: "insensitive" } },
+                  { priority: { contains: query, mode: "insensitive" } },
+                ],
+              },
+            ],
+          },
+        }); 
+        return ticketCount;
+      } catch (error) {
+
+      }
     }
   }
 }
