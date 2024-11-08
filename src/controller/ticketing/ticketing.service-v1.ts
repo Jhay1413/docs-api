@@ -82,7 +82,6 @@ export class TicketingService {
   }
 
   public async logPostTicket(data: z.infer<typeof ticketLogsSchema>, tx: Prisma.TransactionClient) {
-    console.log(data);
     try {
       const logEntry = await tx.ticketLogs.create({
         data: {
@@ -117,10 +116,22 @@ export class TicketingService {
             equals: status,
           },
         };
+      } else if (status === "INBOX") {
+        condition = {
+          receiverId: userId,
+          dateReceived: {
+            not: null
+          },
+        }
+      } else if (status === "INCOMING") {
+        condition = {
+          receiverId: userId,
+          dateReceived: null,
+        }
       } else {
         condition = {
           status: {
-            not: "ARCHIVED",
+            not: "RESOLVED",
           },
         };
       }
@@ -188,7 +199,7 @@ export class TicketingService {
       });
       return formattedTickets;
     } catch (error) {
-      console.log("Something went wrong while fetching tickets.", error);
+      console.log(error);
       throw new Error("Something went wrong while searching");
     }
   }
@@ -323,7 +334,6 @@ export class TicketingService {
           dateReceived: ticket.dateReceived?.toISOString() || null,
         };
       });
-      console.log(tickets);
       return formattedTickets;
     } catch (error) {
       console.error("Failed to fetch ticket:", error);
@@ -499,7 +509,7 @@ export class TicketingService {
         ticketId: resolvedTicket.id,
         sender: `${resolvedTicket.sender.userInfo?.firstName} ${resolvedTicket.sender.userInfo?.lastName}`,
         senderId: resolvedTicket.senderId,
-        receiver: `${resolvedTicket.receiver?.userInfo?.firstName} ${resolvedTicket.receiver?.userInfo?.lastName}`,
+        receiver: resolvedTicket.receiver ? `${resolvedTicket.receiver?.userInfo?.firstName} ${resolvedTicket.receiver?.userInfo?.lastName}` : null,
         receiverId: null,
         dateForwarded: resolvedTicket.dateForwarded.toISOString(),
         dateReceived: null,
@@ -575,4 +585,59 @@ export class TicketingService {
       throw new Error("Error fetching last ID");
     }
   }
-}
+
+  public async getNumOfTicketsService(query: string, status?: string, userId?: string) {
+    var condition: any = {};
+    if (status) {
+      if (status === "ARCHIVED") {
+        condition = {
+          status: {
+            equals: status,
+          },
+        };
+      } else if (status === "INBOX") {
+        condition = {
+          receiverId: userId,
+          dateReceived: {
+            not: null
+          },
+        }
+      } else if (status === "INCOMING") {
+        condition = {
+          receiverId: userId,
+          dateReceived: null,
+        }
+      } else {
+        condition = {
+          status: {
+            not: "RESOLVED",
+          },
+        };
+      }
+    }
+      try {
+        const ticketCount = await db.ticket.count({
+          where: {
+            AND: [
+              condition,
+              {
+                OR: [
+                  { subject: { contains: query, mode: "insensitive" } },
+                  { section: { contains: query, mode: "insensitive" } },
+                  { status: { contains: query, mode: "insensitive" } },
+                  { priority: { contains: query, mode: "insensitive" } },
+                  { requestDetails: { contains: query, mode: "insensitive" } },
+                  { ticketId: { contains: query, mode: "insensitive" } },
+                ],
+              },
+            ],
+          }
+        }
+        ); 
+        return ticketCount;
+      } catch (error) {
+        console.log(error);
+        throw new Error("Something went wrong");
+      }
+    }
+  }
