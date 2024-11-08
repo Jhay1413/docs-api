@@ -67,7 +67,7 @@ router.get("/logout", (req, res) => {
   res.status(200).send("Logged out!");
 });
 
-router.post("/dashboardGateApi", verifyUser, disableAfter5PM, (req: Request, res: Response) => {
+router.post("/dashboardGateApi", verifyUser, (req: Request, res: Response) => {
   res.status(200).send("Verified User!");
 });
 
