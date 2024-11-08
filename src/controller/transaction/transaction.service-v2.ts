@@ -648,7 +648,7 @@ export class TransactionService {
   public async getDashboardPriority() {
     try {
       const transactions = await db.transaction.findMany({
-        take: 10,
+        // take: 10,
         select: {
           id: true,
           transactionId: true,
