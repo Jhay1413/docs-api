@@ -221,7 +221,7 @@ export class TicketingService {
               status: true,
               priority: true,
               dueDate: true,
-            }
+            },
           },
           ticketLogs: true,
         },
@@ -234,7 +234,7 @@ export class TicketingService {
       const formattedTicketLogs = ticket.ticketLogs.map((log) => {
         return {
           ...log,
-          receiver : log.receiver,
+          receiver: log.receiver,
           dateForwarded: log.dateForwarded.toISOString(),
           dateReceived: log.dateReceived?.toISOString() || null,
           createdAt: log.createdAt.toISOString(),
@@ -243,7 +243,7 @@ export class TicketingService {
       });
 
       const formattedTicket = {
-      ...ticket,
+        ...ticket,
         dueDate: ticket.dueDate.toISOString(),
         dateForwarded: ticket.dateForwarded.toISOString(),
         dateReceived: ticket.dateReceived?.toISOString() || null,
@@ -256,7 +256,7 @@ export class TicketingService {
               dueDate: ticket.transaction.dueDate.toISOString(),
             }
           : null,
-        ticketLogs: formattedTicketLogs
+        ticketLogs: formattedTicketLogs,
       };
 
       return formattedTicket;
@@ -330,10 +330,24 @@ export class TicketingService {
       throw new Error("Something went wrong");
     }
   }
-
+  public async getTicketAttachments(id: string) {
+    try {
+      const result = await db.ticket.findUnique({
+        where: {
+          id: id,
+        },
+        select: {
+          attachments: true,
+        },
+      });
+      return result;
+    } catch (error) {
+      console.error("Failed to fetch ticket attachments:", error);
+      throw new Error("Something went wrong");
+    }
+  }
   public async updateTicket(ticketId: string, data: z.infer<typeof ticketingMutationSchema>, tx: Prisma.TransactionClient) {
-
-    const {id, ...new_data} = data
+    const { id, ...new_data } = data;
     try {
       const result = await tx.ticket.update({
         where: { id: ticketId },
@@ -493,14 +507,14 @@ export class TicketingService {
         updatedAt: resolvedTicket.updatedAt.toISOString(),
         attachments: resolvedTicket.attachments,
       };
-      return  formattedData;
+      return formattedData;
     } catch (error) {
       console.log(error);
-      throw new Error ("Something went wrong");
+      throw new Error("Something went wrong");
     }
   }
 
-  public async reopenTicketService(id: string, userId: string){
+  public async reopenTicketService(id: string, userId: string) {
     try {
       const reopenTicket = await db.ticket.update({
         where: {

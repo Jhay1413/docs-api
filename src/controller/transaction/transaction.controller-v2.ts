@@ -9,11 +9,14 @@ import { io, userSockets } from "../..";
 import { completeStaffWorkMutationSchema, filesQuerySchema, transactionMutationSchema, userInfoQuerySchema } from "shared-contract";
 import { getUserInfoByAccountId } from "../user/user.service";
 import { transferFile } from "../aws/aws.service";
+import { NotificationService } from "../notifications/notification.service";
 export class TransactionController {
   private transactionService: TransactionService;
+  private notificationService: NotificationService;
 
   constructor() {
     this.transactionService = new TransactionService();
+    this.notificationService = new NotificationService();
   }
   public async insertTransactionHandler(data: z.infer<typeof transactionMutationSchema>) {
     const filteredAttachments = data.attachments.filter((data) => data.fileStatus !== "NOT_APPLICABLE");
@@ -59,21 +62,18 @@ export class TransactionController {
 
       if (response.status === "ARCHIVED") return response;
 
-      const notifications = await this.transactionService.fetchAllNotificationById(response.receiverId!);
       const tracker = await this.transactionService.getIncomingTransaction(response.receiverId!);
-      const message = "You have new notification";
-      const receiverSocketId = userSockets.get(response.receiverId!);
+      const numOfUnreadNotif = await this.notificationService.getNumberOfUnreadNotif(response.receiverId!);
 
+      const message = true;
+      const receiverSocketId = userSockets.get(response.receiverId!);
       const quantityTracker = {
         incoming: tracker.incoming,
         inbox: tracker.outgoing,
       };
 
-      const modified_message = notifications.map((data) => {
-        return { ...data, message: `${forwarder?.firstName} ${forwarder?.lastName} ${data.message}` };
-      });
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit("notification", message, modified_message, quantityTracker);
+        io.to(receiverSocketId).emit("notification", message, quantityTracker, numOfUnreadNotif);
       }
       return response;
     } catch (error) {
@@ -204,21 +204,19 @@ export class TransactionController {
           }),
         );
       }
-      const notifications = await this.transactionService.fetchAllNotificationById(response.receiverId!);
       const tracker = await this.transactionService.getIncomingTransaction(response.receiverId!);
+      const numOfUnreadNotif = await this.notificationService.getNumberOfUnreadNotif(response.receiverId!);
 
-      const message = "You have a new notification";
+      const message = false;
       const receiverSocketId = userSockets.get(response.receiverId!);
-
       const quantityTracker = {
         incoming: tracker.incoming,
         inbox: tracker.outgoing,
       };
 
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit("notification", message, notifications, quantityTracker);
+        io.to(receiverSocketId).emit("notification", message, quantityTracker, numOfUnreadNotif);
       }
-
       return response;
     } catch (error) {
       console.error("Error in forwardTransactionHandler:", error);
@@ -233,7 +231,20 @@ export class TransactionController {
       const result = await this.transactionService.receiveTransactionService(id, dateReceived);
       await this.transactionService.receivedLogsService(result.id, result.dateForwarded, result.dateReceived || new Date(), result.receiverId!);
 
-      // await this.transaction
+      const tracker = await this.transactionService.getIncomingTransaction(result.receiverId!);
+      const numOfUnreadNotif = await this.notificationService.getNumberOfUnreadNotif(result.receiverId!);
+
+      const message = false;
+      const receiverSocketId = userSockets.get(result.receiverId!);
+      const quantityTracker = {
+        incoming: tracker.incoming,
+        inbox: tracker.outgoing,
+      };
+
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("notification", message, quantityTracker, numOfUnreadNotif);
+      }
+
       return result;
     } catch (error) {
       console.log(error);
