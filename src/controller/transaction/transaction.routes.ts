@@ -192,7 +192,5 @@ const transactionRouter = s.router(contracts.transaction, {
   },
 });
 export const registerTransactionRoutes = (app: any) => {
-  createExpressEndpoints(contracts.transaction, transactionRouter, app, {
-    globalMiddleware: [disableAfter5PM],
-  });
+  createExpressEndpoints(contracts.transaction, transactionRouter, app);
 };
