@@ -117,10 +117,22 @@ export class TicketingService {
             equals: status,
           },
         };
+      } else if (status === "INBOX") {
+        condition = {
+          receiverId: userId,
+          dateReceived: {
+            not: null
+          },
+        }
+      } else if (status === "INCOMING") {
+        condition = {
+          receiverId: userId,
+          dateReceived: null,
+        }
       } else {
         condition = {
           status: {
-            not: "ARCHIVED",
+            not: "RESOLVED",
           },
         };
       }
@@ -578,56 +590,37 @@ export class TicketingService {
 
   public async getNumOfTicketsService(query: string, status?: string, userId?: string) {
     var condition: any = {};
-    if (status === "INBOX") {
-      condition = {
-        receiverId: userId,
-        dateReceived: {
-          not: null,
-        },
-      };
-    } else if (status === "INCOMING") {
-      condition = {
-        receiverId: userId,
-        dateReceived: {
-          equals: null,
-        },
-      };
-    } else if (status === "RESOLVED") {
-      condition = {
-        status: {
-          equals: status,
-        },
-      };
-    } else if (status === "ON_PROCESS") {
-      condition = {
-        status: {
-          equals: status,
-        },
-      };
-    } else if (status === "COMPLETED") {
-      condition = {
-        status: {
-          equals: status,
-        },
-      };
-    } else if (status === "APPROVED") {
-      condition = {
-        status: {
-          equals: status,
-        },
-      };
-    } else if (status === "SIGN_AND_SEAL") {
-      condition = {
-        status: {
-          equals: status,
-        },
-      };
-    } else {
-      condition = {
-        status: {
-          not: "RESOLVED",
-        },
-      };
+    console.log(query);
+    console.log(status);
+    console.log(userId);
+    if (status) {
+      if (status === "ARCHIVED") {
+        condition = {
+          status: {
+            equals: status,
+          },
+        };
+      } else if (status === "INBOX") {
+        condition = {
+          receiverId: userId,
+          dateReceived: {
+            not: null
+          },
+        }
+      } else if (status === "INCOMING") {
+        condition = {
+          receiverId: userId,
+          dateReceived: null,
+        }
+      } else {
+        condition = {
+          status: {
+            not: "RESOLVED",
+          },
+        };
+      }
+    }
+      console.log(status,"asdsadsadsadasdasdasdljaslkdja;l")
       try {
         const ticketCount = await db.ticket.count({
           where: {
@@ -635,20 +628,22 @@ export class TicketingService {
               condition,
               {
                 OR: [
-                  { ticketId: { contains: query, mode: "insensitive" } },
                   { subject: { contains: query, mode: "insensitive" } },
                   { section: { contains: query, mode: "insensitive" } },
-                  { division: { contains: query, mode: "insensitive" } },
+                  { status: { contains: query, mode: "insensitive" } },
                   { priority: { contains: query, mode: "insensitive" } },
+                  { requestDetails: { contains: query, mode: "insensitive" } },
+                  { ticketId: { contains: query, mode: "insensitive" } },
                 ],
               },
             ],
-          },
-        }); 
+          }
+        }
+        ); 
         return ticketCount;
       } catch (error) {
-
+        console.log(error);
+        throw new Error("Something went wrong");
       }
     }
   }
-}

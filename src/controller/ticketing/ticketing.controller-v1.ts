@@ -48,10 +48,18 @@ export class TicketingController {
     }
   }
 
-  public async fetchTickets(status: string, page: number, pageSize: number) {
+  public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
     try {
-      const tickets = await this.ticketingService.fetchTickets(status, page, pageSize);
-      return tickets;
+      const tickets = await this.ticketingService.fetchTickets(query, page, pageSize, status, userId);
+      const numOfTickets = await this.ticketingService.getNumOfTicketsService(query, status, userId);
+      const numOfPages = numOfTickets ?  Math.ceil((numOfTickets) / pageSize) : 0;
+      console.log("Num of Tickets:", numOfTickets);
+      console.log("num of Pages:", numOfPages);
+      return {
+        data: tickets,
+        numOfTickets: numOfTickets || 0 ,
+        totalPages: numOfPages || 0,
+      };
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
       throw new Error("Failed to fetch tickets");
