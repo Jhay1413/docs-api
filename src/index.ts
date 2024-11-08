@@ -74,16 +74,18 @@ io.on("connection", (socket) => {
   socket.on("register", async (userId) => {
     userSockets.set(userId, socket.id);
     const receiverSocketId = userSockets.get(userId);
+    const message = false;
 
     try {
       const tracker = await userService.getIncomingTransaction(userId);
       const quantityTracker = { incoming: tracker.incoming, inbox: tracker.outgoing };
       const numOfUnreadNotif = await notificationService.getNumberOfUnreadNotif(userId);
-      io.to(receiverSocketId!).emit("notification", numOfUnreadNotif, quantityTracker);
+
+      io.to(receiverSocketId!).emit("notification", message, quantityTracker, numOfUnreadNotif);
     } catch (error) {
       const numOfUnreadNotif = 0;
       const quantityTracker = { incoming: 0, inbox: 0 };
-      io.to(receiverSocketId!).emit("notification", numOfUnreadNotif, quantityTracker);
+      io.to(receiverSocketId!).emit("notification", message, quantityTracker, numOfUnreadNotif);
     }
   });
   socket.on("disconnect", () => {

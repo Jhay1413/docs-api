@@ -11,7 +11,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
     try {
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
-      const result = await ticketingController.fetchTickets(query.query, page, pageSize);
+      const result = await ticketingController.fetchTickets(query.query, page, pageSize, query.status, query.userId);
       return {
         status: 200,
         body: result,
@@ -37,31 +37,6 @@ const ticketingRouter = s.router(contracts.ticketing, {
         status: 500,
         body: {
           error: "Failed to update ticket.",
-        },
-      };
-    }
-  },
-  getTicketsForUserByStatus: async ({ params, query }) => {
-    try {
-      const userId = params.id;
-      const page = parseInt(query.page, 10);
-      const pageSize = parseInt(query.pageSize, 10);
-      const tickets = await ticketingController.getTicketsForUserByStatusHandler(
-        userId,
-        query.status,
-        page,
-        pageSize
-      );
-
-      return {
-        status: 200,
-        body: tickets,
-      };
-    } catch (error) {
-      return {
-        status: 500,
-        body: {
-          error: "Something went wrong while fetching tickets.",
         },
       };
     }
