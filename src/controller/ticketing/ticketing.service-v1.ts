@@ -82,7 +82,6 @@ export class TicketingService {
   }
 
   public async logPostTicket(data: z.infer<typeof ticketLogsSchema>, tx: Prisma.TransactionClient) {
-    console.log(data);
     try {
       const logEntry = await tx.ticketLogs.create({
         data: {
@@ -200,7 +199,7 @@ export class TicketingService {
       });
       return formattedTickets;
     } catch (error) {
-      console.log("Something went wrong while fetching tickets.", error);
+      console.log(error);
       throw new Error("Something went wrong while searching");
     }
   }
@@ -335,7 +334,6 @@ export class TicketingService {
           dateReceived: ticket.dateReceived?.toISOString() || null,
         };
       });
-      console.log(tickets);
       return formattedTickets;
     } catch (error) {
       console.error("Failed to fetch ticket:", error);
@@ -590,9 +588,6 @@ export class TicketingService {
 
   public async getNumOfTicketsService(query: string, status?: string, userId?: string) {
     var condition: any = {};
-    console.log(query);
-    console.log(status);
-    console.log(userId);
     if (status) {
       if (status === "ARCHIVED") {
         condition = {
@@ -620,7 +615,6 @@ export class TicketingService {
         };
       }
     }
-      console.log(status,"asdsadsadsadasdasdasdljaslkdja;l")
       try {
         const ticketCount = await db.ticket.count({
           where: {

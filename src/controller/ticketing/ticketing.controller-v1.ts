@@ -53,8 +53,6 @@ export class TicketingController {
       const tickets = await this.ticketingService.fetchTickets(query, page, pageSize, status, userId);
       const numOfTickets = await this.ticketingService.getNumOfTicketsService(query, status, userId);
       const numOfPages = numOfTickets ?  Math.ceil((numOfTickets) / pageSize) : 0;
-      console.log("Num of Tickets:", numOfTickets);
-      console.log("num of Pages:", numOfPages);
       return {
         data: tickets,
         numOfTickets: numOfTickets || 0 ,
