@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { TicketingService } from "./ticketing.service-v1";
 import { PrismaClient } from "@prisma/client";
-import { ticketEditSchema, ticketingMutationSchema,  } from "shared-contract";
-import { z } from "zod";
+import { ticketEditSchema, ticketingMutationSchema } from "shared-contract";
+import { array, z } from "zod";
 import { db } from "../../prisma";
 import { GenerateId } from "../../utils/generate-id";
 import { transferFile } from "../aws/aws.service";
@@ -25,8 +25,8 @@ export class TicketingController {
         const result = await this.ticketingService.insertTicket(data_payload, tx);
         await this.ticketingService.logPostTicket(result, tx);
         return result;
-      })
-      if (!response.attachments || response.attachments.length === 0) return
+      });
+      if (!response.attachments || response.attachments.length === 0) return;
       await Promise.all(
         data.attachments.map(async (attachment) => {
           if (!attachment) {
@@ -41,7 +41,7 @@ export class TicketingController {
           }
         }),
       );
-      return ;
+      return;
     } catch (err: unknown) {
       console.log(err);
       throw new Error("Something went wrong.");
@@ -61,7 +61,7 @@ export class TicketingController {
   public async getTicketsForUserByStatusHandler(userId: string, status: string, page: number, pageSize: number) {
     try {
       const tickets = await this.ticketingService.getTicketsForUserByStatusService(userId, status, page, pageSize);
-      
+
       return tickets;
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
@@ -81,44 +81,45 @@ export class TicketingController {
 
   public async updateTicket(ticketId: string, data: z.infer<typeof ticketingMutationSchema>) {
     try {
+      const old_attachments = await this.ticketingService.getTicketAttachments(ticketId);
       await db.$transaction(async (tx) => {
         const result = await this.ticketingService.updateTicket(ticketId, data, tx);
         await this.ticketingService.logPostTicket(result, tx);
         return result;
-      })} catch (err: unknown) {
+      });
+
+      if (data.attachments.length === 0) return;
+
+      const new_attachments = data.attachments.filter((item) => !old_attachments?.attachments.includes(item));
+      await Promise.all(
+        new_attachments.map(async (attachment) => {
+          try {
+            const result = await transferFile(attachment);
+            return result;
+          } catch (error) {
+            console.error(`Failed to transfer file ${attachment}:`, error);
+            throw new Error(`Failed to transfer file: ${attachment}`);
+          }
+        }),
+      );
+    } catch (err: unknown) {
       console.log(err);
       throw new Error("Something went wrong.");
     }
   }
 
-  public async receiveTicketHandler(ticketId: string,  dateReceived: string) {
-
+  public async receiveTicketHandler(ticketId: string, dateReceived: string) {
     try {
       const response = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.receiveTicketService(ticketId, dateReceived, tx);
-        await this.ticketingService.receiveTicketLog(result.id, result.receiverId!, result.senderId, result.dateForwarded, dateReceived)});
-        return {
-          message: "Ticket Received!"
-        }
+        await this.ticketingService.receiveTicketLog(result.id, result.receiverId!, result.senderId, result.dateForwarded, dateReceived);
+      });
+      return {
+        message: "Ticket Received!",
+      };
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong.");
-    }
-  }
-
-  public async updateTicketHandler( id: string, data: z.infer<typeof ticketEditSchema>) {
-    try {
-      await db.$transaction(async (tx) => {
-        const result = await this.ticketingService.updateTicket(id, data, tx);
-        await this.ticketingService.logPostTicket(result, tx)
-      });
-  
-      return { 
-        message: "Ticket updated successfully" 
-      };
-    } catch (error) {
-      console.error("Error in updateTicketHandler:", error);
-      throw new Error("Something went wrong while updating the ticket");
     }
   }
 
@@ -127,8 +128,8 @@ export class TicketingController {
       const response = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.resolveTicketService(id, userId);
         await this.ticketingService.logPostTicket(result, tx);
-        return { 
-          message: "Ticket resolved successfully" 
+        return {
+          message: "Ticket resolved successfully",
         };
       });
     } catch (error) {
@@ -142,9 +143,9 @@ export class TicketingController {
       const response = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.reopenTicketService(id, userId);
         await this.ticketingService.logPostTicket(result, tx);
-        return { 
-          message: "Ticket reopened successfully" 
-        }; 
+        return {
+          message: "Ticket reopened successfully",
+        };
       });
     } catch (error) {
       console.log(error);
