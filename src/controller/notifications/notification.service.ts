@@ -25,6 +25,9 @@ export class NotificationService {
         where: {
           receiverId: id,
         },
+        orderBy: {
+          createdAt: "desc",
+        },
       });
 
       const converted_data = result.map((data) => {
