@@ -17,7 +17,6 @@ import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-sche
 import { registerUserRoutes } from "./controller/user/user.route";
 import { registerFileRoutes } from "./controller/aws/aws.route";
 import { dsahboardRoutes } from "./controller/dashboard/dashboard.route";
-import { disableAfter5PM } from "./middleware/time-checker";
 
 // Import For testing of Ticketing
 import ticketingRoutes from "./controller/ticketing/ticketing.route";
