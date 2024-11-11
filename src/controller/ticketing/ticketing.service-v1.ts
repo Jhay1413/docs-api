@@ -10,7 +10,23 @@ export class TicketingService {
   constructor(db: PrismaClient) {
     this.db = db;
   }
-
+  public async updateTicketOnInboxService(status: string, remarks: string, id: string) {
+    try {
+      await db.ticket.update({
+        where: {
+          id: id,
+        },
+        data: {
+          status: status,
+          remarks: remarks,
+        },
+      });
+      return;
+    } catch (error) {
+      console.log(error);
+      throw new Error("something went wrong updating ticket");
+    }
+  }
   public async insertTicket(data: z.infer<typeof ticketingMutationSchema>, tx: Prisma.TransactionClient) {
     try {
       const response = await tx.ticket.create({
@@ -120,14 +136,14 @@ export class TicketingService {
         condition = {
           receiverId: userId,
           dateReceived: {
-            not: null
+            not: null,
           },
-        }
+        };
       } else if (status === "INCOMING") {
         condition = {
           receiverId: userId,
           dateReceived: null,
-        }
+        };
       } else {
         condition = {
           status: {
@@ -599,14 +615,14 @@ export class TicketingService {
         condition = {
           receiverId: userId,
           dateReceived: {
-            not: null
+            not: null,
           },
-        }
+        };
       } else if (status === "INCOMING") {
         condition = {
           receiverId: userId,
           dateReceived: null,
-        }
+        };
       } else {
         condition = {
           status: {
@@ -615,29 +631,28 @@ export class TicketingService {
         };
       }
     }
-      try {
-        const ticketCount = await db.ticket.count({
-          where: {
-            AND: [
-              condition,
-              {
-                OR: [
-                  { subject: { contains: query, mode: "insensitive" } },
-                  { section: { contains: query, mode: "insensitive" } },
-                  { status: { contains: query, mode: "insensitive" } },
-                  { priority: { contains: query, mode: "insensitive" } },
-                  { requestDetails: { contains: query, mode: "insensitive" } },
-                  { ticketId: { contains: query, mode: "insensitive" } },
-                ],
-              },
-            ],
-          }
-        }
-        ); 
-        return ticketCount;
-      } catch (error) {
-        console.log(error);
-        throw new Error("Something went wrong");
-      }
+    try {
+      const ticketCount = await db.ticket.count({
+        where: {
+          AND: [
+            condition,
+            {
+              OR: [
+                { subject: { contains: query, mode: "insensitive" } },
+                { section: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } },
+                { priority: { contains: query, mode: "insensitive" } },
+                { requestDetails: { contains: query, mode: "insensitive" } },
+                { ticketId: { contains: query, mode: "insensitive" } },
+              ],
+            },
+          ],
+        },
+      });
+      return ticketCount;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong");
     }
   }
+}
