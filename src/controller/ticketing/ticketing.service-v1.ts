@@ -11,29 +11,91 @@ export class TicketingService {
     this.db = db;
   }
 
-  public async fetchPendingRequesteeTicketService(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+  public async fetchPendingRequesteeTicketService(
+    query: string,
+    page: number,
+    pageSize: number,
+    priority?: string,
+    state?: string,
+    projectId?: string,
+    userId?: string,
+    transactionId?: string,
+    senderId?: string,
+    sortOrder?: string,
+    status?: string,
+  ) {
+    const skip = (page - 1) * pageSize;
+    let condition = {};
+
+    condition = {
+      requesteeId: userId,
+      status: {
+        not: "RESOLVED",
+      },
+    };
+
+    console.log(condition);
+
+    const conditions = [];
+
+    if (Object.keys(condition).length > 0) {
+      conditions.push(condition);
+    }
+
+    if (query) {
+      conditions.push({
+        OR: [
+          { subject: { contains: query, mode: "insensitive" } },
+          { section: { contains: query, mode: "insensitive" } },
+          { status: { contains: query, mode: "insensitive" } },
+          { priority: { contains: query, mode: "insensitive" } },
+          { requestDetails: { contains: query, mode: "insensitive" } },
+          { ticketId: { contains: query, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    if (status) {
+      conditions.push({ status: status });
+    }
+
+    if (projectId) {
+      conditions.push({
+        project: {
+          projectId: projectId,
+        },
+      });
+    }
+
+    if (transactionId) {
+      conditions.push({
+        transaction: {
+          transactionId: transactionId,
+        },
+      });
+    }
+
+    if (priority) {
+      conditions.push({
+        priority: priority,
+      });
+    }
+
+    if (senderId) {
+      conditions.push({
+        senderId: senderId,
+      });
+    }
+
+    const whereClause = {
+      AND: conditions.length > 0 ? conditions : undefined,
+    };
+
     try {
       const response = await db.ticket.findMany({
-        where: {
-          AND: [
-            {
-              requesteeId: userId,
-              status: {
-                not: "RESOLVED",
-              },
-            },
-            {
-              OR: [
-                { subject: { contains: query, mode: "insensitive" } },
-                { section: { contains: query, mode: "insensitive" } },
-                { status: { contains: query, mode: "insensitive" } },
-                { priority: { contains: query, mode: "insensitive" } },
-                { requestDetails: { contains: query, mode: "insensitive" } },
-                { ticketId: { contains: query, mode: "insensitive" } },
-              ],
-            },
-          ],
-        },
+        skip,
+        take: pageSize,
+        where: whereClause,
         include: {
           receiver: {
             include: {
@@ -59,7 +121,7 @@ export class TicketingService {
           transaction: true,
         },
         orderBy: {
-          createdAt: "desc",
+          createdAt: sortOrder === "asc" || sortOrder === "desc" ? sortOrder : "desc",
         },
       });
 

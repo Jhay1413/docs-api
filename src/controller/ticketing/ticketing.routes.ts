@@ -11,12 +11,33 @@ const ticketingRouter = s.router(contracts.ticketing, {
     try {
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
-      const response = await ticketingController.fetchPendingRequesteeTicketController(query.query, page, pageSize, query.status, query.userId);
+      const response = await ticketingController.fetchPendingRequesteeTicketController(
+        query.query,
+        page,
+        pageSize,
+        query.priority,
+        query.state,
+        query.userId,
+        query.projectId,
+        query.transactionId,
+        query.senderId,
+        query.sortOrder,
+        query.status,
+      );
       return {
         status: 201,
-        body: response,
+        body: {
+          data: response,
+        },
       };
-    } catch (error) {}
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong while fetching tickets.",
+        },
+      };
+    }
   },
   updateTicketOnInboxRoutes: async ({ params, body }) => {
     try {
