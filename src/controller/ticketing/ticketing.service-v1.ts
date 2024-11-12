@@ -121,7 +121,7 @@ export class TicketingService {
     }
   }
 
-  public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+  public async fetchTicketsService(query: string, page: number, pageSize: number, priority?: string, status?: string, projectId?: string, userId?: string, transactionId?: string, senderId?: string) {
     const skip = (page - 1) * pageSize;
     let condition: any = {};
 
@@ -168,6 +168,23 @@ export class TicketingService {
                 { priority: { contains: query, mode: "insensitive" } },
                 { requestDetails: { contains: query, mode: "insensitive" } },
                 { ticketId: { contains: query, mode: "insensitive" } },
+
+                {
+                  project: {
+                    projectId: projectId,
+                  }
+                },
+                {
+                  transaction: {
+                    transactionId: transactionId,
+                  },
+                },
+                {
+                  priority: priority,
+                },
+                {
+                  senderId : senderId
+                },
               ],
             },
           ],

@@ -30,7 +30,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
     try {
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
-      const result = await ticketingController.fetchTickets(query.query, page, pageSize, query.status, query.userId);
+      const result = await ticketingController.fetchTicketsHandler(query.query, page, pageSize, query.userId, query.priority, query.status, query.projectId, query.transactionId, query.senderId);
       return {
         status: 200,
         body: result,
