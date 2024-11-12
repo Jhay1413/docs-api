@@ -15,7 +15,16 @@ export class TicketingController {
   constructor() {
     this.ticketingService = new TicketingService(prisma);
   }
+  public async updateTicketOnInboxController(status: string, remarks: string, id: string) {
+    try {
+      await this.ticketingService.updateTicketOnInboxService(status, remarks, id);
 
+      return;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong updating ticket");
+    }
+  }
   public async createTicket(data: z.infer<typeof ticketingMutationSchema>) {
     try {
       const lastId = await this.ticketingService.getLastId();
@@ -48,14 +57,14 @@ export class TicketingController {
     }
   }
 
-  public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+  public async fetchTicketsHandler(query: string, page: number, pageSize: number, priority?: string, status?: string, userId?: string, projectId?: string, transactionId?: string, senderId?: string, ) {
     try {
-      const tickets = await this.ticketingService.fetchTickets(query, page, pageSize, status, userId);
+      const tickets = await this.ticketingService.fetchTicketsService(query, page, pageSize, priority, status, userId, projectId, transactionId, senderId);
       const numOfTickets = await this.ticketingService.getNumOfTicketsService(query, status, userId);
-      const numOfPages = numOfTickets ?  Math.ceil((numOfTickets) / pageSize) : 0;
+      const numOfPages = numOfTickets ? Math.ceil(numOfTickets / pageSize) : 0;
       return {
         data: tickets,
-        numOfTickets: numOfTickets || 0 ,
+        numOfTickets: numOfTickets || 0,
         totalPages: numOfPages || 0,
       };
     } catch (error) {
@@ -85,7 +94,7 @@ export class TicketingController {
     }
   }
 
-  public async updateTicket(ticketId: string, data: z.infer<typeof ticketingMutationSchema>) {
+  public async forwardTicketController(ticketId: string, data: z.infer<typeof ticketingMutationSchema>) {
     try {
       const old_attachments = await this.ticketingService.getTicketAttachments(ticketId);
       await db.$transaction(async (tx) => {

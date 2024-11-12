@@ -21,7 +21,7 @@ export class DashboardService {
           },
         },
         orderBy: {
-          createdAt: "desc",
+          percentage: "desc",
         },
       });
       return transactions;
