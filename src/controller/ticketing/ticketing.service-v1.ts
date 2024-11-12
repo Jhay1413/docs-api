@@ -192,25 +192,38 @@ export class TicketingService {
     }
   }
 
-  public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+  public async fetchTicketsService(
+    query: string,
+    page: number,
+    pageSize: number,
+    priority?: string,
+    state?: string,
+    projectId?: string,
+    userId?: string,
+    transactionId?: string,
+    senderId?: string,
+    sortOrder?: string,
+    status?: string,
+  ) {
+    console.log(status, "asdsa");
     const skip = (page - 1) * pageSize;
-    let condition: any = {};
+    let condition = {};
 
-    if (status) {
-      if (status === "ARCHIVED") {
+    if (state) {
+      if (state === "ARCHIVED") {
         condition = {
           status: {
-            equals: status,
+            equals: state,
           },
         };
-      } else if (status === "INBOX") {
+      } else if (state === "INBOX") {
         condition = {
           receiverId: userId,
           dateReceived: {
             not: null,
           },
         };
-      } else if (status === "INCOMING") {
+      } else if (state === "INCOMING") {
         condition = {
           receiverId: userId,
           dateReceived: null,
@@ -224,25 +237,68 @@ export class TicketingService {
       }
     }
 
+    console.log(condition);
+
+    const conditions = [];
+
+    if (Object.keys(condition).length > 0) {
+      conditions.push(condition);
+    }
+
+    if (query) {
+      conditions.push({
+        OR: [
+          { subject: { contains: query, mode: "insensitive" } },
+          { section: { contains: query, mode: "insensitive" } },
+          { status: { contains: query, mode: "insensitive" } },
+          { priority: { contains: query, mode: "insensitive" } },
+          { requestDetails: { contains: query, mode: "insensitive" } },
+          { ticketId: { contains: query, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    if (status) {
+      conditions.push({ status: status });
+    }
+
+    if (projectId) {
+      conditions.push({
+        project: {
+          projectId: projectId,
+        },
+      });
+    }
+
+    if (transactionId) {
+      conditions.push({
+        transaction: {
+          transactionId: transactionId,
+        },
+      });
+    }
+
+    if (priority) {
+      conditions.push({
+        priority: priority,
+      });
+    }
+
+    if (senderId) {
+      conditions.push({
+        senderId: senderId,
+      });
+    }
+
+    const whereClause = {
+      AND: conditions.length > 0 ? conditions : undefined,
+    };
+
     try {
       const tickets = await db.ticket.findMany({
         skip,
         take: pageSize,
-        where: {
-          AND: [
-            condition,
-            {
-              OR: [
-                { subject: { contains: query, mode: "insensitive" } },
-                { section: { contains: query, mode: "insensitive" } },
-                { status: { contains: query, mode: "insensitive" } },
-                { priority: { contains: query, mode: "insensitive" } },
-                { requestDetails: { contains: query, mode: "insensitive" } },
-                { ticketId: { contains: query, mode: "insensitive" } },
-              ],
-            },
-          ],
-        },
+        where: whereClause,
         include: {
           receiver: {
             include: {
@@ -268,7 +324,7 @@ export class TicketingService {
           transaction: true,
         },
         orderBy: {
-          createdAt: "desc",
+          createdAt: sortOrder === "asc" || sortOrder === "desc" ? sortOrder : "desc",
         },
       });
 

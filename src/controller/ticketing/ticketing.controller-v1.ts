@@ -67,10 +67,34 @@ export class TicketingController {
     }
   }
 
-  public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+  public async fetchTicketsHandler(
+    query: string,
+    page: number,
+    pageSize: number,
+    priority?: string,
+    state?: string,
+    userId?: string,
+    projectId?: string,
+    transactionId?: string,
+    senderId?: string,
+    sortOrder?: string,
+    status?: string,
+  ) {
     try {
-      const tickets = await this.ticketingService.fetchTickets(query, page, pageSize, status, userId);
-      const numOfTickets = await this.ticketingService.getNumOfTicketsService(query, status, userId);
+      const tickets = await this.ticketingService.fetchTicketsService(
+        query,
+        page,
+        pageSize,
+        priority,
+        state,
+        projectId,
+        userId,
+        transactionId,
+        senderId,
+        sortOrder,
+        status,
+      );
+      const numOfTickets = await this.ticketingService.getNumOfTicketsService(query, state, userId);
       const numOfPages = numOfTickets ? Math.ceil(numOfTickets / pageSize) : 0;
       return {
         data: tickets,
