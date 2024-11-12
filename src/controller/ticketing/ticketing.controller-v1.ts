@@ -15,6 +15,16 @@ export class TicketingController {
   constructor() {
     this.ticketingService = new TicketingService(prisma);
   }
+
+  public async fetchPendingRequesteeTicketController(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+    try {
+      const response = await this.ticketingService.fetchPendingRequesteeTicketService(query, page, pageSize, status, userId);
+      return response;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Error fetching pending requestee ticket");
+    }
+  }
   public async updateTicketOnInboxController(status: string, remarks: string, id: string) {
     try {
       await this.ticketingService.updateTicketOnInboxService(status, remarks, id);

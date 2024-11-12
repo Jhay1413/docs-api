@@ -10,6 +10,77 @@ export class TicketingService {
   constructor(db: PrismaClient) {
     this.db = db;
   }
+
+  public async fetchPendingRequesteeTicketService(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+    try {
+      const response = await db.ticket.findMany({
+        where: {
+          AND: [
+            {
+              requesteeId: userId,
+              status: {
+                not: "RESOLVED",
+              },
+            },
+            {
+              OR: [
+                { subject: { contains: query, mode: "insensitive" } },
+                { section: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } },
+                { priority: { contains: query, mode: "insensitive" } },
+                { requestDetails: { contains: query, mode: "insensitive" } },
+                { ticketId: { contains: query, mode: "insensitive" } },
+              ],
+            },
+          ],
+        },
+        include: {
+          receiver: {
+            include: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          sender: {
+            include: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          project: true,
+          transaction: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      const formattedTickets = response.map((ticket) => {
+        return {
+          ...ticket,
+          receiver: ticket.receiver ? { firstName: ticket.receiver?.userInfo!.firstName, lastName: ticket.receiver?.userInfo!.lastName } : null,
+          sender: { firstName: ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName },
+          dueDate: ticket.dueDate.toISOString(),
+          createdAt: ticket.createdAt.toISOString(),
+          updatedAt: ticket.updatedAt.toISOString(),
+          dateForwarded: ticket.dateForwarded.toISOString(),
+          dateReceived: ticket.dateReceived?.toISOString() || null,
+        };
+      });
+      return formattedTickets;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong fetching requestee tickets");
+    }
+  }
   public async updateTicketOnInboxService(status: string, remarks: string, id: string) {
     try {
       await db.ticket.update({
