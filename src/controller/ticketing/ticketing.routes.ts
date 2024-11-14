@@ -7,6 +7,38 @@ import s from "../../utils/ts-rest-server";
 const ticketingController = new TicketingController();
 
 const ticketingRouter = s.router(contracts.ticketing, {
+  fetchPendingRequesteeTicketRoutes: async ({ query }) => {
+    try {
+      const page = parseInt(query.page, 10);
+      const pageSize = parseInt(query.pageSize, 10);
+      const response = await ticketingController.fetchPendingRequesteeTicketController(
+        query.query,
+        page,
+        pageSize,
+        query.priority,
+        query.state,
+        query.userId,
+        query.projectId,
+        query.transactionId,
+        query.senderId,
+        query.sortOrder,
+        query.status,
+      );
+      return {
+        status: 201,
+        body: {
+          data: response,
+        },
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong while fetching tickets.",
+        },
+      };
+    }
+  },
   updateTicketOnInboxRoutes: async ({ params, body }) => {
     try {
       await ticketingController.updateTicketOnInboxController(body.status, body.remarks, params.id);

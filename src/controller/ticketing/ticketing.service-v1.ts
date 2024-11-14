@@ -10,6 +10,139 @@ export class TicketingService {
   constructor(db: PrismaClient) {
     this.db = db;
   }
+
+  public async fetchPendingRequesteeTicketService(
+    query: string,
+    page: number,
+    pageSize: number,
+    priority?: string,
+    state?: string,
+    projectId?: string,
+    userId?: string,
+    transactionId?: string,
+    senderId?: string,
+    sortOrder?: string,
+    status?: string,
+  ) {
+    const skip = (page - 1) * pageSize;
+    let condition = {};
+
+    condition = {
+      requesteeId: userId,
+      status: {
+        not: "RESOLVED",
+      },
+    };
+
+    console.log(condition);
+
+    const conditions = [];
+
+    if (Object.keys(condition).length > 0) {
+      conditions.push(condition);
+    }
+
+    if (query) {
+      conditions.push({
+        OR: [
+          { subject: { contains: query, mode: "insensitive" } },
+          { section: { contains: query, mode: "insensitive" } },
+          { status: { contains: query, mode: "insensitive" } },
+          { priority: { contains: query, mode: "insensitive" } },
+          { requestDetails: { contains: query, mode: "insensitive" } },
+          { ticketId: { contains: query, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    if (status) {
+      conditions.push({ status: status });
+    }
+
+    if (projectId) {
+      conditions.push({
+        project: {
+          projectId: projectId,
+        },
+      });
+    }
+
+    if (transactionId) {
+      conditions.push({
+        transaction: {
+          transactionId: transactionId,
+        },
+      });
+    }
+
+    if (priority) {
+      conditions.push({
+        priority: priority,
+      });
+    }
+
+    if (senderId) {
+      conditions.push({
+        senderId: senderId,
+      });
+    }
+
+    const whereClause = {
+      AND: conditions.length > 0 ? conditions : undefined,
+    };
+
+    try {
+      const response = await db.ticket.findMany({
+        skip,
+        take: pageSize,
+        where: whereClause,
+        include: {
+          receiver: {
+            include: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          sender: {
+            include: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          project: true,
+          transaction: true,
+        },
+        orderBy: {
+          createdAt: sortOrder === "asc" || sortOrder === "desc" ? sortOrder : "desc",
+        },
+      });
+
+      const formattedTickets = response.map((ticket) => {
+        return {
+          ...ticket,
+          receiver: ticket.receiver ? { firstName: ticket.receiver?.userInfo!.firstName, lastName: ticket.receiver?.userInfo!.lastName } : null,
+          sender: { firstName: ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName },
+          dueDate: ticket.dueDate.toISOString(),
+          createdAt: ticket.createdAt.toISOString(),
+          updatedAt: ticket.updatedAt.toISOString(),
+          dateForwarded: ticket.dateForwarded.toISOString(),
+          dateReceived: ticket.dateReceived?.toISOString() || null,
+        };
+      });
+      return formattedTickets;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong fetching requestee tickets");
+    }
+  }
   public async updateTicketOnInboxService(status: string, remarks: string, id: string) {
     try {
       await db.ticket.update({
