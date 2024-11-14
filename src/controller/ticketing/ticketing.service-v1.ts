@@ -254,6 +254,24 @@ export class TicketingService {
     }
   }
 
+  public async getLogsByTicketId(ticketId: string, tx: Prisma.TransactionClient) 
+  {
+    try {
+      const logs = await tx.ticketLogs.findMany({
+        where: {
+          ticketId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      return logs;
+    } catch (error) {
+      console.error("Error fetching ticket logs:", error);
+      throw new Error("Failed to fetch ticket logs.");
+    }
+  }
+
   public async fetchTicketsService(
     query: string,
     page: number,
@@ -439,7 +457,11 @@ export class TicketingService {
               dueDate: true,
             },
           },
-          ticketLogs: true,
+          ticketLogs: {
+            orderBy:{
+              createdAt: 'desc',
+            }
+          },
         },
       });
 
@@ -606,7 +628,7 @@ export class TicketingService {
         ...result,
         ticketId: result.id,
         sender: `${result.sender.userInfo?.firstName} ${result.sender.userInfo?.lastName}`,
-        receiver: `${result.receiver?.userInfo?.firstName} ${result.receiver?.userInfo?.lastName} || null`,
+        receiver: result.receiver ? `${result.receiver?.userInfo?.firstName} ${result.receiver?.userInfo?.lastName}` : null,
         senderId: result.senderId,
         receiverId: result.receiverId || null,
         dateForwarded: result.dateForwarded.toISOString(),
