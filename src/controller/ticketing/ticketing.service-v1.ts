@@ -658,23 +658,23 @@ export class TicketingService {
     }
   }
 
-  public async getNumOfTicketsService(query: string, status?: string, userId?: string) {
+  public async getNumOfTicketsService(query: string, state?: string, userId?: string) {
     var condition: any = {};
-    if (status) {
-      if (status === "ARCHIVED") {
+    if (state) {
+      if (state === "ARCHIVED") {
         condition = {
           status: {
-            equals: status,
+            equals: state,
           },
         };
-      } else if (status === "INBOX") {
+      } else if (state === "INBOX") {
         condition = {
           receiverId: userId,
           dateReceived: {
             not: null,
           },
         };
-      } else if (status === "INCOMING") {
+      } else if (state === "INCOMING") {
         condition = {
           receiverId: userId,
           dateReceived: null,
