@@ -7,11 +7,76 @@ import s from "../../utils/ts-rest-server";
 const ticketingController = new TicketingController();
 
 const ticketingRouter = s.router(contracts.ticketing, {
-  getTickets: async ({ query }) => {
+  fetchPendingRequesteeTicketRoutes: async ({ query }) => {
     try {
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
-      const result = await ticketingController.fetchTickets(query.query, page, pageSize, query.status, query.userId);
+      const response = await ticketingController.fetchPendingRequesteeTicketController(
+        query.query,
+        page,
+        pageSize,
+        query.priority,
+        query.state,
+        query.userId,
+        query.projectId,
+        query.transactionId,
+        query.senderId,
+        query.sortOrder,
+        query.status,
+      );
+      return {
+        status: 201,
+        body: {
+          data: response,
+        },
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong while fetching tickets.",
+        },
+      };
+    }
+  },
+  updateTicketOnInboxRoutes: async ({ params, body }) => {
+    try {
+      await ticketingController.updateTicketOnInboxController(body.status, body.remarks, params.id);
+      return {
+        status: 201,
+        body: {
+          message: "Ticket updated successfully !",
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        status: 500,
+        body: {
+          error: "Something went wrong while updating tickets.",
+        },
+      };
+    }
+  },
+  getTickets: async ({ query }) => {
+    try {
+      console.log(query.status);
+      const page = parseInt(query.page, 10);
+      const pageSize = parseInt(query.pageSize, 10);
+
+      const result = await ticketingController.fetchTicketsHandler(
+        query.query,
+        page,
+        pageSize,
+        query.priority,
+        query.state,
+        query.userId,
+        query.projectId,
+        query.transactionId,
+        query.senderId,
+        query.sortOrder,
+        query.status,
+      );
       return {
         status: 200,
         body: result,
@@ -62,7 +127,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
 
   editTickets: async ({ params, body }) => {
     try {
-      await ticketingController.updateTicket(params.id, body);
+      await ticketingController.forwardTicketController(params.id, body);
       return {
         status: 200,
         body: {
@@ -98,7 +163,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
   },
   forwardTickets: async ({ params, body }) => {
     try {
-      await ticketingController.updateTicket(params.id, body);
+      await ticketingController.forwardTicketController(params.id, body);
       return {
         status: 200,
         body: {
@@ -141,8 +206,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
           message: "Ticket reopened",
         },
       };
-    }
-    catch (error) {
+    } catch (error) {
       return {
         status: 500,
         body: {
@@ -150,7 +214,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
         },
       };
     }
-  }
+  },
 });
 
 export const registerTicketingRoutes = (app: any) => {

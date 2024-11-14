@@ -11,6 +11,155 @@ export class TicketingService {
     this.db = db;
   }
 
+  public async fetchPendingRequesteeTicketService(
+    query: string,
+    page: number,
+    pageSize: number,
+    priority?: string,
+    state?: string,
+    projectId?: string,
+    userId?: string,
+    transactionId?: string,
+    senderId?: string,
+    sortOrder?: string,
+    status?: string,
+  ) {
+    const skip = (page - 1) * pageSize;
+    let condition = {};
+
+    condition = {
+      requesteeId: userId,
+      status: {
+        not: "RESOLVED",
+      },
+    };
+
+    console.log(condition);
+
+    const conditions = [];
+
+    if (Object.keys(condition).length > 0) {
+      conditions.push(condition);
+    }
+
+    if (query) {
+      conditions.push({
+        OR: [
+          { subject: { contains: query, mode: "insensitive" } },
+          { section: { contains: query, mode: "insensitive" } },
+          { status: { contains: query, mode: "insensitive" } },
+          { priority: { contains: query, mode: "insensitive" } },
+          { requestDetails: { contains: query, mode: "insensitive" } },
+          { ticketId: { contains: query, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    if (status) {
+      conditions.push({ status: status });
+    }
+
+    if (projectId) {
+      conditions.push({
+        project: {
+          projectId: projectId,
+        },
+      });
+    }
+
+    if (transactionId) {
+      conditions.push({
+        transaction: {
+          transactionId: transactionId,
+        },
+      });
+    }
+
+    if (priority) {
+      conditions.push({
+        priority: priority,
+      });
+    }
+
+    if (senderId) {
+      conditions.push({
+        senderId: senderId,
+      });
+    }
+
+    const whereClause = {
+      AND: conditions.length > 0 ? conditions : undefined,
+    };
+
+    try {
+      const response = await db.ticket.findMany({
+        skip,
+        take: pageSize,
+        where: whereClause,
+        include: {
+          receiver: {
+            include: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          sender: {
+            include: {
+              userInfo: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          project: true,
+          transaction: true,
+        },
+        orderBy: {
+          createdAt: sortOrder === "asc" || sortOrder === "desc" ? sortOrder : "desc",
+        },
+      });
+
+      const formattedTickets = response.map((ticket) => {
+        return {
+          ...ticket,
+          receiver: ticket.receiver ? { firstName: ticket.receiver?.userInfo!.firstName, lastName: ticket.receiver?.userInfo!.lastName } : null,
+          sender: { firstName: ticket.sender.userInfo!.firstName, lastName: ticket.sender.userInfo!.lastName },
+          dueDate: ticket.dueDate.toISOString(),
+          createdAt: ticket.createdAt.toISOString(),
+          updatedAt: ticket.updatedAt.toISOString(),
+          dateForwarded: ticket.dateForwarded.toISOString(),
+          dateReceived: ticket.dateReceived?.toISOString() || null,
+        };
+      });
+      return formattedTickets;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong fetching requestee tickets");
+    }
+  }
+  public async updateTicketOnInboxService(status: string, remarks: string, id: string) {
+    try {
+      await db.ticket.update({
+        where: {
+          id: id,
+        },
+        data: {
+          status: status,
+          remarks: remarks,
+        },
+      });
+      return;
+    } catch (error) {
+      console.log(error);
+      throw new Error("something went wrong updating ticket");
+    }
+  }
   public async insertTicket(data: z.infer<typeof ticketingMutationSchema>, tx: Prisma.TransactionClient) {
     try {
       const response = await tx.ticket.create({
@@ -105,29 +254,42 @@ export class TicketingService {
     }
   }
 
-  public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+  public async fetchTicketsService(
+    query: string,
+    page: number,
+    pageSize: number,
+    priority?: string,
+    state?: string,
+    projectId?: string,
+    userId?: string,
+    transactionId?: string,
+    senderId?: string,
+    sortOrder?: string,
+    status?: string,
+  ) {
+    console.log(status, "asdsa");
     const skip = (page - 1) * pageSize;
-    let condition: any = {};
+    let condition = {};
 
-    if (status) {
-      if (status === "ARCHIVED") {
+    if (state) {
+      if (state === "ARCHIVED") {
         condition = {
           status: {
-            equals: status,
+            equals: state,
           },
         };
-      } else if (status === "INBOX") {
+      } else if (state === "INBOX") {
         condition = {
           receiverId: userId,
           dateReceived: {
-            not: null
+            not: null,
           },
-        }
-      } else if (status === "INCOMING") {
+        };
+      } else if (state === "INCOMING") {
         condition = {
           receiverId: userId,
           dateReceived: null,
-        }
+        };
       } else {
         condition = {
           status: {
@@ -137,25 +299,68 @@ export class TicketingService {
       }
     }
 
+    console.log(condition);
+
+    const conditions = [];
+
+    if (Object.keys(condition).length > 0) {
+      conditions.push(condition);
+    }
+
+    if (query) {
+      conditions.push({
+        OR: [
+          { subject: { contains: query, mode: "insensitive" } },
+          { section: { contains: query, mode: "insensitive" } },
+          { status: { contains: query, mode: "insensitive" } },
+          { priority: { contains: query, mode: "insensitive" } },
+          { requestDetails: { contains: query, mode: "insensitive" } },
+          { ticketId: { contains: query, mode: "insensitive" } },
+        ],
+      });
+    }
+
+    if (status) {
+      conditions.push({ status: status });
+    }
+
+    if (projectId) {
+      conditions.push({
+        project: {
+          projectId: projectId,
+        },
+      });
+    }
+
+    if (transactionId) {
+      conditions.push({
+        transaction: {
+          transactionId: transactionId,
+        },
+      });
+    }
+
+    if (priority) {
+      conditions.push({
+        priority: priority,
+      });
+    }
+
+    if (senderId) {
+      conditions.push({
+        senderId: senderId,
+      });
+    }
+
+    const whereClause = {
+      AND: conditions.length > 0 ? conditions : undefined,
+    };
+
     try {
       const tickets = await db.ticket.findMany({
         skip,
         take: pageSize,
-        where: {
-          AND: [
-            condition,
-            {
-              OR: [
-                { subject: { contains: query, mode: "insensitive" } },
-                { section: { contains: query, mode: "insensitive" } },
-                { status: { contains: query, mode: "insensitive" } },
-                { priority: { contains: query, mode: "insensitive" } },
-                { requestDetails: { contains: query, mode: "insensitive" } },
-                { ticketId: { contains: query, mode: "insensitive" } },
-              ],
-            },
-          ],
-        },
+        where: whereClause,
         include: {
           receiver: {
             include: {
@@ -181,7 +386,7 @@ export class TicketingService {
           transaction: true,
         },
         orderBy: {
-          createdAt: "desc",
+          createdAt: sortOrder === "asc" || sortOrder === "desc" ? sortOrder : "desc",
         },
       });
 
@@ -586,27 +791,27 @@ export class TicketingService {
     }
   }
 
-  public async getNumOfTicketsService(query: string, status?: string, userId?: string) {
+  public async getNumOfTicketsService(query: string, state?: string, userId?: string) {
     var condition: any = {};
-    if (status) {
-      if (status === "ARCHIVED") {
+    if (state) {
+      if (state === "ARCHIVED") {
         condition = {
           status: {
-            equals: status,
+            equals: state,
           },
         };
-      } else if (status === "INBOX") {
+      } else if (state === "INBOX") {
         condition = {
           receiverId: userId,
           dateReceived: {
-            not: null
+            not: null,
           },
-        }
-      } else if (status === "INCOMING") {
+        };
+      } else if (state === "INCOMING") {
         condition = {
           receiverId: userId,
           dateReceived: null,
-        }
+        };
       } else {
         condition = {
           status: {
@@ -615,29 +820,28 @@ export class TicketingService {
         };
       }
     }
-      try {
-        const ticketCount = await db.ticket.count({
-          where: {
-            AND: [
-              condition,
-              {
-                OR: [
-                  { subject: { contains: query, mode: "insensitive" } },
-                  { section: { contains: query, mode: "insensitive" } },
-                  { status: { contains: query, mode: "insensitive" } },
-                  { priority: { contains: query, mode: "insensitive" } },
-                  { requestDetails: { contains: query, mode: "insensitive" } },
-                  { ticketId: { contains: query, mode: "insensitive" } },
-                ],
-              },
-            ],
-          }
-        }
-        ); 
-        return ticketCount;
-      } catch (error) {
-        console.log(error);
-        throw new Error("Something went wrong");
-      }
+    try {
+      const ticketCount = await db.ticket.count({
+        where: {
+          AND: [
+            condition,
+            {
+              OR: [
+                { subject: { contains: query, mode: "insensitive" } },
+                { section: { contains: query, mode: "insensitive" } },
+                { status: { contains: query, mode: "insensitive" } },
+                { priority: { contains: query, mode: "insensitive" } },
+                { requestDetails: { contains: query, mode: "insensitive" } },
+                { ticketId: { contains: query, mode: "insensitive" } },
+              ],
+            },
+          ],
+        },
+      });
+      return ticketCount;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong");
     }
   }
+}

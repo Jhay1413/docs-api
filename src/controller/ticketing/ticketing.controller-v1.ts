@@ -16,6 +16,49 @@ export class TicketingController {
     this.ticketingService = new TicketingService(prisma);
   }
 
+  public async fetchPendingRequesteeTicketController(
+    query: string,
+    page: number,
+    pageSize: number,
+    priority?: string,
+    state?: string,
+    userId?: string,
+    projectId?: string,
+    transactionId?: string,
+    senderId?: string,
+    sortOrder?: string,
+    status?: string,
+  ) {
+    try {
+      const response = await this.ticketingService.fetchPendingRequesteeTicketService(
+        query,
+        page,
+        pageSize,
+        priority,
+        state,
+        projectId,
+        userId,
+        transactionId,
+        senderId,
+        sortOrder,
+        status,
+      );
+      return response;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Error fetching pending requestee ticket");
+    }
+  }
+  public async updateTicketOnInboxController(status: string, remarks: string, id: string) {
+    try {
+      await this.ticketingService.updateTicketOnInboxService(status, remarks, id);
+
+      return;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong updating ticket");
+    }
+  }
   public async createTicket(data: z.infer<typeof ticketingMutationSchema>) {
     try {
       const lastId = await this.ticketingService.getLastId();
@@ -48,14 +91,38 @@ export class TicketingController {
     }
   }
 
-  public async fetchTickets(query: string, page: number, pageSize: number, status?: string, userId?: string) {
+  public async fetchTicketsHandler(
+    query: string,
+    page: number,
+    pageSize: number,
+    priority?: string,
+    state?: string,
+    userId?: string,
+    projectId?: string,
+    transactionId?: string,
+    senderId?: string,
+    sortOrder?: string,
+    status?: string,
+  ) {
     try {
-      const tickets = await this.ticketingService.fetchTickets(query, page, pageSize, status, userId);
-      const numOfTickets = await this.ticketingService.getNumOfTicketsService(query, status, userId);
-      const numOfPages = numOfTickets ?  Math.ceil((numOfTickets) / pageSize) : 0;
+      const tickets = await this.ticketingService.fetchTicketsService(
+        query,
+        page,
+        pageSize,
+        priority,
+        state,
+        projectId,
+        userId,
+        transactionId,
+        senderId,
+        sortOrder,
+        status,
+      );
+      const numOfTickets = await this.ticketingService.getNumOfTicketsService(query, state, userId);
+      const numOfPages = numOfTickets ? Math.ceil(numOfTickets / pageSize) : 0;
       return {
         data: tickets,
-        numOfTickets: numOfTickets || 0 ,
+        numOfTickets: numOfTickets || 0,
         totalPages: numOfPages || 0,
       };
     } catch (error) {
@@ -85,7 +152,7 @@ export class TicketingController {
     }
   }
 
-  public async updateTicket(ticketId: string, data: z.infer<typeof ticketingMutationSchema>) {
+  public async forwardTicketController(ticketId: string, data: z.infer<typeof ticketingMutationSchema>) {
     try {
       const old_attachments = await this.ticketingService.getTicketAttachments(ticketId);
       await db.$transaction(async (tx) => {

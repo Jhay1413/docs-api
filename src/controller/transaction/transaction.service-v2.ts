@@ -321,8 +321,8 @@ export class TransactionService {
         },
         data: {
           ...data,
+          dateReceived: data.dateReceived,
           percentage: percentage,
-          dateReceived: null,
           attachments: {
             createMany: {
               data: data.attachments,
@@ -339,7 +339,8 @@ export class TransactionService {
         ...response,
         dueDate: response.dueDate.toISOString(),
         dateForwarded: response.dateForwarded.toISOString(),
-        dateReceived: null,
+        dateReceived: response.dateReceived ? response.dateReceived.toISOString() : undefined,
+
         dateExpiry: response.dateExpiry ? response.dateExpiry.toISOString() : undefined,
 
         attachments: response.attachments.map((data) => {
