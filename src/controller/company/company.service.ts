@@ -210,8 +210,36 @@ export const getProjectById = async (id: string) => {
   }
 };
 
+export const fetchCompaniesService = async (query: string) => {
+  try {
+    const response = await db.company.findMany({
+      where: {
+        companyName: {
+          contains: query,
+          mode: "insensitive",
+        },
+      },
+      select: {
+        id: true,
+        companyId: true,
+        companyName: true,
+        companyProjects: {
+          select: {
+            id: true, 
+            projectId: true,
+            projectName: true,
+          }
+        },
+      }
+    });
+    return response;
+  } catch (error) {
+    console.log(error);
+    throw new Error("Something went wrong");
+  }
+}
+
 export const fetchProjectsForTicketingForm = async (query: string) => {
-  console.log(query);
   try {
     const projects = await db.companyProject.findMany({
       where: { projectName: {

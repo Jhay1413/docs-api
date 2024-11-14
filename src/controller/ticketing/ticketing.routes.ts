@@ -28,9 +28,23 @@ const ticketingRouter = s.router(contracts.ticketing, {
   },
   getTickets: async ({ query }) => {
     try {
+      console.log(query.status);
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
-      const result = await ticketingController.fetchTickets(query.query, page, pageSize, query.status, query.userId);
+
+      const result = await ticketingController.fetchTicketsHandler(
+        query.query,
+        page,
+        pageSize,
+        query.priority,
+        query.state,
+        query.userId,
+        query.projectId,
+        query.transactionId,
+        query.senderId,
+        query.sortOrder,
+        query.status,
+      );
       return {
         status: 200,
         body: result,
