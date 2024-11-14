@@ -473,7 +473,7 @@ export class TicketingService {
         ...result,
         ticketId: result.id,
         sender: `${result.sender.userInfo?.firstName} ${result.sender.userInfo?.lastName}`,
-        receiver: `${result.receiver?.userInfo?.firstName} ${result.receiver?.userInfo?.lastName} || null`,
+        receiver: result.receiver?.userInfo ? `${result.receiver.userInfo.firstName} ${result.receiver.userInfo.lastName}` : null,
         senderId: result.senderId,
         receiverId: result.receiverId || null,
         dateForwarded: result.dateForwarded.toISOString(),
