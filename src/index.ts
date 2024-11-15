@@ -81,9 +81,9 @@ io.on("connection", (socket) => {
       const tracker = await transactionService.getIncomingTransaction(userId);
       const quantityTracker = { incoming: tracker.incoming, inbox: tracker.outgoing };
       const ticketTracker = await ticketService.getIncomingTickets(userId);
-      const ticketCount = { incoming: ticketTracker.incomingTickets, inbox: ticketTracker.inboxTickets };
+  
      
-      io.to(receiverSocketId!).emit("notification", message, quantityTracker, ticketCount );
+      io.to(receiverSocketId!).emit("notification", message, quantityTracker, ticketTracker );
     } catch (error) {
       const numOfUnreadNotif = 0;
       const quantityTracker = { incoming: 0, inbox: 0 };

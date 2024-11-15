@@ -152,14 +152,23 @@ export class TicketingController {
   }
 
   public async forwardTicketController(ticketId: string, data: z.infer<typeof ticketingMutationSchema>) {
+    console.log("Hello from forwardTicketController");
     try {
       const old_attachments = await this.ticketingService.getTicketAttachments(ticketId);
-      await db.$transaction(async (tx) => {
+      const result =  await db.$transaction(async (tx) => {
         const result = await this.ticketingService.updateTicket(ticketId, data, tx);
         await this.ticketingService.logPostTicket(result, tx);
         return result;
       });
-
+      const ticketCounterReceiver = await this.ticketingService.getIncomingTickets(result.receiverId!);
+      const ticketCounterForwarder = await this.ticketingService.getIncomingTickets(result.senderId!);
+      
+      const receiverSocketId = userSockets.get(result.receiverId!);
+      const senderSocketId = userSockets.get(result.senderId!)
+      if(receiverSocketId || senderSocketId){
+        io.to(senderSocketId!).emit("ticket-notification",ticketCounterReceiver)
+        io.to(receiverSocketId!).emit("ticket-notification",ticketCounterForwarder);
+      }
       if (data.attachments.length === 0) return;
 
       const new_attachments = data.attachments.filter((item) => !old_attachments?.attachments.includes(item));
@@ -174,16 +183,7 @@ export class TicketingController {
           }
         }),
       );
-      const ticketInboxCount = await this.ticketingService.getIncomingTickets(data?.senderId);
-      const receiverSocketId = userSockets.get(data.receiverId!);
-      const ticketTracker = {
-        incoming: ticketInboxCount.incomingTickets,
-        inbox: ticketInboxCount.inboxTickets,
-      };
-      const message = false;
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("notification", message, ticketTracker);
-      }
+    
     } catch (err: unknown) {
       console.log(err);
       throw new Error("Something went wrong.");

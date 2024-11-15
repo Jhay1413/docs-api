@@ -3,7 +3,6 @@ import { db } from "../../prisma";
 
 export class NotificationService {
   public async readNotificationService(id: string, dateRead: string) {
-    console.log(id);
     try {
       await db.notification.update({
         where: {

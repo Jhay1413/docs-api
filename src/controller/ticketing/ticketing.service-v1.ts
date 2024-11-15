@@ -30,8 +30,6 @@ export class TicketingService {
       },
     };
 
-    console.log(condition);
-
     const conditions = [];
 
     if (Object.keys(condition).length > 0) {
@@ -281,7 +279,6 @@ export class TicketingService {
     sortOrder?: string,
     status?: string,
   ) {
-    console.log(status, "asdsa");
     const skip = (page - 1) * pageSize;
     let condition = {};
 
@@ -313,7 +310,6 @@ export class TicketingService {
       }
     }
 
-    console.log(condition);
 
     const conditions = [];
 
