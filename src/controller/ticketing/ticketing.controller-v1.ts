@@ -195,7 +195,16 @@ export class TicketingController {
       const response = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.receiveTicketService(ticketId, dateReceived, tx);
         await this.ticketingService.receiveTicketLog(result.id, result.receiverId!, result.senderId, result.dateForwarded, dateReceived);
+
+        return result
       });
+      const ticketCounter = await this.ticketingService.getIncomingTickets(response.receiverId!);
+      console.log(ticketCounter)
+      const receiverSocketId = userSockets.get(response.receiverId!);
+      if(receiverSocketId){
+
+        io.to(receiverSocketId).emit("ticket-notification",ticketCounter);
+      }
       return {
         message: "Ticket Received!",
       };

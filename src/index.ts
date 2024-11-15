@@ -80,7 +80,6 @@ io.on("connection", (socket) => {
     try {
       const tracker = await transactionService.getIncomingTransaction(userId);
       const quantityTracker = { incoming: tracker.incoming, inbox: tracker.outgoing };
-      const numOfUnreadNotif = await notificationService.getNumberOfUnreadNotif(userId);
       const ticketTracker = await ticketService.getIncomingTickets(userId);
       const ticketCount = { incoming: ticketTracker.incomingTickets, inbox: ticketTracker.inboxTickets };
      
