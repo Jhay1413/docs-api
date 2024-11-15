@@ -42,8 +42,8 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo DATABASE_URL=postgres://${{ env.NEON_DATABASE_USERNAME }}:${{ env.NEON_DATABASE_PASSWORD }}@${{ steps.create-branch.outputs.db_url }}/neondb?sslmode=require >> .env
-        #   echo DIRECT_URL=${{ steps.create-branch.outputs.db_url }}?sslmode=require >> .env
+          touch .env
+          echo DATABASE_URL=${{ steps.create-branch.outputs.db_url_with_pooler }}?sslmode=require >> .env
       - name: Run prisma migrations
         run: |
           npx prisma generate
