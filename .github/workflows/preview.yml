@@ -44,6 +44,7 @@ jobs:
         run: |
           touch .env
           echo DATABASE_URL=${{ steps.create-branch.outputs.db_url_with_pooler }}?sslmode=require >> .env
+          echo DIRECT_URL=${{ steps.create-branch.outputs.db_url }}?sslmode=require >> .env
       - name: Run prisma migrations
         run: |
           npx prisma generate
