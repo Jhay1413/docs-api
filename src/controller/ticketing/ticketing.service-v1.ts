@@ -6,10 +6,6 @@ import { db } from "../../prisma";
 import { StatusCheckerForQueries } from "../../utils/utils";
 
 export class TicketingService {
-  private db: PrismaClient;
-  constructor(db: PrismaClient) {
-    this.db = db;
-  }
 
   public async fetchPendingRequesteeTicketService(
     query: string,
@@ -861,6 +857,40 @@ export class TicketingService {
         },
       });
       return ticketCount;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong");
+    }
+  }
+
+  public async getIncomingTickets(accountId?: string) {
+    try {
+      const response = await db.$transaction(async (tx) => {
+        const incomingTickets = await tx.ticket.count({
+          where: {
+            receiverId: accountId,
+            dateReceived: {
+              equals: null,
+            },
+            status: {
+              not: "ARCHIVED",
+            },
+          },
+        });
+        const inboxTickets = await tx.ticket.count({
+          where: {
+            receiverId: accountId,
+            dateReceived: {
+              not: null,
+            },
+            status: {
+              not: "ARCHIVED",
+            },
+          },
+        });
+        return {incomingTickets, inboxTickets};
+      });
+      return response;
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong");

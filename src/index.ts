@@ -23,6 +23,7 @@ import ticketingRoutes from "./controller/ticketing/ticketing.route";
 import { registerTicketingRoutes } from "./controller/ticketing/ticketing.routes";
 import { registerNotificationRoutes } from "./controller/notifications/notification.route";
 import { NotificationService } from "./controller/notifications/notification.service";
+import { TicketingService } from "./controller/ticketing/ticketing.service-v1";
 
 const app = express();
 const corsOptions = {
@@ -58,7 +59,8 @@ const userSockets = new Map<string, string>();
 
 const server = http.createServer(app);
 
-const userService = new TransactionService();
+const transactionService = new TransactionService();
+const ticketService = new TicketingService();
 const notificationService = new NotificationService();
 //SOCKET SETUP
 const io = new Server(server, {
@@ -76,11 +78,13 @@ io.on("connection", (socket) => {
     const message = false;
 
     try {
-      const tracker = await userService.getIncomingTransaction(userId);
+      const tracker = await transactionService.getIncomingTransaction(userId);
       const quantityTracker = { incoming: tracker.incoming, inbox: tracker.outgoing };
       const numOfUnreadNotif = await notificationService.getNumberOfUnreadNotif(userId);
-
-      io.to(receiverSocketId!).emit("notification", message, quantityTracker, numOfUnreadNotif);
+      const ticketTracker = await ticketService.getIncomingTickets(userId);
+      const ticketCount = { incoming: ticketTracker.incomingTickets, inbox: ticketTracker.inboxTickets };
+     
+      io.to(receiverSocketId!).emit("notification", message, quantityTracker, ticketCount );
     } catch (error) {
       const numOfUnreadNotif = 0;
       const quantityTracker = { incoming: 0, inbox: 0 };

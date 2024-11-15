@@ -243,7 +243,7 @@ export class TransactionService {
               equals: null,
             },
             status: {
-              not: "ARCHIEVED",
+              not: "ARCHIVED",
             },
           },
         });
@@ -254,7 +254,7 @@ export class TransactionService {
               not: null,
             },
             status: {
-              not: "ARCHIEVED",
+              not: "ARCHIVED",
             },
           },
         });

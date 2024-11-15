@@ -6,14 +6,13 @@ import { array, z } from "zod";
 import { db } from "../../prisma";
 import { GenerateId } from "../../utils/generate-id";
 import { transferFile } from "../aws/aws.service";
-
-const prisma = new PrismaClient();
+import { io, userSockets } from "../..";
 
 export class TicketingController {
   private ticketingService: TicketingService;
 
   constructor() {
-    this.ticketingService = new TicketingService(prisma);
+    this.ticketingService = new TicketingService();
   }
 
   public async fetchPendingRequesteeTicketController(
@@ -175,6 +174,16 @@ export class TicketingController {
           }
         }),
       );
+      const ticketInboxCount = await this.ticketingService.getIncomingTickets(data?.senderId);
+      const receiverSocketId = userSockets.get(data.receiverId!);
+      const ticketTracker = {
+        incoming: ticketInboxCount.incomingTickets,
+        inbox: ticketInboxCount.inboxTickets,
+      };
+      const message = false;
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("notification", message, ticketTracker);
+      }
     } catch (err: unknown) {
       console.log(err);
       throw new Error("Something went wrong.");
