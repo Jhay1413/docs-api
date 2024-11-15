@@ -27,7 +27,7 @@ jobs:
         uses: neondatabase/create-branch-action@v4
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
-          parent: DEV_DB # Ensure this is the correct parent branch
+          parent: dev_branch # Ensure this is the correct parent branch
           database: "DTS" # Corrected typo from 'database' to 'database'
           branch_name: preview/pr-${{ github.event.number }}-${{ steps.branch-name.outputs.current_branch }}
           username: ${{ env.NEON_DATABASE_USERNAME }}
