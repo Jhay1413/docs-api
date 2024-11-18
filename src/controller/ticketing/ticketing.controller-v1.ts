@@ -6,14 +6,13 @@ import { array, z } from "zod";
 import { db } from "../../prisma";
 import { GenerateId } from "../../utils/generate-id";
 import { transferFile } from "../aws/aws.service";
-
-const prisma = new PrismaClient();
+import { io, userSockets } from "../..";
 
 export class TicketingController {
   private ticketingService: TicketingService;
 
   constructor() {
-    this.ticketingService = new TicketingService(prisma);
+    this.ticketingService = new TicketingService();
   }
 
   public async fetchPendingRequesteeTicketController(
@@ -153,14 +152,23 @@ export class TicketingController {
   }
 
   public async forwardTicketController(ticketId: string, data: z.infer<typeof ticketingMutationSchema>) {
+    console.log("Hello from forwardTicketController");
     try {
       const old_attachments = await this.ticketingService.getTicketAttachments(ticketId);
-      await db.$transaction(async (tx) => {
+      const result =  await db.$transaction(async (tx) => {
         const result = await this.ticketingService.updateTicket(ticketId, data, tx);
         await this.ticketingService.logPostTicket(result, tx);
         return result;
       });
-
+      const ticketCounterReceiver = await this.ticketingService.getIncomingTickets(result.receiverId!);
+      const ticketCounterForwarder = await this.ticketingService.getIncomingTickets(result.senderId!);
+      
+      const receiverSocketId = userSockets.get(result.receiverId!);
+      const senderSocketId = userSockets.get(result.senderId!)
+      if(receiverSocketId || senderSocketId){
+        io.to(senderSocketId!).emit("ticket-notification",ticketCounterReceiver)
+        io.to(receiverSocketId!).emit("ticket-notification",ticketCounterForwarder);
+      }
       if (data.attachments.length === 0) return;
 
       const new_attachments = data.attachments.filter((item) => !old_attachments?.attachments.includes(item));
@@ -175,6 +183,7 @@ export class TicketingController {
           }
         }),
       );
+    
     } catch (err: unknown) {
       console.log(err);
       throw new Error("Something went wrong.");
@@ -186,7 +195,16 @@ export class TicketingController {
       const response = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.receiveTicketService(ticketId, dateReceived, tx);
         await this.ticketingService.receiveTicketLog(result.id, result.receiverId!, result.senderId, result.dateForwarded, dateReceived);
+
+        return result
       });
+      const ticketCounter = await this.ticketingService.getIncomingTickets(response.receiverId!);
+      console.log(ticketCounter)
+      const receiverSocketId = userSockets.get(response.receiverId!);
+      if(receiverSocketId){
+
+        io.to(receiverSocketId).emit("ticket-notification",ticketCounter);
+      }
       return {
         message: "Ticket Received!",
       };

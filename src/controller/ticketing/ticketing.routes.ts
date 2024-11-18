@@ -60,7 +60,7 @@ const ticketingRouter = s.router(contracts.ticketing, {
   },
   getTickets: async ({ query }) => {
     try {
-      console.log(query.status);
+    
       const page = parseInt(query.page, 10);
       const pageSize = parseInt(query.pageSize, 10);
 
