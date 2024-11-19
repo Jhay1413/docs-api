@@ -243,7 +243,7 @@ export class TransactionService {
               equals: null,
             },
             status: {
-              not: "ARCHIEVED",
+              not: "ARCHIVED",
             },
           },
         });
@@ -254,7 +254,7 @@ export class TransactionService {
               not: null,
             },
             status: {
-              not: "ARCHIEVED",
+              not: "ARCHIVED",
             },
           },
         });
@@ -1058,6 +1058,8 @@ export class TransactionService {
 
   public async searchTransactionByIdService(query: string) {
     try {
+      const limit:number = 10;
+      const offset: number = 0;
       const transactions = await db.transaction.findMany({
         where: {
           transactionId: {
@@ -1070,6 +1072,8 @@ export class TransactionService {
           transactionId: true,
           documentSubType: true,
         },
+        take:limit,
+        skip:offset,
       });
       return transactions;
     } catch (error) {

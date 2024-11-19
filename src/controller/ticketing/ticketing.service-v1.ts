@@ -6,10 +6,6 @@ import { db } from "../../prisma";
 import { StatusCheckerForQueries } from "../../utils/utils";
 
 export class TicketingService {
-  private db: PrismaClient;
-  constructor(db: PrismaClient) {
-    this.db = db;
-  }
 
   public async fetchPendingRequesteeTicketService(
     query: string,
@@ -33,8 +29,6 @@ export class TicketingService {
         not: "RESOLVED",
       },
     };
-
-    console.log(condition);
 
     const conditions = [];
 
@@ -254,6 +248,24 @@ export class TicketingService {
     }
   }
 
+  public async getLogsByTicketId(ticketId: string, tx: Prisma.TransactionClient) 
+  {
+    try {
+      const logs = await tx.ticketLogs.findMany({
+        where: {
+          ticketId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      return logs;
+    } catch (error) {
+      console.error("Error fetching ticket logs:", error);
+      throw new Error("Failed to fetch ticket logs.");
+    }
+  }
+
   public async fetchTicketsService(
     query: string,
     page: number,
@@ -267,7 +279,6 @@ export class TicketingService {
     sortOrder?: string,
     status?: string,
   ) {
-    console.log(status, "asdsa");
     const skip = (page - 1) * pageSize;
     let condition = {};
 
@@ -299,7 +310,6 @@ export class TicketingService {
       }
     }
 
-    console.log(condition);
 
     const conditions = [];
 
@@ -439,7 +449,11 @@ export class TicketingService {
               dueDate: true,
             },
           },
-          ticketLogs: true,
+          ticketLogs: {
+            orderBy:{
+              createdAt: 'desc',
+            }
+          },
         },
       });
 
@@ -606,7 +620,7 @@ export class TicketingService {
         ...result,
         ticketId: result.id,
         sender: `${result.sender.userInfo?.firstName} ${result.sender.userInfo?.lastName}`,
-        receiver: `${result.receiver?.userInfo?.firstName} ${result.receiver?.userInfo?.lastName} || null`,
+        receiver: result.receiver ? `${result.receiver?.userInfo?.firstName} ${result.receiver?.userInfo?.lastName}` : null,
         senderId: result.senderId,
         receiverId: result.receiverId || null,
         dateForwarded: result.dateForwarded.toISOString(),
@@ -757,7 +771,7 @@ export class TicketingService {
         ...reopenTicket,
         ticketId: reopenTicket.id,
         sender: `${reopenTicket.sender.userInfo?.firstName} ${reopenTicket.sender.userInfo?.lastName}`,
-        receiver: `${reopenTicket.receiver?.userInfo?.firstName} ${reopenTicket.receiver?.userInfo?.lastName} || null`,
+        receiver: `${reopenTicket.receiver?.userInfo?.firstName} ${reopenTicket.receiver?.userInfo?.lastName}` || null,
         dateForwarded: reopenTicket.dateForwarded.toISOString(),
         dateReceived: null,
         createdAt: reopenTicket.createdAt.toISOString(),
@@ -839,6 +853,40 @@ export class TicketingService {
         },
       });
       return ticketCount;
+    } catch (error) {
+      console.log(error);
+      throw new Error("Something went wrong");
+    }
+  }
+
+  public async getIncomingTickets(accountId?: string) {
+    try {
+      const response = await db.$transaction(async (tx) => {
+        const incomingTickets = await tx.ticket.count({
+          where: {
+            receiverId: accountId,
+            dateReceived: {
+              equals: null,
+            },
+            status: {
+              not: "ARCHIVED",
+            },
+          },
+        });
+        const inboxTickets = await tx.ticket.count({
+          where: {
+            receiverId: accountId,
+            dateReceived: {
+              not: null,
+            },
+            status: {
+              not: "ARCHIVED",
+            },
+          },
+        });
+        return {incomingTickets, inboxTickets};
+      });
+      return response;
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong");

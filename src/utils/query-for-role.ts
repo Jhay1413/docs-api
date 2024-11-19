@@ -93,34 +93,17 @@ const createQueryForRole = (role: string, targetDivision: string, team: string |
   }
 };
 
-export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string, requesteeId?: string, type?: string) => {
+export const queryBuilderForTickets = (division: string, section: string, role: string, mode: string, requesteeId?: string) => {
   switch (mode) {
     case "insert":
-      if (type === "EPD") {
-        return {
-          accountRole: "TL",
-          userInfo: {
-            assignedSection: "EPD",
-          },
-        };
-      } else if (type === "IT") {
-        return {
-          accountRole: "TL",
-          userInfo: {
-            assignedSection: "ITOP",
-          },
-        };
-      } else if (type === "Marketing") {
-        return {
-          userInfo: {
-            assignedDivision: "Marketing Department",
-          },
-        };
-      }
-      break;
+      return {
+        accountRole: "TL",
+        userInfo: {
+          assignedSection: section,
+        },
+      };
     case "forward":
       if (role === "TL") {
-        console.log("requesteeId: ", requesteeId);
         return {
           OR: [
             {

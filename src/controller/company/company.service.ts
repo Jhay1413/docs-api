@@ -3,6 +3,7 @@ import { db } from "../../prisma";
 
 import { z } from "zod";
 export const updateCompany = async (id: string, data: z.infer<typeof companyFormData>) => {
+  console.log(data);
   try {
     const response = await db.company.update({
       where: {
@@ -225,35 +226,40 @@ export const fetchCompaniesService = async (query: string) => {
         companyName: true,
         companyProjects: {
           select: {
-            id: true, 
+            id: true,
             projectId: true,
             projectName: true,
-          }
+          },
         },
-      }
+      },
     });
     return response;
   } catch (error) {
     console.log(error);
     throw new Error("Something went wrong");
   }
-}
+};
 
 export const fetchProjectsForTicketingForm = async (query: string) => {
   try {
+    const limit:number = 10;
+    const offset: number = 0;
     const projects = await db.companyProject.findMany({
-      where: { projectName: {
-        contains: query,
-        mode: "insensitive",
-      } 
-    },
+      where: {
+        projectName: {
+          contains: query,
+          mode: "insensitive",
+        },
+      },
       select: {
         id: true,
         projectName: true,
-      }
+      },
+      take: limit,
+      skip: offset,
     });
     return projects;
-  } catch (error) { 
+  } catch (error) {
     throw new Error("Something went wrong!");
   }
 };
