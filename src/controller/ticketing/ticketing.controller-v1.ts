@@ -217,10 +217,17 @@ export class TicketingController {
       const response = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.resolveTicketService(id, userId);
         await this.ticketingService.logPostTicket(result, tx);
-        return {
-          message: "Ticket resolved successfully",
-        };
+        return result;
       });
+      const ticketCounter = await this.ticketingService.getIncomingTickets(response.senderId!);
+      const senderSocketId = userSockets.get(response.senderId!);
+      if(senderSocketId) {
+        io.to(senderSocketId).emit("ticket-notification", ticketCounter);
+      }
+
+      return {
+        message: "Ticket resolved successfully",
+      };
     } catch (error) {
       console.log(error);
       throw new Error("Something went wrong");
