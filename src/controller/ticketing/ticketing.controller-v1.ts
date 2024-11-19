@@ -155,19 +155,19 @@ export class TicketingController {
     console.log("Hello from forwardTicketController");
     try {
       const old_attachments = await this.ticketingService.getTicketAttachments(ticketId);
-      const result =  await db.$transaction(async (tx) => {
+      const result = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.updateTicket(ticketId, data, tx);
         await this.ticketingService.logPostTicket(result, tx);
         return result;
       });
       const ticketCounterReceiver = await this.ticketingService.getIncomingTickets(result.receiverId!);
       const ticketCounterForwarder = await this.ticketingService.getIncomingTickets(result.senderId!);
-      
+
       const receiverSocketId = userSockets.get(result.receiverId!);
-      const senderSocketId = userSockets.get(result.senderId!)
-      if(receiverSocketId || senderSocketId){
-        io.to(senderSocketId!).emit("ticket-notification",ticketCounterForwarder)
-        io.to(receiverSocketId!).emit("ticket-notification",ticketCounterReceiver);
+      const senderSocketId = userSockets.get(result.senderId!);
+      if (receiverSocketId || senderSocketId) {
+        io.to(senderSocketId!).emit("ticket-notification", ticketCounterReceiver);
+        io.to(receiverSocketId!).emit("ticket-notification", ticketCounterForwarder);
       }
       if (data.attachments.length === 0) return;
 
@@ -183,7 +183,6 @@ export class TicketingController {
           }
         }),
       );
-    
     } catch (err: unknown) {
       console.log(err);
       throw new Error("Something went wrong.");
@@ -196,14 +195,13 @@ export class TicketingController {
         const result = await this.ticketingService.receiveTicketService(ticketId, dateReceived, tx);
         await this.ticketingService.receiveTicketLog(result.id, result.receiverId!, result.senderId, result.dateForwarded, dateReceived);
 
-        return result
+        return result;
       });
       const ticketCounter = await this.ticketingService.getIncomingTickets(response.receiverId!);
-      console.log(ticketCounter)
+      console.log(ticketCounter);
       const receiverSocketId = userSockets.get(response.receiverId!);
-      if(receiverSocketId){
-
-        io.to(receiverSocketId).emit("ticket-notification",ticketCounter);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("ticket-notification", ticketCounter);
       }
       return {
         message: "Ticket Received!",

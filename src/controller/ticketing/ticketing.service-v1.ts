@@ -771,7 +771,7 @@ export class TicketingService {
         ...reopenTicket,
         ticketId: reopenTicket.id,
         sender: `${reopenTicket.sender.userInfo?.firstName} ${reopenTicket.sender.userInfo?.lastName}`,
-        receiver: `${reopenTicket.receiver?.userInfo?.firstName} ${reopenTicket.receiver?.userInfo?.lastName} || null`,
+        receiver: `${reopenTicket.receiver?.userInfo?.firstName} ${reopenTicket.receiver?.userInfo?.lastName}` || null,
         dateForwarded: reopenTicket.dateForwarded.toISOString(),
         dateReceived: null,
         createdAt: reopenTicket.createdAt.toISOString(),

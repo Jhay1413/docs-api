@@ -1,0 +1,51 @@
+name: Deployment Preview
+
+on:
+  pull_request:
+    branches:
+      - new_dev
+env:
+  NEON_DATABASE_USERNAME: ${{ secrets.DB_USERNAME }} # Database username
+  NEON_DATABASE_PASSWORD: ${{ secrets.DB_PASSWORD }} # Database password
+  NEON_API_KEY: ${{ secrets.NEON_API_KEY }} # Neon API key
+  NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }} # Neon project ID
+jobs:
+  deploy-preview:
+    permissions: write-all
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v8
+
+      - name: Create Neon Branch
+        id: create-branch
+        uses: neondatabase/create-branch-action@v4
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          parent: dev_branch # Ensure this is the correct parent branch
+          database: "DEV_DB" # Corrected typo from 'database' to 'database'
+          branch_name: preview/pr-${{ github.event.number }}-${{ steps.branch-name.outputs.current_branch }}
+          username: ${{ env.NEON_DATABASE_USERNAME }}
+          password: ${{ env.NEON_DATABASE_PASSWORD }}
+          api_key: ${{ env.NEON_API_KEY }}
+      - name: Set up node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create .env file
+        run: |
+          touch .env
+          echo DATABASE_URL=${{ steps.create-branch.outputs.db_url_with_pooler }}?sslmode=require >> .env
+          echo DIRECT_URL=${{ steps.create-branch.outputs.db_url }}?sslmode=require >> .env
+      - name: Run prisma migrations
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy

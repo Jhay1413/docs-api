@@ -161,11 +161,6 @@ export class TransactionController {
       const filteredAttachments = data.attachments.filter((data) => data.fileStatus !== "NOT_APPLICABLE");
       const attachmentsPercentage = getAttachmentsPercentage(filteredAttachments);
       const old_attachments = await this.transactionService.fetchTransactionAttachments(data.id!);
-
-      /**
-       *
-       *
-       */
       const updatedAttachments = data.attachments.filter((newAttachment) => {
         if (!newAttachment.fileUrl) return false;
         const oldAttachment = old_attachments.find(

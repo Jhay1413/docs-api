@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import { TicketingController } from './ticketing.controller-v1';
+import { Router } from "express";
+import { TicketingController } from "./ticketing.controller-v1";
 
 const router = Router();
 const ticketingController = new TicketingController();
@@ -10,7 +10,7 @@ const ticketingController = new TicketingController();
 //     console.log(userId);
 //     const page = parseInt(req.query.page as string, 10) || 1;
 //     const pageSize = parseInt(req.query.pageSize as string, 10) || 10;
-  
+
 //     try {
 //       const tickets = await ticketingController.getTicketsForUserByStatusHandler(userId, "incoming", page, pageSize);
 //       res.status(200).json({tickets});
