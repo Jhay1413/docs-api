@@ -207,7 +207,6 @@ model Ticket {
   requestDetails String
   division       String
   requesteeId    String
-  requestType    String
   dateForwarded  DateTime
   dateReceived   DateTime?
   attachments    String[]
