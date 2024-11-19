@@ -242,6 +242,8 @@ export const fetchCompaniesService = async (query: string) => {
 
 export const fetchProjectsForTicketingForm = async (query: string) => {
   try {
+    const limit:number = 10;
+    const offset: number = 0;
     const projects = await db.companyProject.findMany({
       where: {
         projectName: {
@@ -253,6 +255,8 @@ export const fetchProjectsForTicketingForm = async (query: string) => {
         id: true,
         projectName: true,
       },
+      take: limit,
+      skip: offset,
     });
     return projects;
   } catch (error) {
