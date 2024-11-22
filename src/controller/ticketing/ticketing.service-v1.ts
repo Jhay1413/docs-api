@@ -578,7 +578,7 @@ export class TicketingService {
     try {
       const result = await tx.ticket.update({
         where: { id: ticketId },
-        data: new_data,
+        data: { ...new_data, dateForwarded: new Date() },
         select: {
           id: true,
           ticketId: true,
