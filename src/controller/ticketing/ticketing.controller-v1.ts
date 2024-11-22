@@ -193,7 +193,14 @@ export class TicketingController {
     try {
       const response = await db.$transaction(async (tx) => {
         const result = await this.ticketingService.receiveTicketService(ticketId, dateReceived, tx);
-        await this.ticketingService.receiveTicketLog(result.id, result.receiverId!, result.senderId, result.dateForwarded, dateReceived);
+        await this.ticketingService.receiveTicketLog(
+          result.id,
+          result.receiverId!,
+          result.senderId,
+          result.dateForwarded,
+          dateReceived,
+          result.status,
+        );
 
         return result;
       });
@@ -221,7 +228,7 @@ export class TicketingController {
       });
       const ticketCounter = await this.ticketingService.getIncomingTickets(response.senderId!);
       const senderSocketId = userSockets.get(response.senderId!);
-      if(senderSocketId) {
+      if (senderSocketId) {
         io.to(senderSocketId).emit("ticket-notification", ticketCounter);
       }
 

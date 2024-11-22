@@ -235,7 +235,7 @@ model TicketLogs {
   senderId      String
   ticket        Ticket    @relation(fields: [ticketId], references: [id])
 
-  @@unique([ticketId, receiverId, senderId, dateForwarded], name: "refId")
+  @@unique([ticketId, receiverId, senderId, dateForwarded,status], name: "refId")
 }
 
 enum Roles {

@@ -6,7 +6,6 @@ import { db } from "../../prisma";
 import { StatusCheckerForQueries } from "../../utils/utils";
 
 export class TicketingService {
-
   public async fetchPendingRequesteeTicketService(
     query: string,
     page: number,
@@ -202,7 +201,7 @@ export class TicketingService {
       throw new Error("Something went wrong");
     }
   }
-  public async receiveTicketLog(ticketId: string, receiverId: string, senderId: string, dateForwarded: string, datReceived: string) {
+  public async receiveTicketLog(ticketId: string, receiverId: string, senderId: string, dateForwarded: string, datReceived: string, status: string) {
     try {
       const response = await db.ticketLogs.update({
         where: {
@@ -211,6 +210,7 @@ export class TicketingService {
             receiverId: receiverId,
             senderId: senderId,
             dateForwarded: dateForwarded,
+            status: status,
           },
         },
         data: {
@@ -248,15 +248,14 @@ export class TicketingService {
     }
   }
 
-  public async getLogsByTicketId(ticketId: string, tx: Prisma.TransactionClient) 
-  {
+  public async getLogsByTicketId(ticketId: string, tx: Prisma.TransactionClient) {
     try {
       const logs = await tx.ticketLogs.findMany({
         where: {
           ticketId,
         },
         orderBy: {
-          createdAt: 'desc',
+          createdAt: "desc",
         },
       });
       return logs;
@@ -309,7 +308,6 @@ export class TicketingService {
         };
       }
     }
-
 
     const conditions = [];
 
@@ -450,9 +448,9 @@ export class TicketingService {
             },
           },
           ticketLogs: {
-            orderBy:{
-              createdAt: 'desc',
-            }
+            orderBy: {
+              createdAt: "desc",
+            },
           },
         },
       });
@@ -884,7 +882,7 @@ export class TicketingService {
             },
           },
         });
-        return {incomingTickets, inboxTickets};
+        return { incomingTickets, inboxTickets };
       });
       return response;
     } catch (error) {
