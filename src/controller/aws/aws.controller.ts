@@ -8,8 +8,9 @@ import { z } from "zod";
 import { getMultipleSignedUrlSchema } from "shared-contract";
 const transactionGetSignedUrl = async (req: Request, res: Response) => {
   const { key } = req.query;
+  const encoded_key = encodeURIComponent(key as string);
   try {
-    const signedUrl = await getSignedUrlFromS3(key as string);
+    const signedUrl = await getSignedUrlFromS3(encoded_key);
     res.status(StatusCodes.OK).json(signedUrl);
   } catch (error) {
     res.status(StatusCodes.GATEWAY_TIMEOUT).json(error);
