@@ -13,7 +13,7 @@ import z from "zod";
 import { registerTransactionRoutes } from "./controller/transaction/transaction.routes";
 
 import { registerCompanyRoutes } from "./controller/company/company.routes";
-import { AccountQuerySchema } from "shared-contract/dist/schema/users/query-schema";
+
 import { registerUserRoutes } from "./controller/user/user.route";
 import { registerFileRoutes } from "./controller/aws/aws.route";
 import { dsahboardRoutes } from "./controller/dashboard/dashboard.route";
@@ -81,9 +81,8 @@ io.on("connection", (socket) => {
       const tracker = await transactionService.getIncomingTransaction(userId);
       const quantityTracker = { incoming: tracker.incoming, inbox: tracker.outgoing };
       const ticketTracker = await ticketService.getIncomingTickets(userId);
-  
-     
-      io.to(receiverSocketId!).emit("notification", message, quantityTracker, ticketTracker );
+
+      io.to(receiverSocketId!).emit("notification", message, quantityTracker, ticketTracker);
     } catch (error) {
       const numOfUnreadNotif = 0;
       const quantityTracker = { incoming: 0, inbox: 0 };
