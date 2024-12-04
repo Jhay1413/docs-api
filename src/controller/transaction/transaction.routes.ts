@@ -99,7 +99,7 @@ const transactionRouter = s.router(contracts.transaction, {
   },
   searchTransactionById: async ({ query }) => {
     try {
-      const result = await transactionController.getTransactionByIdHandler(query.transactionId);
+      const result = await transactionController.getTransactionByIdHandler(query.transactionId,query.projectId);
       return {
         status: 200,
         body: result,

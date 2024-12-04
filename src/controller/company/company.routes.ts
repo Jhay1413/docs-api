@@ -91,6 +91,7 @@ const companyRouters = s.router(contracts.company, {
     }
   },
   editCompanyById: async ({ body, params: { id } }) => {
+    console.log(body);
     try {
       const result = await updateCompany(id, body);
       return {

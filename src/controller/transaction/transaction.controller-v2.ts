@@ -347,9 +347,9 @@ export class TransactionController {
     }
   }
 
-  public async getTransactionByIdHandler(transactionId: string) {
+  public async getTransactionByIdHandler(transactionId: string,projectId:string) {
     try {
-      const transaction = await this.transactionService.searchTransactionByIdService(transactionId);
+      const transaction = await this.transactionService.searchTransactionByIdService(transactionId,projectId);
       return transaction;
     } catch (error) {
       throw new Error("Something went wrong!");
