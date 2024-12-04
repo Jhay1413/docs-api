@@ -1056,12 +1056,13 @@ export class TransactionService {
     }
   }
 
-  public async searchTransactionByIdService(query: string) {
+  public async searchTransactionByIdService(query: string, projectId: string) {
     try {
-      const limit:number = 10;
+      const limit: number = 10;
       const offset: number = 0;
       const transactions = await db.transaction.findMany({
         where: {
+          projectId: projectId,
           transactionId: {
             contains: query,
             mode: "insensitive",
@@ -1072,8 +1073,8 @@ export class TransactionService {
           transactionId: true,
           documentSubType: true,
         },
-        take:limit,
-        skip:offset,
+        take: limit,
+        skip: offset,
       });
       return transactions;
     } catch (error) {
